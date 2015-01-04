@@ -8,17 +8,18 @@ a = "/Users/mac/Documents/UIUC/Algorythm Music 3/Samples/Tubular/*.aiff".pathMat
 t = Sampler(\tublar).load(a);
 )
 
-
-
-t.load(a, filenameAsKeynum: false);
 t.samples;
 t.filenames;
 
+//If you lost your database, you can always find it back
 SamplerDB.dbs;
+t = SamplerDB.dbs[\default].samplers[\tublar];
 
 t.db;
 
-b = t.getPlaySamples(66)[0][0].activeBuffer[0];
+
+
+b = t.getPlaySamples(90)[0][0].activeBuffer[0];
 x = Synth(\key, [buf: b])
 
 
@@ -26,8 +27,8 @@ t.keyRanges;
 t.setKeyRanges(\keynumRadious, 5)
 
 
-t.getPlaySamples(73);
-t = SamplerDB.dbs[\default].samplers[\tublar];
+p = t.getPlaySamples([73, 75]);
+
 
 t.key([90, 30]);
 
