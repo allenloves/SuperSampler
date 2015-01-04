@@ -3,19 +3,27 @@ a = "/Users/mac/Documents/UIUC/Algorythm Music 3/Samples/Tubular/*.aiff".pathMat
 t = Sampler(\tublar).load(a);
 )
 
+t.key([90, 30])
+t.key([90, 30], \percussive);
+
+t.samples[0].keynum;
+t.key(71, texture: 1)
+
+
+
 t.samples;
 t.filenames;
 
 //If you lost your database, you can always find it back
 SamplerDB.dbs;
+SamplerDB.dbs[\default].samplers;
 t = SamplerDB.dbs[\default].samplers[\tublar];
-
 t.db;
 
 
 
-b = t.getPlaySamples(90)[0][0].activeBuffer[0];
-x = Synth(\key, [buf: b])
+~buf = t.getPlaySamples(90)[0][0].activeBuffer[0];
+x = Synth(\key, [buf: ~buf])
 
 
 t.keyRanges;
@@ -25,8 +33,11 @@ t.setKeyRanges(\keynumRadious, 5)
 p = t.getPlaySamples([73, 75]);
 
 
-t.key([90, 30]);
+(
+a = (Platform.resourceDir +/+ "sounds/a11wlk01.wav").pathMatch;
+f = Sampler(\alva).load(a);
+)
 
-t.samples[0].keynum;
-t.key(71, texture: 1)
-
+f.samples[0].keynum;
+f.setKeyRanges(infoArray: 3);
+f.key(70);
