@@ -1,0 +1,158 @@
+TITLE:: SampleDescript
+summary:: Represents a sample file or a buffer with descriptive qualities.
+categories:: VKey
+related:: Classes/SCMIR
+
+DESCRIPTION::
+By Allen Wu
+
+System Requirements:
+
+1. SCMIR. See the link link:: http://composerprogrammer.com/code.html::
+
+2. wslib Quark
+
+SampleDescript uses music information retrieval technique to recognize features of a sound sample file.  
+
+CLASSMETHODS::
+
+METHOD:: new
+Creating a new SampleDescript instance.  In most of case you don't need to care about other arguments besides filename.
+	argument:: filename
+		File name to analyse.  It can also be a Buffer for live recording.
+	argument:: normtype
+		Type of normalization for SCMIR, 0 means not to normalize the data, 1 means to normalize all datas in between 0 and 1
+	argument:: start
+		Start time to analyze
+	argument:: dur
+		Duration to analyze
+	argument:: startThresh
+		Amplitude threshold to determine the starting point of each sections in the sample.  The value will be multiplied by the peak amplitude.
+	argument:: endThresh
+		Amplitude threshold to determine the ending point of each sections in the sample.  The value will be multiplied by the peak amplitude.
+	argument:: onsetThresh
+		Absolute amplitude threshold for onset detection.
+	argument:: groupingThresh
+		Temporal threshold in seconds to determine the distance of onsets to be considered as the same section.
+	argument:: filenameAsNote
+		Uses information from the end of file name if possible for anchored midi key note sending to sampler synthesizer.  Informations can be note names like "C4" or MIDI key numbers like "60".
+	argument:: loadToBuffer
+		Load the sample file to a buffer while analysing.
+	argument:: server
+		Server to load the file.
+	argument:: action
+		Function to run when loading to buffer is finished.
+
+
+
+INSTANCEMETHODS::
+
+subsection:: For management:
+
+method:: free
+Free the instance and buffer.
+
+METHOD:: play
+Play the sound sample for audition.
+	argument:: at
+		index of sections, nil for the whole file.
+	argument:: outbus
+		bus for playback.
+	argument:: server
+		server to load the file into server.
+method:: loadToBuffer
+Load sample file to Buffer.
+
+subsection:: Global information:
+
+method:: filename
+The file path and name of the instance loaded.  If a Buffer is loaded, a tempbuffer.aiff file will be created in system temp folder.
+
+method:: buffer
+Buffer loaded the whole file.
+
+method:: activeBuffer
+An array of Buffers loaded with each sections of the sample.
+
+method:: bufferServer
+The server to load Buffer into.
+
+method:: keynum
+A MIDI key number for anchoring the original pitch of the sample.
+
+method:: keynumFromFileName
+nil if there is none.
+
+method:: keynumFromPitchFound
+Key number found from pitch detection, if no pitch is found, it will be replaced with frequency centorid mapped down by an octave.
+
+method:: env
+	returns:: An Envelope with the amplitude information of the whole file.
+
+method:: sampleRate
+method:: duration
+method:: globalPeakTime
+method:: globalPeakAmp
+
+subsection:: Local information of each active section
+Local informations are descripted as an Array of numbers.
+
+method:: activeEnv
+	returns:: An Array of Envelops for each section detected.
+
+method:: activeDuration
+method:: startTime
+Starting time point of each section within the file.
+
+method:: endTime
+Ending time point of each section within the file.
+
+method:: peakTime
+Time point of each amplitude peak detected within the file.
+
+method:: peakAmp
+Peak amplitude of each section.
+
+method:: attackDur
+Conventional "attack time" for an envelope
+
+method:: releaseDur
+Conventional "release time" for an envelope
+
+method:: temporalCentroid
+Meaned each time frame weighted by amplitudes.  Shorter value indicates percussive sounds.  Longer value indicates sustained sounds.
+
+subsection:: Raw Data:
+
+SampleDescript uses SCMIR to create analysis data.  The default frame size for FFT and other analysis in SCMIR is 1024 samples.  And default samplingrate of SCMIR is 44100Hz.  Raw data methods contains analyzed datas by each frame.
+
+method:: file
+The instance of SCMIRAudioFile if needed.
+
+method:: mirDataByFeatures
+Data Array extracted from SCMIR grouped by features, the array of features will be:
+
+[[RMS], [Pitch], [hasPitch], [centroid], [SensoryDissonance], [Specflatness]]
+
+method:: frameTimes
+Time point to the middle of each frame.
+
+method:: rmsData
+
+method:: pitchData
+Pitch data is stored in this format of each frame:
+
+[[Pitch, hasPitch], [Pitch, hasPitch], ......]
+
+Pitch is defined by MIDI key number, it can be floating point numbers.  hasPitch ranges from 0 to 1, 1 means a pitch is surely founded.
+
+method:: centroidData
+Spectral centroid is weighted mean of the frequencies by amplitude.
+
+method:: activeCentroidData
+Local centroid data of each section.
+
+method:: activeDissonanceData
+
+method:: activeSpecFlatness
+Spectral flatness is an indicator of how flat of the spectrum to a frame.  0 means sinesoid wave, 1 means white noise.  This indicates the degree of noiseness.

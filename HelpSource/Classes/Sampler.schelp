@@ -1,0 +1,124 @@
+TITLE:: Sampler
+summary:: A sampler synthesizer that knows what it's doing.
+categories:: SuperSampler
+related:: Classes/SampleDescript
+
+DESCRIPTION::
+Sampler is a sampling synthesizer that applies SampleDescript for sound quality detection, and using detected information to determine playback bahavier.  Most features of Sampler is done automatically for you.
+
+For example, it detects the beginning of your sound samples, if there are more than one onset, it separates each onsets as different samples.  There are lots of other figures you may want to experiment.
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Create a new Sampler.
+
+ARGUMENT:: name
+Name of Sampler.
+
+ARGUMENT:: dbname
+Name of Sampler database.  Each database may contain different Sampler libraries.
+
+returns:: this Sampler
+
+
+INSTANCEMETHODS::
+
+METHOD:: init
+(describe method here)
+
+ARGUMENT:: name
+(describe argument here)
+
+ARGUMENT:: dbname
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: key
+(describe method here)
+
+ARGUMENT:: keynums
+(describe argument here)
+
+ARGUMENT:: strategy
+(describe argument here)
+
+ARGUMENT:: texture
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: db
+(describe method here)
+
+ARGUMENT:: name
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: filenames
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: setKeyRanges
+(describe method here)
+
+ARGUMENT:: strategy
+(describe argument here)
+
+ARGUMENT:: infoArray
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: getPlaySamples
+(describe method here)
+
+ARGUMENT:: keynum
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: samples
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: dbs
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: activeSamples
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: load
+(describe method here)
+
+ARGUMENT:: soundfiles
+(describe argument here)
+
+ARGUMENT:: server
+(describe argument here)
+
+ARGUMENT:: filenameAsKeynum
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: keyRanges
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+
+EXAMPLES::
+
+code::
+(some example code)
+::
