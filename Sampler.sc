@@ -68,9 +68,7 @@ Sampler{
 	*initClass{
 		StartUp.add({
 			SynthDef(\key, {arg buf, rate = 1, startPos = 0;
-				var source = PlayBuf.ar(2, buf, rate * BufRateScale.kr(buf), startPos: startPos * BufRateScale.kr(buf), doneAction: 2);
-				rate.postln;
-				startPos.postln;
+				var source = PlayBuf.ar(2, buf, rate * BufRateScale.kr(buf), startPos: startPos * BufSampleRate.kr(buf), doneAction: 2);
 				Out.ar(0, source);
 			}).add;
 		})
@@ -220,10 +218,10 @@ Sampler{
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
 				}
 			},
-			\percussive,{//debug: not working
+			\percussive,{
 				playSamples.do{|thisSample, index|
-					var thisPeakTime = thisSample[0].peakTime[thisSample[1]] * thisSample[2];
-					startpos = thisPeakTime * thisSample[2] * thisSample[0].sampleRate;
+					var thisPeakTime = thisSample[0].peakTime[thisSample[1]];
+					startpos = thisPeakTime - 0.05;
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
 				}
 			},
@@ -248,6 +246,7 @@ Sampler{
 				thisSample[3].yield;
 				Synth(\key, [buf: thisSample[0].activeBuffer[thisSample[1]], rate: thisSample[2], startPos: thisSample[4]]);
 				thisSample[0].filename.postln;
+				thisSample.postln;
 			};
 		}
 	}
