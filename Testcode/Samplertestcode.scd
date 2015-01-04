@@ -1,8 +1,3 @@
-a = Sampler.new(\werr);
-a.db(\werr);
-
-
-
 (
 a = "/Users/mac/Documents/UIUC/Algorythm Music 3/Samples/Tubular/*.aiff".pathMatch;
 t = Sampler(\tublar).load(a);
