@@ -40,7 +40,7 @@ SampleDescript{
 	var <endIndex;
 	var <endTime;
 	var <peakIndex;
-	var <peakTime;
+	var <peakTime;  //global time point of each peak
 	var <peakAmp;
 	var <attackDur;  // Attack Time
 	var <releaseDur;  // Release Time
@@ -105,7 +105,7 @@ SampleDescript{
 			this.findPeaksByOnsets;
 			this.findBreakPointByOnset;
 			this.sectionRmsDataByOnset;
-			this.arEnv;
+		this.arEnv(startThresh, endThresh);
 			this.getActiveData;
 		this.getKeynum(filenameAsNote);
 		if(loadToBuffer){
@@ -166,7 +166,7 @@ SampleDescript{
 
 
 	loadToBuffer{arg server = Server.default, action;
-		var buf, startSample = 0, endSample, durSample;
+		var buf, startSample = 0, durSample;
 		var cond = Condition(false);
 		bufferServer = server;
 		buffer.free;
@@ -181,8 +181,7 @@ SampleDescript{
 				//"master buffer loaded".postln;
 				startTime.do{|thisStartTime, sectionIndex|
 					startSample = thisStartTime * sampleRate;
-					endSample = endTime[sectionIndex] * sampleRate;
-					durSample = (endTime[sectionIndex] - thisStartTime) * sampleRate;
+					durSample = activeDuration[sectionIndex] * server.sampleRate;  //why?
 					activeBuffer = activeBuffer.add(Buffer.read(server, filename, startSample, durSample, {cond.test = true; cond.signal;}));
 					cond.wait;
 					/*activeBuffer = activeBuffer.add(Buffer.alloc(server, durSample, buffer.numChannels));
@@ -281,7 +280,7 @@ SampleDescript{
 			//if no pitch data is collected, than use centroid data for pitch
 			//if there are pitch data collected, get the most occurred data for keynum
 			if(pitchCollection.size == 0 || pitchCollection.occurrencesArray(0.5).maxItem == 1)
-			{keynumFromPitchFound = keynumFromPitchFound.add(centroidData[thisPeakIndex].explin(20, 20000, 28, 103) - 12); // map to the range of my keyboard :p
+			{keynumFromPitchFound = keynumFromPitchFound.add(centroidData[thisPeakIndex].explin(20, 20000, 28, 103) - 12); // an octave lower to map to the range of my keyboard :p
 			"no pitch detected, using centorid".postln;}
 			{keynumFromPitchFound = keynumFromPitchFound.add(pitchCollection.mostOccurredItems(0.5).mean)};
 		});
@@ -347,7 +346,7 @@ SampleDescript{
 
 
 	//Dictate attact/release time
-	arEnv {|startThresh=0.1, endThresh=0.1|
+	arEnv {|startThresh, endThresh|
 		var startAmp;
 		var endAmp;
 		var thisSectionGlobalIndex = 0;
@@ -393,17 +392,21 @@ SampleDescript{
 					if(rmsenergy >= endAmp ,
 						{localEndTime = SCMIR.frameTime(thisSection.size - index);
 							endIndex = endIndex.add(thisSectionGlobalIndex + thisSection.size - index);
-							endTime = endTime.add(SCMIR.frameTime(endIndex.last) + ((SCMIR.framehop+2048)/SCMIR.samplingrate));
+							endTime = endTime.add(SCMIR.frameTime(endIndex.last) + ((SCMIR.framehop+2048)/SCMIR.samplingrate)); //adjust to the end of the frame
 							break.value(0);
 					})
 				})
 			};
 
-			attackDur = attackDur.add(localPeakTime - localStartTime);
-			releaseDur = releaseDur.add(localEndTime - localPeakTime);
-			activeDuration = activeDuration.add(localEndTime - localStartTime);
+			//attackDur = attackDur.add(localPeakTime - localStartTime);
+			//releaseDur = releaseDur.add(localEndTime - localPeakTime);
+			//activeDuration = activeDuration.add(localEndTime - localStartTime);
 			thisSectionGlobalIndex = thisSectionGlobalIndex + thisSection.size - 1;
-		}
+		};
+
+		attackDur = peakTime - startTime;
+		releaseDur = endTime - peakTime;
+		activeDuration = endTime - startTime;
 	}
 
 
@@ -458,7 +461,7 @@ SampleDescript{
 
 
 	//return an array of envelopes to represent each onsets.
-	activeEnv {|startThresh=0.2, endThresh=0.2|
+	activeEnv {|startThresh=0.1, endThresh=0.01|
 		var envArray = [];
 		this.arEnv(startThresh, endThresh);
 		rmsDataByOnset.do{|thisSection, sectionIndex|
