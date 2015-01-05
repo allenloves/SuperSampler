@@ -12,7 +12,7 @@ System Requirements:
 
 2. wslib Quark
 
-SampleDescript uses music information retrieval technique to recognize features of a sound sample file.  
+SampleDescript uses music information retrieval technique to recognize features of a sound sample file.
 
 CLASSMETHODS::
 
@@ -102,13 +102,13 @@ method:: activeEnv
 
 method:: activeDuration
 method:: startTime
-Starting time point of each section within the file.
+Global time point of each section starts within the file.
 
 method:: endTime
-Ending time point of each section within the file.
+Global time point of each section ends within the file.
 
 method:: peakTime
-Time point of each amplitude peak detected within the file.
+Global time point of each amplitude peak detected within the file.
 
 method:: peakAmp
 Peak amplitude of each section.
@@ -156,3 +156,40 @@ method:: activeDissonanceData
 
 method:: activeSpecFlatness
 Spectral flatness is an indicator of how flat of the spectrum to a frame.  0 means sinesoid wave, 1 means white noise.  This indicates the degree of noiseness.
+
+
+EXAMPLES::
+code::
+e = SampleDescript(Platform.resourceDir +/+ "sounds/a11wlk01.wav", loadToBuffer: false)
+e.play;
+e.play(2);
+e.sampleRate;
+e.onsetIndex;
+e.file.onsetdata;
+e.startIndex;
+e.endIndex;
+e.temporalCentroid;
+e.peakTime;
+e.attackDur;
+e.env.plot;
+e.activeEnv.plot;
+e.pitchData.flop.plot;
+e.temporalCentroid;
+e.activeCentroidData;
+e.activeDissonanceData.plot;
+e.fileNameAsNote;
+e.keynum;
+e.loadToBuffer;
+e.buffer;
+
+e.activeBuffer[1].plot;
+
+(
+{
+	var env = e.env;
+	Out.ar(1, SinOsc.ar(LFNoise0.kr(300, mul: 100, add: 800), mul: EnvGen.kr(env, doneAction: 2)))
+}.play;
+e.play;
+)
+
+::

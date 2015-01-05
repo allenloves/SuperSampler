@@ -6,10 +6,10 @@ t = Sampler(\tublar).load(a);
 t.key([90, 30])
 t.key([90, 30], \percussive);
 
+t.samples[0].peakTime;
+
 t.samples[0].keynum;
 t.key(71, texture: 1)
-
-
 
 t.samples;
 t.filenames;
@@ -40,4 +40,14 @@ f = Sampler(\alva).load(a);
 
 f.samples[0].keynum;
 f.setKeyRanges(infoArray: 3);
+f.getPlayTime(f.getPlaySamples(70);).flop[3];
 f.key(70);
+
+
+(
+a = "/Volumes/My Sounds/My Samples/Processed/Long/Reel Palindruome.aif".pathMatch;
+g = Sampler(\reel).load(a)
+)
+
+g.samples[0].keynum;
+g.key([37])

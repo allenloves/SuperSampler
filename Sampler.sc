@@ -68,7 +68,7 @@ Sampler{
 	*initClass{
 		StartUp.add({
 			SynthDef(\key, {arg buf, rate = 1, startPos = 0;
-				var source = PlayBuf.ar(2, buf, rate * BufRateScale.kr(buf), startPos: startPos * BufSampleRate.kr(buf), doneAction: 2);
+				var source = PlayBuf.ar(1, buf, rate * BufRateScale.kr(buf), startPos: startPos * BufSampleRate.kr(buf), doneAction: 2);
 				Out.ar(0, source);
 			}).add;
 		})
@@ -208,13 +208,13 @@ Sampler{
 		switch(strategy.asSymbol,
 			\keepLength,{
 				//sort samples by the attack time of the section, longer first
-				playSamples = playSamples.sort({|a, b| (a[0].attackDur[a[1]] * a[2]) > (b[0].attackDur[b[1]] * b[2])});
+				playSamples = playSamples.sort({|a, b| (a[0].attackDur[a[1]] * a[2]) > (b[0].attackDur[b[1]] * b[2])}); // why less than?
 				playSamples.do{|thisSample, index|
 					var previousIndex = (index - 1).thresh(0);
 					var previousSample = playSamples[previousIndex];
-					var thisPeakTime = thisSample[0].peakTime[thisSample[1]] * thisSample[2];
-					var previousPeakTime = previousSample[0].peakTime[previousSample[1]] * previousSample[2];
-					yieldtime = yieldtime + (thisPeakTime - previousPeakTime);//why?
+					var thisPeakTime = (thisSample[0].peakTime[thisSample[1]] - thisSample[0].startTime[thisSample[1]]) * thisSample[2];
+					var previousPeakTime = (previousSample[0].peakTime[previousSample[1]] - previousSample[0].startTime[previousSample[1]]) * previousSample[2];
+					yieldtime = yieldtime + (previousPeakTime - thisPeakTime).abs;
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
 				}
 			},
@@ -245,7 +245,7 @@ Sampler{
 			playSamples.do{|thisSample, index|
 				thisSample[3].yield;
 				Synth(\key, [buf: thisSample[0].activeBuffer[thisSample[1]], rate: thisSample[2], startPos: thisSample[4]]);
-				thisSample[0].filename.postln;
+				thisSample[0].activeBuffer[thisSample[1]].path.postln;
 				thisSample.postln;
 			};
 		}

@@ -4,18 +4,14 @@ a.arEnv(startThresh: 0.1, endThresh: 0.1);
 a.filename;
 a.duration;
 a.play;
-a.frameTimes;
 a.play(0);
-a.mirDataByFeatures;
+a.activeBuffer[0].duration;
+a.activeDuration[0];
 a.rmsData.plot;
-a.onsetTime;
-a.peakIndex;
 a.peakTime;
 a.peakAmp;
-a.onsetIndex;
-a.peakIndex;
-a.onsetBreakPoint;
-a.rmsDataByOnset;
+a.startTime;
+a.endTime;
 a.attackDur;
 a.activeDuration;
 a.pitchData.flop.plot;
@@ -92,7 +88,7 @@ e.file.onsetdata;
 e.startIndex;
 e.endIndex;
 e.temporalCentroid;
-e.peakIndex;
+e.peakTime;
 e.attackDur;
 e.env.plot;
 e.activeEnv.plot;
@@ -102,16 +98,17 @@ e.activeCentroidData;
 e.activeDissonanceData.plot;
 e.fileNameAsNote;
 e.keynum;
-e.loadToBuffer(action: {"hello here".postln});
+e.loadToBuffer;
 e.buffer;
-e.activeBuffer[2].play;
+
+e.activeBuffer[1].plot;
 
 (
 {
 	var env = e.env;
 	Out.ar(1, SinOsc.ar(LFNoise0.kr(300, mul: 100, add: 800), mul: EnvGen.kr(env, doneAction: 2)))
 }.play;
-//e.play;
+e.play;
 )
 
 m = SampleDescript("/Users/mac/Documents/UIUC/Algorythm Music 3/Samples/Crotales/c6.aiff", loadToBuffer: true)
