@@ -44,6 +44,7 @@ SamplerDB{
 	//TODO: Free all Samplers in the database.
 	free{
 		dbs.removeAt(label);
+
 		samplers = nil;
 	}
 }//End of SamplerDB class
@@ -55,7 +56,7 @@ Sampler{
 	var <dbs;  // a SamplerDB instance.
 	var <filenames;
 	var <samples;
-	var <activeSamples;
+	var <bufServer;
 	//                           |------ Each Sample -------------|	 |-----Each Sample---
 	//                            |--Section---|  |--Section---|      |--Section---|
 	var <keyRanges;// in format [[[upper, lower], [upper, lower]..], [[upper, lower], [upper, lower]...], ....]
@@ -68,7 +69,7 @@ Sampler{
 	*initClass{
 		StartUp.add({
 			SynthDef(\key, {arg buf, rate = 1, startPos = 0;
-				var source = PlayBuf.ar(1, buf, rate * BufRateScale.kr(buf), startPos: startPos * BufSampleRate.kr(buf), doneAction: 2);
+				var source = PlayBuf.ar(buf.numChannels, buf, rate * BufRateScale.kr(buf), startPos: startPos * BufSampleRate.kr(buf), doneAction: 2);
 				Out.ar(0, source);
 			}).add;
 		})
@@ -105,7 +106,18 @@ Sampler{
 		dbs.put(name.asSymbol, this);
 	}
 
+	free {
+		samples.do{|thisSample|
+			thisSample.free;
+		};
+		samples = [];
+		filenames = [];
+		bufServer = nil;
+		keyRanges = [];
+	}
+
 	load {arg soundfiles, server = Server.default, filenameAsKeynum = true;
+		bufServer = server;
 		Routine.run{
 			var dict = Dictionary.newFrom([filenames, samples].flop.flat);
 			soundfiles.do{|filename, index|
@@ -208,20 +220,22 @@ Sampler{
 		switch(strategy.asSymbol,
 			\keepLength,{
 				//sort samples by the attack time of the section, longer first
-				playSamples = playSamples.sort({|a, b| (a[0].attackDur[a[1]] * a[2]) > (b[0].attackDur[b[1]] * b[2])}); // why less than?
+				playSamples = playSamples.sort({|a, b| (a[0].attackDur[a[1]] * a[2]) < (b[0].attackDur[b[1]] * b[2])}); // why less than?
 				playSamples.do{|thisSample, index|
+					var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
 					var previousIndex = (index - 1).thresh(0);
 					var previousSample = playSamples[previousIndex];
-					var thisPeakTime = (thisSample[0].peakTime[thisSample[1]] - thisSample[0].startTime[thisSample[1]]) * thisSample[2];
-					var previousPeakTime = (previousSample[0].peakTime[previousSample[1]] - previousSample[0].startTime[previousSample[1]]) * previousSample[2];
-					yieldtime = yieldtime + (previousPeakTime - thisPeakTime).abs;
+					var thisPeakTime = (thisSample[0].attackDur[thisSample[1]] / thisSample[2])/bufRateScale;
+					var previousPeakTime = (previousSample[0].attackDur[previousSample[1]] / previousSample[2])/bufRateScale;
+					yieldtime = (previousPeakTime - thisPeakTime).thresh(0);
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
 				}
 			},
 			\percussive,{
 				playSamples.do{|thisSample, index|
-					var thisPeakTime = thisSample[0].peakTime[thisSample[1]];
-					startpos = thisPeakTime - 0.05;
+					var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
+					var thisPeakTime = thisSample[0].attackDur[thisSample[1]];
+					startpos = (thisPeakTime-((SCMIR.framehop+2048)/SCMIR.samplingrate)).thresh(0) * bufRateScale;
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
 				}
 			},

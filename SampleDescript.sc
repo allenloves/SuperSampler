@@ -57,14 +57,15 @@ SampleDescript{
 
 	//parameters
 	//File Name, Normalize, Start Tine, Duration, Threshold for attack point, Threshold for end point, Threshold for onset, Time threshold for onset grouping.
-	*new {|filename, normtype=0, start=0, dur=0, startThresh=0.1, endThresh=0.01, onsetThresh=0.5, groupingThresh = 0.32, filenameAsNote = true, loadToBuffer = false, server = nil, action|
+	*new {arg filename, normtype=0, start=0, dur=0, startThresh=0.01, endThresh=0.01, onsetThresh=0.5, groupingThresh = 0.32, filenameAsNote = true, loadToBuffer = true, server = Server.default, action;
 
 		^super.new.init(filename, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, server, action);
 	}
 
 	init {|fileName, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, server, action|
 		var cond = Condition.new(false);
-		server = server ? Server.default;
+		server.postln;
+		bufferServer = server;
 		//Write Buffer into a file if the input is a buffer.
 		// if(fileName.class == Buffer)
 		// {//if input is a buffer, save the buffer into a file before loading to SCMIR
@@ -99,7 +100,6 @@ SampleDescript{
 			globalPeakAmp = rmsData.maxItem;
 			frameTimes = file.frameTimes;
 			globalPeakTime = frameTimes.at(globalPeakIndex);
-			sampleRate = SoundFile.new(filename).sampleRate;
 			this.getOnsetTime(groupingThresh);
 			this.getOnsetIndex;
 			this.findPeaksByOnsets;
@@ -110,7 +110,7 @@ SampleDescript{
 		this.getKeynum(filenameAsNote);
 		if(loadToBuffer){
 			server.waitForBoot{
-				this.loadToBuffer(server)};
+				this.loadToBuffer(bufferServer)};
 		};
 
 	}
@@ -172,16 +172,16 @@ SampleDescript{
 		buffer.free;
 		activeBuffer.do({|buffer| buffer.free;});
 		activeBuffer = [];
-		"loading soundfile into buffer".postln;
+		"Loading soundfile into Buffer".postln;
 		server.waitForBoot{
 			Routine.run{
 				buffer = Buffer.read(server, filename, action: {cond.test = true; cond.signal;});
 				cond.wait;
-
+				sampleRate = buffer.sampleRate;
 				//"master buffer loaded".postln;
 				startTime.do{|thisStartTime, sectionIndex|
 					startSample = thisStartTime * sampleRate;
-					durSample = activeDuration[sectionIndex] * server.sampleRate;  //why?
+					durSample = activeDuration[sectionIndex] * sampleRate;
 					activeBuffer = activeBuffer.add(Buffer.read(server, filename, startSample, durSample, {cond.test = true; cond.signal;}));
 					cond.wait;
 					/*activeBuffer = activeBuffer.add(Buffer.alloc(server, durSample, buffer.numChannels));
@@ -372,7 +372,7 @@ SampleDescript{
 			endAmp = endThresh * localPeakAmp;
 
 			peakAmp = peakAmp.add(localPeakAmp);
-			peakTime = peakTime.add(localPeakTime + SCMIR.frameTime(thisSectionGlobalIndex));
+			peakTime = peakTime.add(localPeakTime + SCMIR.frameTime(thisSectionGlobalIndex)) ;
 
 			//search for the first point pass above threshold.
 			block{|break|
@@ -398,9 +398,6 @@ SampleDescript{
 				})
 			};
 
-			//attackDur = attackDur.add(localPeakTime - localStartTime);
-			//releaseDur = releaseDur.add(localEndTime - localPeakTime);
-			//activeDuration = activeDuration.add(localEndTime - localStartTime);
 			thisSectionGlobalIndex = thisSectionGlobalIndex + thisSection.size - 1;
 		};
 
