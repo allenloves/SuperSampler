@@ -1,13 +1,18 @@
 (
+s.waitForBoot{
 a = "/Users/mac/Documents/UIUC/Algorythm Music 3/Samples/Tubular/*.aiff".pathMatch;
 t = Sampler(\tublar).load(a);
+}
 )
 
-t.key([90, 30])
-t.key([90, 30], \percussive);
+t.samples;
+t.key([90, 30]);
+t.key([90, 30, 60, 70], \percussive);
+t.key([90, 30], \nosorting);
 
-t.samples[0].peakTime;
-
+t.samples[0].attackDur;
+t.samples[0].sampleRate;
+t.samples[0].bufferServer.sampleRate;
 t.samples[0].keynum;
 t.key(71, texture: 1)
 
@@ -41,13 +46,20 @@ f = Sampler(\alva).load(a);
 f.samples[0].keynum;
 f.setKeyRanges(infoArray: 3);
 f.getPlayTime(f.getPlaySamples(70);).flop[3];
-f.key(70);
-
+f.key(70, \percussive);
 
 (
+s.waitForBoot{
 a = "/Volumes/My Sounds/My Samples/Processed/Long/Reel Palindruome.aif".pathMatch;
 g = Sampler(\reel).load(a)
+}
 )
 
-g.samples[0].keynum;
-g.key([37])
+g.samples[0].startTime;
+g.samples[0].peakTime;
+g.samples[0].attackDur;
+g.samples[0].sampleRate;
+g.samples[0].activeBuffer[0].plot;
+g.key([70, 37])
+g.key([70, 37, 30, 100], \percussive)
+g.key([70, 37], \nosorting)
