@@ -7,7 +7,7 @@ t = Sampler(\tublar).load(a);
 
 t.samples;
 t.key([90, 30]);
-t.key([90, 30, 60, 70], \percussive);
+t.key([90, 30, 60, 70, 80], \percussive);
 t.key([90, 30], \nosorting);
 
 t.samples[0].attackDur;
@@ -58,8 +58,10 @@ g = Sampler(\reel).load(a)
 g.samples[0].startTime;
 g.samples[0].peakTime;
 g.samples[0].attackDur;
+g.samples[0].activeDuration;
 g.samples[0].sampleRate;
 g.samples[0].activeBuffer[0].plot;
-g.key([70, 37])
+g.samples[0].keynum;
+g.key([74, 37])
 g.key([70, 37, 30, 100], \percussive)
 g.key([70, 37], \nosorting)
