@@ -217,20 +217,24 @@ Sampler{
 	//[SampleDescript, section index, playRate]
 	getPlayTime{arg playSamples, strategy = \keepLength;
 		var yieldtime = 0, startpos = 0;
+
 		switch(strategy.asSymbol,
 			\keepLength,{
 				//sort samples by the attack time of the section, longer first
-				playSamples = playSamples.sort({|a, b| (a[0].attackDur[a[1]] * a[2]) < (b[0].attackDur[b[1]] * b[2])}); // why less than?
+				playSamples = playSamples.sort({|a, b| (a[0].attackDur[a[1]] / a[2]) > (b[0].attackDur[b[1]] / b[2])});
 				playSamples.do{|thisSample, index|
 					var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
 					var previousIndex = (index - 1).thresh(0);
 					var previousSample = playSamples[previousIndex];
 					var thisPeakTime = (thisSample[0].attackDur[thisSample[1]] / thisSample[2])/bufRateScale;
 					var previousPeakTime = (previousSample[0].attackDur[previousSample[1]] / previousSample[2])/bufRateScale;
+					("This peak time =" + thisPeakTime).postln;
+					("previous peak time =" + previousPeakTime).postln;
 					yieldtime = (previousPeakTime - thisPeakTime).thresh(0);
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
 				}
 			},
+
 			\percussive,{
 				playSamples.do{|thisSample, index|
 					var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
@@ -239,6 +243,7 @@ Sampler{
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
 				}
 			},
+
 			\nosorting,{
 				playSamples.do{|thisSample, index|
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
