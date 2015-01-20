@@ -271,6 +271,11 @@ Sampler{
 	}
 
 
+
+	playEnv{arg keynums, env, strategy = \delay, texture = nil;
+
+	}
+
 }//end of Sampler class
 
 
