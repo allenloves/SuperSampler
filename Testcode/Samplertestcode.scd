@@ -1,14 +1,16 @@
 (
 s.waitForBoot{
-a = "/Users/mac/Documents/UIUC/Algorythm Music 3/Samples/Tubular/*.aiff".pathMatch;
+	a = (Platform.userExtensionDir ++ "/SuperSampler/Testcode/Tubular/*.aiff").pathMatch;
 t = Sampler(\tublar).load(a);
 }
 )
 
 t.samples;
-t.key([90, 30]);
-t.key([90, 30, 60, 70, 80], \percussive);
+t.key([72, 48]);
+t.key([72, 48], \percussive);
 t.key([90, 30], \nosorting);
+
+t.setKeyRanges(\keyNumOnly);
 
 t.samples[0].attackDur;
 t.samples[0].sampleRate;
@@ -50,7 +52,7 @@ f.key(70, \percussive);
 
 (
 s.waitForBoot{
-a = "/Volumes/My Sounds/My Samples/Processed/Long/Reel Palindruome.aif".pathMatch;
+	a = (Platform.userExtensionDir ++ "/SuperSampler/Testcode/Reel Palindruome.aif").pathMatch;
 g = Sampler(\reel).load(a)
 }
 )
@@ -63,5 +65,5 @@ g.samples[0].sampleRate;
 g.samples[0].activeBuffer[0].plot;
 g.samples[0].keynum;
 g.key([74, 37])
-g.key([70, 37, 30, 100], \percussive)
+g.key([70, 37], \percussive)
 g.key([70, 37], \nosorting)
