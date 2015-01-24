@@ -1,57 +1,5 @@
 
-//Instance of SamplerDB is a database of multiple Sampler
-//The data structure of SamplerDB Instance is a Dictionary in this format
-// [ \Sampler_Name -> Sampler_Instance,  \Sampler_Name -> Sampler_Instance,  ...]
-SamplerDB{
-	classvar <dbs;  //System log for all sampler databases.
-	var <label;
-	var <samplers;  //database of Samplers
-
-	*new{arg dbname = \default;
-		^super.new.init(dbname);
-	}
-
-	*initClass{
-		dbs = Dictionary.new;
-	}
-
-	*isLoaded{arg dbname;
-		^dbs.at(dbname.asSymbol).isNil.not;
-	}
-
-	*free {
-		dbs = nil;
-	}
-
-	init{arg dbname;
-		label = dbname;
-		if(this.class.dbs.at(label).isNil.not)
-		{
-			"Overwritting existing database".postln;
-			this.class.dbs.at(label).free;
-			this.class.dbs.put(label, this)
-		}
-		{this.class.dbs.put(label, this)};
-
-		samplers = Dictionary.new;
-	}
-
-	put{arg name, sampler;
-		samplers.put(name.asSymbol, sampler);
-	}
-
-
-	//TODO: Free all Samplers in the database.
-	free{
-		dbs.removeAt(label);
-
-		samplers = nil;
-	}
-}//End of SamplerDB class
-
-
-
-//instance of Sampler is a database of multiple SampleDescript
+ //instance of Sampler is a database of multiple SampleDescript
 Sampler{
 	var <dbs;  // a SamplerDB instance.
 	var <filenames;
@@ -68,9 +16,10 @@ Sampler{
 
 	*initClass{
 		StartUp.add({
-			SynthDef(\key, {arg buf, rate = 1, startPos = 0;
+			SynthDef(\key, {arg buf, rate = 1, startPos = 0, dur = 1;
+				var antiClipEnv = Env.linen(0.005, dur, 0.005);
 				var source = PlayBuf.ar(buf.numChannels, buf, rate * BufRateScale.kr(buf), startPos: startPos * BufSampleRate.kr(buf), doneAction: 2);
-				Out.ar(0, source);
+				Out.ar(0, Pan2.ar(source * EnvGen.kr(antiClipEnv)));
 			}).add;
 		})
 	}
@@ -136,7 +85,7 @@ Sampler{
 		}
 	}
 
-	setKeyRanges{arg strategy = \keynumRadious, infoArray = [10];
+	setKeyRanges{arg strategy = \keynumRadious, infoArray = [5];
 		keyRanges = [];
 		switch(strategy.asSymbol,
 			\keynumRadious,{//given a range radious from the keynum of each sample sections.
@@ -171,6 +120,8 @@ Sampler{
 		var finalList = [];
 		keyNums.asArray.do{|keyNum, keynumIndex|
 			var sampleList = [];
+
+			//find keyNums in the keyRanges of each sample sections, send the sample section information
 			keyRanges.do{|thisSample, index|
 				thisSample.do{|thisSection, idx|
 					var playRate;
@@ -205,20 +156,24 @@ Sampler{
 			};
 
 			//reduce samples by texture value, based on the distance of key Numbers.
+			//Sample pitch closer to the key number gets picked first.
 			sampleList = sampleList.sort({|a,b| (a[0].keynum[a[1]]-keyNum).abs < (b[0].keynum[b[1]]-keyNum).abs})[0..(texture !? {texture-1})];
 
 			finalList = finalList ++ sampleList;
 		}
 
-		^finalList;
+		^finalList; //[SampleDescript, section index, playRate]
 	}
 
+	//The list from getPlaySamples sends to here.
 	//the structure of sampleList is
 	//[SampleDescript, section index, playRate]
 	getPlayTime{arg playSamples, strategy = \keepLength;
 		var yieldtime = 0, startpos = 0;
 
 		switch(strategy.asSymbol,
+			//keep the full length to samples, line up the peak time together
+			//Not working correctly.
 			\keepLength,{
 				//sort samples by the attack time of the section, longer first
 				playSamples = playSamples.sort({|a, b| (a[0].attackDur[a[1]] / a[2]) > (b[0].attackDur[b[1]] / b[2])});
@@ -228,6 +183,7 @@ Sampler{
 					var previousSample = playSamples[previousIndex];
 					var thisPeakTime = (thisSample[0].attackDur[thisSample[1]] / thisSample[2])/bufRateScale;
 					var previousPeakTime = (previousSample[0].attackDur[previousSample[1]] / previousSample[2])/bufRateScale;
+					("bufRateScale =" + bufRateScale).postln;
 					("This peak time =" + thisPeakTime).postln;
 					("previous peak time =" + previousPeakTime).postln;
 					yieldtime = (previousPeakTime - thisPeakTime).thresh(0);
@@ -235,15 +191,16 @@ Sampler{
 				}
 			},
 
+			//cut the beginning of sample file, start from the peak point
 			\percussive,{
 				playSamples.do{|thisSample, index|
-					var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
 					var thisPeakTime = thisSample[0].attackDur[thisSample[1]];
-					startpos = (thisPeakTime-((SCMIR.framehop+2048)/SCMIR.samplingrate)).thresh(0) * bufRateScale;
+					startpos = (thisPeakTime-((SCMIR.framehop+2048)/SCMIR.samplingrate)-0.01).thresh(0);
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
 				}
 			},
 
+			//conventional sample playing
 			\nosorting,{
 				playSamples.do{|thisSample, index|
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
@@ -262,14 +219,17 @@ Sampler{
 		//[SampleDescript, section index, play rate, yield time, start position]
 		Routine.run{
 			playSamples.do{|thisSample, index|
+				var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
+				var buf = thisSample[0].activeBuffer[thisSample[1]];
+				var dur = ((thisSample[0].activeDuration[thisSample[1]]) / thisSample[2]) * bufRateScale;
+				("yield" + thisSample[3] + "seconds").postln;
 				thisSample[3].yield;
-				Synth(\key, [buf: thisSample[0].activeBuffer[thisSample[1]], rate: thisSample[2], startPos: thisSample[4]]);
+				Synth(\key, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: dur + 0.02]);
 				thisSample[0].activeBuffer[thisSample[1]].path.postln;
 				thisSample.postln;
 			};
 		}
 	}
-
 
 
 	playEnv{arg keynums, env, strategy = \delay, texture = nil;
