@@ -5,18 +5,23 @@ t = Sampler(\tublar).load(a);
 }
 )
 
+
+t.key([30, 40])
+
 t.samples;
-t.key([72, 48]);
-t.key([72, 48], \percussive);
-t.key([90, 30], \nosorting);
+t.key([69, 81]);
+t.key([50, 70], \percussive);
+t.key([69, 81], \nosorting);
 
 t.setKeyRanges(\keyNumOnly);
 
 t.samples[0].attackDur;
 t.samples[0].sampleRate;
 t.samples[0].bufferServer.sampleRate;
-t.samples[0].keynum;
+t.samples[1].keynum;
 t.key(71, texture: 1)
+
+t.samples[0].activeBuffer[0].server.sampleRate;
 
 t.samples;
 t.filenames;
@@ -52,7 +57,7 @@ f.key(70, \percussive);
 
 (
 s.waitForBoot{
-	a = (Platform.userExtensionDir ++ "/SuperSampler/Testcode/Reel Palindruome.aif").pathMatch;
+	a = (Platform.userExtensionDir ++ "/SuperSampler/Testcode/Reel Palindruome_44.1kHz_int16.aiff").pathMatch;
 g = Sampler(\reel).load(a)
 }
 )
@@ -62,8 +67,9 @@ g.samples[0].peakTime;
 g.samples[0].attackDur;
 g.samples[0].activeDuration;
 g.samples[0].sampleRate;
+g.bufServer.sampleRate;
 g.samples[0].activeBuffer[0].plot;
 g.samples[0].keynum;
-g.key([74, 37])
+g.key([50, 37])
 g.key([70, 37], \percussive)
 g.key([70, 37], \nosorting)
