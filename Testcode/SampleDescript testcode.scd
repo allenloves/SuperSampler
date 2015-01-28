@@ -1,19 +1,39 @@
 
-a = SampleDescript("/Volumes/My Sounds/My Samples/Processed/Long/Reel Palindruome.aif")
+a = SampleDescript(Platform.userExtensionDir ++ "/SuperSampler/Testcode/Reel Palindruome_44.1kHz_int16.aiff")
+
 a.arEnv(startThresh: 0.1, endThresh: 0.1);
 a.filename;
 a.duration;
 a.play;
 a.play(0);
 a.activeBuffer[0].duration;
-a.activeDuration[0];
+a.activeBuffer[0].write(Platform.userExtensionDir ++ "/SuperSampler/Testcode/Reel Palindruome_activeBuffer_44.1kHz_int16.aiff", sampleFormat: "int16")
 a.rmsData.plot;
-a.peakTime;
-a.peakAmp;
+
+a.startIndex
+a.startIndex * SCMIR.framehop;
+a.startIndex *SCMIR.hoptime;
 a.startTime;
-a.endTime;
-a.attackDur;
+
+(a.activeRMSData[0].size - 1) * SCMIR.hoptime;
 a.activeDuration;
+a.endTime-a.startTime;
+a.attackDur+a.releaseDur;
+
+a.endIndex * SCMIR.hoptime;
+a.endTime;
+
+SCMIR.framehop;
+
+((a.peakIndex+0.5) * SCMIR.hoptime);
+(a.peakIndex+2) * SCMIR.hoptime;
+SCMIR.frameTime(a.peakIndex);
+a.peakTime;
+
+a.peakTime-a.startTime;
+a.attackDur;
+
+
 a.pitchData.flop.plot;
 a.activeEnv.plot;
 a.temporalCentroid;
@@ -28,9 +48,9 @@ a.activeEnv[0].plot;
 a.play;
 )
 
+/////////////////////////////////////////////////////////////////////////////////////////
 
-
-f = SampleDescript("/Users/mac/Dropbox/Prelim/SampleDescript/Testcode/onsettest.wav")
+f = SampleDescript(Platform.userExtensionDir ++ "onsettest.wav")
 f.play;
 f.play(0);
 f.duration;
@@ -43,7 +63,7 @@ f.frameTimes;
 f.globalPeakTime;
 f.onsetIndex;
 f.peakIndex;
-f.rmsDataByOnset.plot;
+f.rmsDataBySection.plot;
 f.startTime;
 f.peakTime;
 f.endTime;
@@ -55,12 +75,15 @@ f.activeCentroidData;
 f.temporalCentroid;
 f.keynum;
 
+
+////////////////////////////////////////////////////////////////////////////////////////////
 g = SampleDescript("/Volumes/My Sounds/Sound Fx/Hollywood Edge/Ct 03/3-04 Impacts-Hollow Impacts 5 Versio.wav")
 g.arEnv(startThresh: 0.05, endThresh: 0.05);
 g.play;
-g.play(7);
+g.play(0);
 g.activeEnv.plot;
 g.onsetIndex;
+g.sectionBreakPoint;
 g.startIndex;
 g.peakIndex;
 g.attackDur;
@@ -79,6 +102,8 @@ g.loadToBuffer;
 g.buffer;
 g.activeBuffer;
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
 e = SampleDescript(Platform.resourceDir +/+ "sounds/a11wlk01.wav", loadToBuffer: false)
 e.play;
 e.play(2);

@@ -16,14 +16,14 @@ SampleDescript{
 	var <frameTimes;  //Time stamp of each frame
 	var <mirDataByFeatures; //[[RMS], [Pitch], [hasPitch], [centroid], [SensoryDissonance], [SpecFlatness]]
 	var <rmsData;
-	var <rmsDataByOnset;
+	var <rmsDataBySection;
 	var <centroidData;
 	var <dissonanceData;
 
 	//****** global description *****
 	// time domain
 	var <duration;  //Total duration of sound file.
-	var <onsetBreakPoint;  //Trough (lowest) point in between onsets.
+	var <sectionBreakPoint;  //Trough (lowest) point in between onsets.
 	var <globalPeakIndex;
 	var <globalPeakAmp;  //Amplitude at RMS peak point.
 	var <globalPeakTime;  //Time on the peak point.
@@ -33,6 +33,7 @@ SampleDescript{
 	// Temporal information
 	var <keynum;
 	var <activeDuration;
+	var <activeRMSData;
 	var <onsetTime;
 	var <onsetIndex; //frame index at onset
 	var <startIndex;
@@ -64,6 +65,7 @@ SampleDescript{
 
 	init {|fileName, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, server, action|
 		var cond = Condition.new(false);
+		SCMIR.setFrameHop(512);
 		server.postln;
 		bufferServer = server;
 		//Write Buffer into a file if the input is a buffer.
@@ -124,11 +126,11 @@ SampleDescript{
 		frameTimes = nil;
 		mirDataByFeatures = nil;
 		rmsData = nil;
-		rmsDataByOnset = nil;
+		rmsDataBySection = nil;
 		centroidData = nil;
 		dissonanceData = nil;
 		duration = nil;
-		onsetBreakPoint = nil;
+		sectionBreakPoint = nil;
 		globalPeakIndex = nil;
 		globalPeakAmp = nil;
 		globalPeakTime = nil;
@@ -179,17 +181,27 @@ SampleDescript{
 				cond.wait;
 				sampleRate = buffer.sampleRate;
 				//"master buffer loaded".postln;
+
+
+				startIndex.do{|thisSectionStartIndex, sectionIndex|
+					startSample = thisSectionStartIndex * SCMIR.framehop;
+					durSample = (activeRMSData[sectionIndex].size - 1) * SCMIR.framehop;
+					activeBuffer = activeBuffer.add(Buffer.read(server, filename, startSample, durSample, {cond.test = true; cond.signal;}));
+					cond.wait;
+					activeBuffer[sectionIndex].path = (PathName(filename).pathOnly ++ PathName(filename).fileNameWithoutExtension ++ "_" ++ sectionIndex ++ "." ++ PathName(filename).extension);
+				};
+
+
+				/*
 				startTime.do{|thisStartTime, sectionIndex|
 					startSample = thisStartTime * sampleRate;
 					durSample = activeDuration[sectionIndex] * sampleRate;
 					activeBuffer = activeBuffer.add(Buffer.read(server, filename, startSample, durSample, {cond.test = true; cond.signal;}));
 					cond.wait;
-					/*activeBuffer = activeBuffer.add(Buffer.alloc(server, durSample, buffer.numChannels));
-					activeBuffer[sectionIndex].sampleRate = sampleRate;
-					buffer.copyData(activeBuffer[sectionIndex], srcStartAt: startSample, numSamples: durSample * buffer.numChannels);*/
 					activeBuffer[sectionIndex].path = (PathName(filename).pathOnly ++ PathName(filename).fileNameWithoutExtension ++ "_" ++ sectionIndex ++ "." ++ PathName(filename).extension);
 					//("local buffer" + sectionIndex + "loaded").postln;
 				};
+				*/
 
 				action.value;
 			}
@@ -292,9 +304,6 @@ SampleDescript{
 
 	}
 
-
-
-
 	//get onset time, if an onset is too close to previous one, it will be abandoned
 	getOnsetTime{|groupingThresh = 0.32|
 		var onsets = [file.onsetdata[0]];
@@ -316,7 +325,6 @@ SampleDescript{
 		onsetIndex = onsetIndexTemp;
 	}
 
-
 	//find local peaks by onsets
 	findPeaksByOnsets{
 		var peakArray = [];
@@ -335,13 +343,12 @@ SampleDescript{
 		peakIndex.doAdjacentPairs{|thisPeak, nextPeak|
 			troughArray = troughArray.add(rmsData[thisPeak..nextPeak].minIndex + thisPeak);
 		};
-		onsetBreakPoint = troughArray;
+		sectionBreakPoint = troughArray;
 	}
-
 
 	//Separate rmsData into subsections by breakpoints.
 	sectionRmsDataByOnset {
-		rmsDataByOnset = rmsData.chop(onsetBreakPoint);
+		rmsDataBySection = rmsData.chop(sectionBreakPoint);
 	}
 
 
@@ -361,44 +368,43 @@ SampleDescript{
 		peakAmp = [];
 
 		//for each onset section
-		rmsDataByOnset.do{|thisSection, sectionIndex|
+		rmsDataBySection.do{|thisSection, sectionIndex|
+			var thisSectionStartIndex = sectionBreakPoint.addFirst(0)[sectionIndex];
 			var localPeakFrame = thisSection.maxIndex;
-			var localPeakTime = SCMIR.frameTime(thisSection.maxIndex);
+			var localPeakTime = (thisSection.maxIndex + 0.5) * SCMIR.hoptime;
 			var localPeakAmp = thisSection.maxItem;
-			var localStartTime = 0;
-			var localEndTime = 0;
 
 			startAmp = startThresh * localPeakAmp;
 			endAmp = endThresh * localPeakAmp;
 
 			peakAmp = peakAmp.add(localPeakAmp);
-			peakTime = peakTime.add(localPeakTime + SCMIR.frameTime(thisSectionGlobalIndex)) ;
+			peakTime = peakTime.add(localPeakTime + (thisSectionStartIndex * SCMIR.hoptime)) ;
 
 			//search for the first point pass above threshold.
 			block{|break|
 				thisSection.do({|rmsenergy, index|
 					if(rmsenergy >= startAmp ,
-						{localStartTime = SCMIR.frameTime(index);
-							startIndex = startIndex.add(thisSectionGlobalIndex + index);
-							startTime = startTime.add(SCMIR.frameTime(startIndex.last) - ((SCMIR.framehop+2048)/SCMIR.samplingrate));  //adjust to the beginning of the frame;
+						{
+							startIndex = startIndex.add(thisSectionStartIndex + index);
+							startTime = startTime.add(startIndex.last * SCMIR.hoptime);
 							break.value(0);
 					})
 				})
 			};
+
+
 
 			//search for the last point pass below threshold.
 			block{|break|
 				thisSection.reverseDo({|rmsenergy, index|
 					if(rmsenergy >= endAmp ,
-						{localEndTime = SCMIR.frameTime(thisSection.size - index);
-							endIndex = endIndex.add(thisSectionGlobalIndex + thisSection.size - index);
-							endTime = endTime.add(SCMIR.frameTime(endIndex.last) + ((SCMIR.framehop+2048)/SCMIR.samplingrate)); //adjust to the end of the frame
+						{
+							endIndex = endIndex.add(sectionBreakPoint.addFirst(0)[sectionIndex] + thisSection.size - index);
+							endTime = endTime.add(endIndex.last * SCMIR.hoptime);
 							break.value(0);
 					})
 				})
 			};
-
-			thisSectionGlobalIndex = thisSectionGlobalIndex + thisSection.size - 1;
 		};
 
 		attackDur = peakTime - startTime;
@@ -408,22 +414,31 @@ SampleDescript{
 
 
 	//Separate Datas into subsections by breakpoints.
-
+	//includes:
+	//activeRMSData
+	//activeCentroid
+	//activeDissonanace
+	//temporalCentorid
 	getActiveData {
 
 		//Datas to retrive
 		activeCentroidData = [];
 		activeDissonanceData = [];
 		temporalCentroid = [];
+		activeRMSData = [];
 
 		startIndex.do({|thisStartIndex, sectionIndex|
-			var activeRMSData = rmsData[thisStartIndex..endIndex[sectionIndex]];
+			var thisRMSData = rmsData[thisStartIndex..endIndex[sectionIndex]];
 			var activeTime = frameTimes[thisStartIndex..endIndex[sectionIndex]] - frameTimes[thisStartIndex];
 
+			activeRMSData=activeRMSData.add(thisRMSData);
+
 			activeCentroidData = activeCentroidData.add(centroidData[thisStartIndex..endIndex[sectionIndex]]);
+
 			activeDissonanceData = activeDissonanceData.add(dissonanceData[thisStartIndex..endIndex[sectionIndex]]);
+
 			temporalCentroid = temporalCentroid.add(
-				(activeRMSData*activeTime).sum / activeRMSData.sum;
+				(thisRMSData*activeTime).sum / thisRMSData.sum;
 			)
 		})
 	}
@@ -461,7 +476,7 @@ SampleDescript{
 	activeEnv {|startThresh=0.1, endThresh=0.01|
 		var envArray = [];
 		this.arEnv(startThresh, endThresh);
-		rmsDataByOnset.do{|thisSection, sectionIndex|
+		rmsDataBySection.do{|thisSection, sectionIndex|
 			var activeFrameTimes;
 			var activeRmsData;
 			activeFrameTimes = frameTimes[startIndex[sectionIndex]..endIndex[sectionIndex]] - frameTimes[startIndex[sectionIndex]];

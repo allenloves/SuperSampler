@@ -1,3 +1,8 @@
+//Sampler is dependent on following extentions:
+//SCMIR
+//VKey
+//wslib Quark
+
 
  //instance of Sampler is a database of multiple SampleDescript
 Sampler{
@@ -181,8 +186,8 @@ Sampler{
 					var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
 					var previousIndex = (index - 1).thresh(0);
 					var previousSample = playSamples[previousIndex];
-					var thisPeakTime = (thisSample[0].attackDur[thisSample[1]] / thisSample[2])/bufRateScale;
-					var previousPeakTime = (previousSample[0].attackDur[previousSample[1]] / previousSample[2])/bufRateScale;
+					var thisPeakTime = (thisSample[0].attackDur[thisSample[1]] / thisSample[2]);
+					var previousPeakTime = (previousSample[0].attackDur[previousSample[1]] / previousSample[2]);
 					("bufRateScale =" + bufRateScale).postln;
 					("This peak time =" + thisPeakTime).postln;
 					("previous peak time =" + previousPeakTime).postln;
@@ -195,7 +200,7 @@ Sampler{
 			\percussive,{
 				playSamples.do{|thisSample, index|
 					var thisPeakTime = thisSample[0].attackDur[thisSample[1]];
-					startpos = (thisPeakTime-((SCMIR.framehop+2048)/SCMIR.samplingrate)-0.01).thresh(0);
+					startpos = (thisPeakTime-0.01).thresh(0);
 					playSamples[index] = playSamples[index] ++ yieldtime ++ startpos;
 				}
 			},
