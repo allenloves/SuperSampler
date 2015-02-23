@@ -1,3 +1,5 @@
+//Env dependent on wslib quark
+
 
 + Collection {
     removeNil {    // output a new collection without any empty or nil values
@@ -49,5 +51,29 @@
 				^choppedArray.removeNil;
 			}
 		)
+	}
+}
+
+
++Env {
+	peakTime{|groupThresh = 0.32|
+		var outcome = [];
+		if(this.at(0.01) < this.at(0)){outcome = outcome.add(0)};
+		this.timeLine.do{|thisNode, index|
+			if( (this.at(thisNode - 0.01) < this.at(thisNode))	&& (this.at(thisNode) >= this.at(thisNode + 0.01)) )
+			{
+				if(outcome.isEmpty.not)
+				{
+					if(thisNode - outcome.last < 0.32)
+					{
+						if(this.at(thisNode) > this.at(outcome.last))
+						{outcome = outcome.put(outcome.size-1, thisNode)};
+					}
+					{outcome = outcome.add(thisNode)};
+				}
+				{outcome = outcome.add(thisNode)};
+			};
+		};
+		^outcome;
 	}
 }

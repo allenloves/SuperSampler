@@ -47,5 +47,25 @@ SamplerDB{
 
 		samplers = nil;
 	}
+
+	//testrun
+	playEnv{arg keynum, env;
+
+		samplers.do{|thisSampler, samplerIndex|
+			if(thisSampler.samples[0].temporalCentroid[0] < 0.15)
+			{thisSampler.playEnv(keynum, env)}
+			{
+				env.peakTime.do{|thisPeakTime|
+					if(1.rand <= env.range.at(thisPeakTime))
+					{
+						var maxTexture = thisSampler.getPlaySamples(keynum).size;
+						var texture = env.range.at(thisPeakTime).linlin(0, 1, 0, maxTexture).asInteger;
+						//("this texture = " + texture).postln;
+						thisSampler.key(keynum, [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
+					};
+				}
+			};
+		}
+	}
 }//End of SamplerDB class
 

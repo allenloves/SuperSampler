@@ -50,9 +50,9 @@ a.play;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-f = SampleDescript(Platform.userExtensionDir ++ "onsettest.wav")
+f = SampleDescript(Platform.userExtensionDir ++ "/SuperSampler/Testcode/onsettest.wav")
 f.play;
-f.play(0);
+f.play(2);
 f.duration;
 f.mirDataByFeatures;
 f.rmsData.plot;
@@ -74,7 +74,7 @@ f.activeDuration;
 f.activeCentroidData;
 f.temporalCentroid;
 f.keynum;
-
+f.activeBuffer[2].plot;
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 g = SampleDescript("/Volumes/My Sounds/Sound Fx/Hollywood Edge/Ct 03/3-04 Impacts-Hollow Impacts 5 Versio.wav")
@@ -100,7 +100,7 @@ g.keynumFromFileName;
 g.keynum;
 g.loadToBuffer;
 g.buffer;
-g.activeBuffer;
+g.activeBuffer[2].plot;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -116,6 +116,7 @@ e.temporalCentroid;
 e.peakTime;
 e.attackDur;
 e.env.plot;
+e.env.peakTime;
 e.activeEnv.plot;
 e.pitchData.flop.plot;
 e.temporalCentroid;
@@ -136,6 +137,8 @@ e.activeBuffer[1].plot;
 e.play;
 )
 
+
+//////////////////////////////////////////////////////////////
 m = SampleDescript("/Users/mac/Documents/UIUC/Algorythm Music 3/Samples/Crotales/c6.aiff", loadToBuffer: true)
 m.frameTimes;
 m.play;

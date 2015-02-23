@@ -65,7 +65,7 @@ SampleDescript{
 
 	init {|fileName, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, server, action|
 		var cond = Condition.new(false);
-		SCMIR.setFrameHop(512);
+		//SCMIR.setFrameHop(512);
 		server.postln;
 		bufferServer = server;
 		//Write Buffer into a file if the input is a buffer.
