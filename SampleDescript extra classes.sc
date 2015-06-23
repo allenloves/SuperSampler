@@ -33,6 +33,31 @@
 		};
 		^output;
 	}
+
+	// converts breakpoint envelope [x1,y1,x2,y2,...] to Env
+	pairsAsEnv {|curve=\lin|
+		var len, xary=[], yary=[], head, tail;
+		if (this.isArray.not){Error("not an array of x y values:"+this).throw};
+		len=this.size;
+		if (len<4){Error("need at least two x y pairs:"+this).throw};
+		if (len.even.not){Error("odd number of break points:"+this).throw};
+		head=this.first;
+		// split breakpoints into two arrays, normalize X
+		this.pairsDo({|x,y|
+			x=x-head;
+			xary=xary.add(x);
+			if (tail.isNumber) {
+				if (x<=tail) {
+					Error("x values not in increasing order:" + this).throw;
+				};
+			};
+			tail=x;
+			yary=yary.add(y)});
+		if ((tail==1).not) {xary=xary/tail;};
+		xary=xary.differentiate.drop(1);
+		^Env.new(yary,xary,curve);
+	}
+
 }
 
 

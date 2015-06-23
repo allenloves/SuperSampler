@@ -189,20 +189,8 @@ SampleDescript{
 					activeBuffer = activeBuffer.add(Buffer.read(server, filename, startSample, durSample, {cond.test = true; cond.signal;}));
 					cond.wait;
 					activeBuffer[sectionIndex].path = (PathName(filename).pathOnly ++ PathName(filename).fileNameWithoutExtension ++ "_" ++ sectionIndex ++ "." ++ PathName(filename).extension);
+
 				};
-
-
-				/*
-				startTime.do{|thisStartTime, sectionIndex|
-					startSample = thisStartTime * sampleRate;
-					durSample = activeDuration[sectionIndex] * sampleRate;
-					activeBuffer = activeBuffer.add(Buffer.read(server, filename, startSample, durSample, {cond.test = true; cond.signal;}));
-					cond.wait;
-					activeBuffer[sectionIndex].path = (PathName(filename).pathOnly ++ PathName(filename).fileNameWithoutExtension ++ "_" ++ sectionIndex ++ "." ++ PathName(filename).extension);
-					//("local buffer" + sectionIndex + "loaded").postln;
-				};
-				*/
-
 				action.value;
 			}
 		}
@@ -367,7 +355,7 @@ SampleDescript{
 		peakTime = [];
 		peakAmp = [];
 
-		//for each onset section
+		//for each onset section, find peaks
 		rmsDataBySection.do{|thisSection, sectionIndex|
 			var thisSectionStartIndex = sectionBreakPoint.addFirst(0)[sectionIndex];
 			var localPeakFrame = thisSection.maxIndex;

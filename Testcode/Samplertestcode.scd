@@ -5,10 +5,22 @@ t = Sampler(\tublar).load(a);
 }
 )
 
+t.key(rrand(50.0, 80.0));
 
-t.key([30, 81]);
+t.key(60)
+t.key(-60)
+t.key(-60, [\peakat, 1])
+t.key([-60, 60])
+
+t.key([-60, 60], [\peakat, 5])
+
+
+t.key([40, 30]);
 
 t.key([69, 81]);
+
+t.key([30, 40, -50, 50, -60, 60, 70, 80])
+
 t.key([30, 81], \percussive);
 t.key([30, 81], \nosorting);
 
@@ -55,6 +67,8 @@ f.samples[0].keynum;
 f.samples[0].play;
 f.setKeyRanges(infoArray: 3);
 f.getPlayTime(f.getPlaySamples(70);).flop[3];
+f.key(60, \nosorting);
+f.key(-60, \nosorting);
 f.key([70, 30, 60]);
 f.key([70, 30, 60], \percussive);
 f.key([70, 30, 60], \nosorting)
@@ -74,10 +88,10 @@ g = Sampler(\reel).load(a)
 
 
 g.key(38.033508618673)
+g.key(60)
 
 g.key([70, 30, 50, 40, 60])
 
-g.key([70, 30, 50, 40, 60], [\startat, 5], texture: 1)
 g.key([70, 30, 50, 40, 60], [\peakat, 1])
 
 g.key([70, 30, 50, 40, 60], \percussive, texture: 0)

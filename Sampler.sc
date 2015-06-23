@@ -20,16 +20,8 @@ Sampler{
 		^super.new.init(name, dbname);
 	}
 
-	*initClass{
-		StartUp.add({
-			SynthDef(\playbuf, {arg buf, rate = 1, startPos = 0, dur = 1, amp = 1;
-				var antiClipEnv = Env.linen(0.005, dur, 0.005, amp, \sine);
-				var source = PlayBuf.ar(buf.numChannels, buf, rate * BufRateScale.kr(buf), startPos: startPos * BufSampleRate.kr(buf), doneAction: 2);
-				Out.ar(0, Pan2.ar(source * EnvGen.kr(antiClipEnv)));
-			}).add;
-		})
-	}
 
+	//==============================================================
 	//return an array of samplers in the same SamplerDB database
 	db{arg name;
 		if(name.isNil.not)
@@ -49,6 +41,8 @@ Sampler{
 		}
 	}
 
+
+	//=============================
 	init{arg name, dbname;
 		if(name.isNil){Error("A sampler name is needed").throw;};
 		if(SamplerDB.isLoaded(dbname))
@@ -63,6 +57,9 @@ Sampler{
 		samplerName = name.asSymbol;
 	}
 
+
+	//==============================
+	//TODO: Check freeing sampler
 	free {
 		SamplerDB.dbs.samplers.removeAt(samplerName);
 		samples.do{|thisSample|
@@ -75,6 +72,8 @@ Sampler{
 
 	}
 
+	//============================
+	//load and analyze sound files
 	load {arg soundfiles, server = Server.default, filenameAsKeynum = true;
 		bufServer = server;
 		Routine.run{
@@ -95,6 +94,20 @@ Sampler{
 		}
 	}
 
+
+	//=============================================
+	//get anchor keynums for the sample library
+	keynums{
+		var output = [];
+		samples.do{|thisSample, index|
+			output = output.add(thisSample.keynum);
+		};
+		^output;
+	}
+
+
+	//=================================================================
+	//reset range response to each key related to the anchor key number
 	setKeyRanges{arg strategy = \keynumRadious, infoArray = [5];
 		keyRanges = [];
 		switch(strategy.asSymbol,
@@ -122,22 +135,19 @@ Sampler{
 		)
 	}
 
-	keynums{
-		var output = [];
-		samples.do{|thisSample, index|
-			output = output.add(thisSample.keynum);
-		};
-		^output;
-	}
 
-	//get a list of SampleDescripts and it's keynum of each active buffer inside the key range of provided keynum.
+	//============================================================================================================
+	//provide a list of SampleDescripts and it's keynum of each active buffer inside the key range of provided keynum.
 	//for each qualified buffers, ourput a bufData array of [SampleDescript, section index, playRate]
 	//Out put will be [[bufferData1], [bufferData2], .....]
-	getPlaySamples{|keyNums, texture = nil|
+	getPlaySamples{|keyNums, texture = nil, filterFunc = true|
 		var finalList = [];
 
 		keyNums.asArray.do{|keyNum, keynumIndex|
 			var sampleList = [];
+			var keySign = keyNum.sign;
+
+			keyNum = keyNum.abs;
 
 			//find keyNums in the keyRanges of each sample sections, send the sample section information
 			keyRanges.do{|thisSample, index|
@@ -146,7 +156,7 @@ Sampler{
 					if((keyNum <= thisSection[1]) && (keyNum >= thisSection[0]))
 					{
 						playRate = 2**((keyNum - samples[index].keynum[idx])/12);
-						sampleList = sampleList.add([samples[index], idx, playRate])};
+						sampleList = sampleList.add([samples[index], idx, playRate * keySign])};
 				}
 			};
 
@@ -171,7 +181,7 @@ Sampler{
 				closestSection = sortIndexes[1][sortIndexes[0].indexIn(keyNum)][1];
 				playRate = 2**((keyNum - closestSample.keynum[closestSection]) / 12);
 
-				sampleList = sampleList.add([closestSample, closestSection, playRate])
+				sampleList = sampleList.add([closestSample, closestSection, playRate * keySign])
 			};
 
 			//reduce samples by texture value, based on the distance of key Numbers.
@@ -185,6 +195,9 @@ Sampler{
 		^finalList; //[SampleDescript, section index, playRate]
 	}
 
+
+	//====================================================
+	//calculate starting time for each sample in a group
 	//The list from getPlaySamples sends to here.
 	//the structure of sampleList is
 	//[SampleDescript, section index, playRate]
@@ -197,19 +210,35 @@ Sampler{
 				var waittime = 0, startpos = 0;
 
 				//sort samples by the attack time of the section, longer first
-				playSamples = playSamples.sort({|a, b| (a[0].attackDur[a[1]] / a[2]) > (b[0].attackDur[b[1]] / b[2])});
+				playSamples = playSamples.sort({|a, b|
+					var aAttack = if(a[2].isPositive) {a[0].attackDur[a[1]]} {a[0].releaseDur[a[1]]};
+					var bAttack = if(b[2].isPositive) {b[0].attackDur[b[1]]} {b[0].releaseDur[b[1]]};
+					(aAttack / a[2].abs) > (bAttack / b[2].abs)
+				});
 
 				playSamples.do{|thisSample, index|
 					var previousIndex = (index - 1).thresh(0);
 					var previousSample = playSamples[previousIndex];
-					var thisPeakTime = (thisSample[0].attackDur[thisSample[1]] / thisSample[2]);
-					var previousPeakTime = (previousSample[0].attackDur[previousSample[1]] / previousSample[2]);
+					var thisPeakTime, previousPeakTime;
+					thisPeakTime = if(thisSample[2].isPositive)
+					{thisSample[0].attackDur[thisSample[1]] / thisSample[2].abs}
+					{thisSample[0].releaseDur[thisSample[1]] / thisSample[2].abs};
+
+					previousPeakTime = if(previousSample[2].isPositive)
+					{previousSample[0].attackDur[previousSample[1]] / previousSample[2].abs}
+					{previousSample[0].releaseDur[previousSample[1]] / previousSample[2].abs};
+
+
 					//("thisPeakTime =" + thisPeakTime).postln;
 					waittime = (previousPeakTime - thisPeakTime).thresh(0);
+
+					startpos = if(thisSample[2].isNegative){thisSample[0].activeBuffer[thisSample[1]].duration};
 					playSamples[index] = playSamples[index] ++ waittime ++ startpos;
 				}
 			},
 
+/*
+			//Replaced by peakat
 			\startat,{
 				var startPoint = syncmode.asArray[1] ? 0;
 				var startpos = 0, waittime = 0;
@@ -236,30 +265,45 @@ Sampler{
 
 				}
 			},
+*/
 
+
+			//assign a peak time where the pick of sound gesture happens
 			\peakat,{
 				var startpos = 0, waittime = 0;
 				var previousPeakTime = syncmode.asArray[1] ? 0; //initial peak time
 
 				//sort samples by the attack time of the section, longer first
-				playSamples = playSamples.sort({|a, b| (a[0].attackDur[a[1]] / a[2]) > (b[0].attackDur[b[1]] / b[2])});
+				playSamples = playSamples.sort({|a, b|
+					var aAttack = if(a[2].isPositive) {a[0].attackDur[a[1]]} {a[0].releaseDur[a[1]]};
+					var bAttack = if(b[2].isPositive) {b[0].attackDur[b[1]]} {b[0].releaseDur[b[1]]};
+					(aAttack / a[2].abs) > (bAttack / b[2].abs)
+				});
+
 
 				playSamples.do{|thisSample, index|
-					var thisPeakTime = (thisSample[0].attackDur[thisSample[1]] / thisSample[2]);
-					var adjust = previousPeakTime - thisPeakTime;
+					var thisPeakTime, adjust;
+					thisPeakTime = if(thisSample[2].isPositive)
+					{thisSample[0].attackDur[thisSample[1]] / thisSample[2].abs}
+					{thisSample[0].releaseDur[thisSample[1]] / thisSample[2].abs};
+					adjust = previousPeakTime - thisPeakTime;
 
 					waittime = adjust.thresh(0);
-					startpos = adjust.neg.thresh(0) * thisSample[2];
+
+
+					startpos = if(thisSample[2].isPositive)
+					{adjust.neg.thresh(0) * thisSample[2].abs}
+					{thisSample[0].activeBuffer[thisSample[1]].duration - (adjust.neg.thresh(0) * thisSample[2].abs)};
 
 					thisPeakTime = (thisPeakTime - adjust.neg.thresh(0)).thresh(0);
-
 					//("thisPeakTime =" + thisPeakTime).postln;
 					playSamples[index] = playSamples[index] ++ waittime ++ startpos;
-					previousPeakTime = thisPeakTime;
 
+					previousPeakTime = thisPeakTime;
 				}
 
 			},
+
 			//cut the beginning of sample file, start from the peak point
 			\percussive,{
 				var startpos = 0, waittime = 0;
@@ -274,6 +318,7 @@ Sampler{
 			\nosorting,{
 				var startpos = 0, waittime = 0;
 				playSamples.do{|thisSample, index|
+					startpos = if(thisSample[2].isNegative){thisSample[0].activeBuffer[thisSample[1]].duration};
 					playSamples[index] = playSamples[index] ++ waittime ++ startpos;
 				}
 			}
@@ -282,9 +327,17 @@ Sampler{
 	}
 
 
-	key{arg keynums, syncmode = \keeplength, amp = 1, texture = nil;
-		var playSamples = this.getPlaySamples(keynums.asArray, texture);
+
+	//========================================
+	//Play samples by giving key numbers
+	key{arg keynums = 60, syncmode = \keeplength, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], texture = nil;
+
+		var args = SamplerParameters.new;
+		var playSamples;
+
+		playSamples = this.getPlaySamples(keynums.asArray, texture);
 		playSamples = this.getPlayTime(playSamples, syncmode);
+
 
 		//for Each Sample, the dataStructure is
 		//[SampleDescript, section index, play rate, wait time, start position]
@@ -292,16 +345,20 @@ Sampler{
 			playSamples.do{|thisSample, index|
 				var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
 				var buf = thisSample[0].activeBuffer[thisSample[1]];
-				var dur = ((thisSample[0].activeDuration[thisSample[1]]) / thisSample[2]) * bufRateScale;
-				("wait" + thisSample[3] + "seconds").postln;
+				var dur = ((thisSample[0].activeDuration[thisSample[1]]) / thisSample[2].abs) * bufRateScale;
+				//("wait" + thisSample[3] + "seconds").postln;
 				thisSample.postln;
 				thisSample[3].wait;
-				Synth(\playbuf, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: dur + 0.02, amp: amp]);
+
+				//[buf, thisSample[2], thisSample[4], dur + 0.02, amp, pan].postln;
+				Synth(\playbuf, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: dur + 0.02, amp: amp, pan: pan]);
 			};
 		}
 	}
 
 
+	//==============================================================
+	//TODO: Play a sample with the influence of a global envelope
 	playEnv{arg keynums, env, syncmode = \percussive;
 
 		Routine.run{
