@@ -2,6 +2,16 @@
 
 
 + Collection {
+
+	removeDups {    // output a new collection without any duplicate values
+		var result;
+		result = this.species.new(this.size);
+		this.do({ arg item;
+			result.includes(item).not.if({ result.add(item) });
+		});
+		^result
+	}
+
     removeNil {    // output a new collection without any empty or nil values
         var result;
         result = this.species.new(this.size);
@@ -35,7 +45,7 @@
 	}
 
 	// converts breakpoint envelope [x1,y1,x2,y2,...] to Env
-	pairsAsEnv {|curve=\lin|
+	pairsAsEnv {|normalize = false, curve=\lin|
 		var len, xary=[], yary=[], head, tail;
 		if (this.isArray.not){Error("not an array of x y values:"+this).throw};
 		len=this.size;
@@ -47,15 +57,34 @@
 			x=x-head;
 			xary=xary.add(x);
 			if (tail.isNumber) {
-				if (x<=tail) {
+				if (x<tail) {
 					Error("x values not in increasing order:" + this).throw;
 				};
 			};
 			tail=x;
 			yary=yary.add(y)});
-		if ((tail==1).not) {xary=xary/tail;};
+		if (normalize && (tail==1).not) {xary=xary/tail;};
 		xary=xary.differentiate.drop(1);
 		^Env.new(yary,xary,curve);
+	}
+
+	//reciprocal of asArray on an Envelope.
+	// BE WARNED there is not error checking in this method.
+ 	asEnv {
+		var array = this;
+		var result;
+		var curves = Array(array.size div: 4 - 1);
+		(6, 10 .. array.size).do{ |i|
+			if(array[i] == 5) {
+				curves.add(array[i+1]);
+               	 } {
+                        curves.add(Env.shapeNames.findKeyForValue(array[i]));
+              	 }
+     		};
+        	result = Env(array[0, 4 .. ], array[5, 9 .. ], curves,
+                if(array[2] == -99) { nil } { array[2] },
+                if(array[3] == -99) { nil } { array[3] });
+		^result
 	}
 
 }
@@ -63,7 +92,7 @@
 
 +SequenceableCollection {
 	//separate a Collection at the index point in an Array
-	chop{|indexArray|
+	chop {|indexArray|
 		var choppedArray = [];
 		var organizedIndexArray = indexArray.asArray.asInteger.flat.removeDups.sort; //removeDups is in "VKey Extra Classes.sc"
 		if(organizedIndexArray.isEmpty,
@@ -81,9 +110,10 @@
 
 
 +Env {
-	peakTime{|groupThresh = 0.32|
+	//this is using welib Quark
+	peakTime {|groupThresh = 0.32|
 		var outcome = [];
-		if(this.at(0.01) < this.at(0)){outcome = outcome.add(0)};
+		if(this.at(0.01) < this.at(0)){outcome = outcome.add(0)}; // Check if the first node is a peak
 		this.timeLine.do{|thisNode, index|
 			if( (this.at(thisNode - 0.01) < this.at(thisNode))	&& (this.at(thisNode) >= this.at(thisNode + 0.01)) )
 			{
@@ -101,4 +131,51 @@
 		};
 		^outcome;
 	}
+
+
+	//export an Env to breakpoint envelope array [x1, y1, x2, y2....]. x represents timeline and y represents levels.
+	//This one also dependent on welib quark.
+	asPairsArray {|normalize = false|
+		var timeline = this.timeLine;
+		if(normalize){timeline = timeline / timeline.last};
+		^[timeline, this.levels].flop.flat;
+	}
+
+
+
+	//Output a portion of an envelope, plus a crossfade time at beginning and end of envelope
+	//This one also dependent on welib quark.
+	subEnv {|from  = 0, dur = 0, xfade = 0|
+		var outcome = [];
+		var timeline = this.timeLine.asArray;
+		var levels = this.levels.asArray;
+		var start = timeline.indexOfGreaterThan(from).asInteger;
+		var end = timeline.indexInBetween(from + dur).floor.asInteger;
+
+		if(start.isNil)
+		{outcome = nil}
+		{
+			var timecopy = timeline[start..end] - from + xfade;
+			var levelcopy = levels[start..end];
+			var copy = [timecopy, levelcopy].flop.flat;
+			outcome = (outcome ++ [0, 0, xfade, this.at(from)] ++ copy ++ [xfade+dur, this.at(from+dur)] ++ [xfade*2+dur, 0]).pairsAsEnv(curve: this.curves);
+		};
+		^outcome;
+	}
+
+	//integrating under an envelope (only works on simple linear, non-sustaining Envs)
+	integral {
+		var xs, ys, points, area = 0;
+		xs = this.times;
+		ys = this.levels;
+		points = ys.size - 1;
+		points.do({|index|
+			var length, height, temparea;
+			length = xs.at(index);
+			height = (ys.at(index + 1) + ys.at(index)) / 2;
+			area = area + (length * height);
+		});
+		^area;
+	}
+
 }

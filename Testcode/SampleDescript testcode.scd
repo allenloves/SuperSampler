@@ -106,7 +106,8 @@ g.activeBuffer[2].plot;
 ///////////////////////////////////////////////////////////////////////////////////////////
 e = SampleDescript(Platform.resourceDir +/+ "sounds/a11wlk01.wav", loadToBuffer: false)
 e.play;
-e.play(2);
+e.startTime;
+e.play(8);
 e.sampleRate;
 e.onsetIndex;
 e.file.onsetdata;
@@ -134,7 +135,7 @@ e.activeBuffer[1].plot;
 	var env = e.env;
 	Out.ar(1, SinOsc.ar(LFNoise0.kr(300, mul: 100, add: 800), mul: EnvGen.kr(env, doneAction: 2)))
 }.play;
-e.play;
+//e.play;
 )
 
 

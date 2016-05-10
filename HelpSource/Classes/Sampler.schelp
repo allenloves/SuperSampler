@@ -25,96 +25,165 @@ returns:: this Sampler
 
 INSTANCEMETHODS::
 
+
 METHOD:: init
-(describe method here)
+Create a new Sampler and add it to SamplerDB.
 
 ARGUMENT:: name
-(describe argument here)
+Name of Sampler.
 
 ARGUMENT:: dbname
-(describe argument here)
+Name of SamplerDB this Sampler belongs to.  If the name of SamplerDB is not created, it will create a new SamplerDB class.
 
 returns:: (describe returnvalue here)
+
+
 
 METHOD:: key
-(describe method here)
+Play samples by giving key numbers.
+Defaults are also provided by SamplerArguments class.
 
 ARGUMENT:: keynums
-(describe argument here)
+The MIDI key numbers to play, can be a single number or an array of numbers.
+Negative key numbers reverses the buffer to play.
 
-ARGUMENT:: strategy
-(describe argument here)
+ARGUMENT:: syncmode
+The strategy to syncronize different samples:
+
+\keeplength: keep the length of all playing sound, align all at peak point of the sample with the longest attack time.
+
+\percussive: make a percussive sound, starts all sounds from peak point.
+
+[\parkat, time]: the peak point of the sound will be set to the scheduled time.
+
+\nosorting:  just play every sample as it is, like conventional sampler synthesizer.
+
+ARGUMENT:: dur
+Duration
+
+ARGUMENT:: amp
+Overall amplitude, a multiplier.
+
+ARGUMENT:: ampenv
+An Envelop for amplitude, in normalized XY format.  Each node in the Envelope is describe as a pair of time and amplitude in the array.
+
+ARGUMENT:: pan
+Overall panning.  O is the center, -1 is left and 1 is right.
+
+ARGUMENT:: panenv
+An Envelop for panning, in normalized XY format.  Each node in the Envelope is describe as a pair of time and panning in the array.
+
+ARGUMENT:: bend
+An Envelop for bending pitch in the sound in normalized XY format.  Each node in the Envelope is describe as a pair of time and pitch bending in the array.
+
 
 ARGUMENT:: texture
-(describe argument here)
+The number of sample sounds to be played in the same time.
+If nil, it will play every triggered sounds.
 
-returns:: (describe returnvalue here)
+ARGUMENT:: expand
+Stretch the played samples with insertion algorithm using granular synthesis.  The value will be the expected time to be stretched.
+
+Granulation runs only when this value is not nil.
+
+ARGUMENT:: grainRate
+The grain rate for stratching granular synthesizer.
+
+ARGUMENT:: grainDur
+The grain duration for stratching granular synthesizer.
+
+
 
 METHOD:: db
-(describe method here)
+Return an array of Samplers in the same SamplerDB database
 
 ARGUMENT:: name
-(describe argument here)
+The name of the Sampler to return.
 
-returns:: (describe returnvalue here)
+returns:: a Sampler with the name, or a list of Samplers if not specified.
+
 
 METHOD:: filenames
-(describe method here)
+Get filenames loaded to this Sampler.
+returns:: An array of filenames.
 
-returns:: (describe returnvalue here)
+
 
 METHOD:: setKeyRanges
-(describe method here)
+For initial use.
+
+Reset range response to each key related to the anchor key number.
+
+In Sampler, every loaded sound files is anchored to a MIDI key number.
+When the method .key is used, a range of MIDI key numbers are determined for each sampler to respond to the key number played.
 
 ARGUMENT:: strategy
-(describe argument here)
+Determine the method to arrange the responded MIDI key numbers for each sample:
+
+\keynumRadious: Give a range radious in infoArray from each anchor keynums as responsive range.
+
+\fullrange: Every sample is responded in full range of midi key number.
+
+\keynumOnly: Only respond to the anchored key number.
 
 ARGUMENT:: infoArray
-(describe argument here)
+Information array provided to respond to the strategy.
 
-returns:: (describe returnvalue here)
 
 METHOD:: getPlaySamples
-(describe method here)
+For internal use
 
-ARGUMENT:: keynum
-(describe argument here)
+Determine which sample to be played based on the key number being played and texture value.
 
-returns:: (describe returnvalue here)
+ARGUMENT:: args
+Arguments stored in SamplerArguments class.
+
+ARGUMENT:: filterFunc
+
+
+METHOD:: keynums
+Anchor key numbers for each sample.
+
+returns:: An array of key numbers setted as anchor for each sample in the list.
+
 
 METHOD:: samples
-(describe method here)
+All samples are stored here.  Samples in SuperSampler is stored as classs of SampleDescript.
+You can extract sample informations stored in the class.
 
-returns:: (describe returnvalue here)
+returns:: An array of SampleDescript classes.
+
 
 METHOD:: dbs
-(describe method here)
+The database storing this Sampler.  The name \default is assigned if not specified.
 
-returns:: (describe returnvalue here)
+returns:: A SamplerDB class.
 
-METHOD:: activeSamples
-(describe method here)
-
-returns:: (describe returnvalue here)
 
 METHOD:: load
-(describe method here)
+Load sound files into a Sampler. All sound files will be analyzed and stored as SampleDescript class, and load into buffers.
 
 ARGUMENT:: soundfiles
-(describe argument here)
+A list of soundfiles to load.
 
 ARGUMENT:: server
-(describe argument here)
+The server to load all samples into buffers.
 
 ARGUMENT:: filenameAsKeynum
-(describe argument here)
+Use key numbers provided in the file names as anchored key number for each file.
 
-returns:: (describe returnvalue here)
 
 METHOD:: keyRanges
-(describe method here)
+Ranges of responding MIDI key numbers of each samples.
 
-returns:: (describe returnvalue here)
+returns:: An array of MIDI key numbers indicating the upper and lower key numbers with each key ranges.  In a format like this:
+
+|-------- Each Sample -------------| |-----Each Sample---
+
+|----Section----|      |----Section----|            |----Section----|
+
+[[[upper, lower], [upper, lower]..], [[upper, lower], [upper, lower]...], ....]
+
 
 
 EXAMPLES::
