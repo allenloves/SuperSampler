@@ -1,5 +1,6 @@
+//Sample Descripter By Allen Wu
 //Sampler is dependent on following extentions:
-//SCMIR
+//SCMIR, Make sure you have SCMIR installed in your SuperCollider extensions.  http://composerprogrammer.com/code.html
 //VKey
 //wslib Quark
 
