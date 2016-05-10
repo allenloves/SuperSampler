@@ -7,6 +7,7 @@
  //instance of Sampler is a database of multiple SampleDescript
 Sampler{
 	var <dbs;  // a SamplerDB instance.
+	var <dbName;  //name of the SamplerDB class this sample stored into
 	var <samplerName;  //Name of this sampler
 	var <filenames;
 	var <samples;  // samples are SampleDescript instances
@@ -44,6 +45,7 @@ Sampler{
 
 	//=============================
 	init{arg name, dbname;
+		dbName = dbname;
 		if(name.isNil){Error("A sampler name is needed").throw;};
 		if(SamplerDB.isLoaded(dbname))
 		{
@@ -61,7 +63,7 @@ Sampler{
 	//==============================
 	//TODO: Check freeing sampler
 	free {
-		SamplerDB.dbs.samplers.removeAt(samplerName);
+		SamplerDB.dbs[dbName].removeAt(samplerName);
 		samples.do{|thisSample|
 			thisSample.free;
 		};
