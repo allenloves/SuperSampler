@@ -44,7 +44,6 @@ SamplerDB{
 	//TODO: Free all Samplers in the database.
 	free{
 		dbs.removeAt(label);
-
 		samplers = nil;
 	}
 
