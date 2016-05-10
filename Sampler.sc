@@ -9,7 +9,7 @@ Sampler{
 	var <dbs;  // a SamplerDB instance.
 	var <samplerName;  //Name of this sampler
 	var <filenames;
-	var <samples;
+	var <samples;  // samples are SampleDescript instances
 	var <bufServer;
 	//                           |------ Each Sample -------------|	 |-----Each Sample---
 	//                            |--Section---|  |--Section---|      |--Section---|
@@ -105,9 +105,22 @@ Sampler{
 		^output;
 	}
 
+	/*
+	//TODO: not Working
+	//set anchor keynums arbirurarily
+	setKeynums{|keynumArray, resetKeyRanges = [true, 5]|
+		keynumArray = keynumArray.asArray;
+		samples.do{|thisSample, index|
+			thisSample.keynum = keynumArray[index] ? thisSample.keynum;
+			if(resetKeyRanges[0]){setKeyRanges(resetKeyRanges[1])};
+			[thisSample.filename, thisSample.keynum].postln;
+		}
+	}
+	*/
+
 
 	//=================================================================
-	//reset range response to each key related to the anchor key number
+	//
 	setKeyRanges{arg strategy = \keynumRadious, infoArray = [5];
 		keyRanges = [];
 		switch(strategy.asSymbol,
@@ -136,17 +149,18 @@ Sampler{
 	}
 
 
-	//============================================================================================================
+	//======================================================================================================
 	//provide a list of SampleDescripts and it's keynum of each active buffer inside the key range of provided keynum.
 	//for each qualified buffers, ourput a bufData array of [SampleDescript, section index, playRate]
 	//Out put will be [[bufferData1], [bufferData2], .....]
-	getPlaySamples{|keyNums, texture = nil, filterFunc = true|
+	getPlaySamples{|args filterFunc = true|
+		var keyNums = args.keynums;
+		var texture = args.texture;
 		var finalList = [];
 
 		keyNums.asArray.do{|keyNum, keynumIndex|
 			var sampleList = [];
 			var keySign = keyNum.sign;
-
 			keyNum = keyNum.abs;
 
 			//find keyNums in the keyRanges of each sample sections, send the sample section information
@@ -192,8 +206,12 @@ Sampler{
 		};
 
 		finalList = finalList.scramble[0..(texture !? {texture-1})];
-		^finalList; //[SampleDescript, section index, playRate]
+		args.playSamples = finalList;
+		^finalList;  //[SampleDescript, section index, playRate]
 	}
+
+
+
 
 
 	//====================================================
@@ -201,7 +219,9 @@ Sampler{
 	//The list from getPlaySamples sends to here.
 	//the structure of sampleList is
 	//[SampleDescript, section index, playRate]
-	getPlayTime{arg playSamples, syncmode = \keepLength;
+	getPlayTime{arg args;
+		var playSamples = args.playSamples;
+		var syncmode = args.syncmode;
 
 		switch(syncmode.asArray[0].asSymbol,
 			//keep the full length to samples, line up the peak time together
@@ -245,7 +265,11 @@ Sampler{
 				var previousPeakTime;
 
 				//sort samples by the attack time of the section, longer first
-				playSamples = playSamples.sort({|a, b| (a[0].attackDur[a[1]] / a[2]) > (b[0].attackDur[b[1]] / b[2])});
+				playSamples = playSamples.sort({|a, b|
+					var aAttack = if(a[2].isPositive) {a[0].attackDur[a[1]]} {a[0].releaseDur[a[1]]};
+					var bAttack = if(b[2].isPositive) {b[0].attackDur[b[1]]} {b[0].releaseDur[b[1]]};
+					(aAttack / a[2].abs) > (bAttack / b[2].abs)
+				});
 
 				//initial peak time with the first sample
 				previousPeakTime = ((playSamples[0][0].attackDur[playSamples[0][1]] / playSamples[0][2]) - (startPoint * playSamples[0][2])).thresh(0);
@@ -308,8 +332,10 @@ Sampler{
 			\percussive,{
 				var startpos = 0, waittime = 0;
 				playSamples.do{|thisSample, index|
-					var thisPeakTime = thisSample[0].attackDur[thisSample[1]];
-					var startpos = (thisPeakTime-0.01).thresh(0);
+					var thisPeakTime, startpos;
+
+					thisPeakTime = thisSample[0].attackDur[thisSample[1]];
+					startpos = (thisPeakTime-0.01).thresh(0);
 					playSamples[index] = playSamples[index] ++ waittime ++ startpos;
 				}
 			},
@@ -323,6 +349,7 @@ Sampler{
 				}
 			}
 		);
+		args.playBoundles = playSamples;
 		^playSamples;
 	}
 
@@ -330,31 +357,41 @@ Sampler{
 
 	//========================================
 	//Play samples by giving key numbers
-	key{arg keynums = 60, syncmode = \keeplength, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], texture = nil;
-
-		var args = SamplerParameters.new;
+	//Defaults are also provided by SamplerArguments
+	//Negative key numbers reverses the buffer to play.
+	key{arg keynums = 60, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bend = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15;
+		var args = SamplerArguments.new;
 		var playSamples;
 
-		playSamples = this.getPlaySamples(keynums.asArray, texture);
-		playSamples = this.getPlayTime(playSamples, syncmode);
+		args.set(keynums: keynums, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bend: bend, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur);
+		this.getPlaySamples(args);
+		this.getPlayTime(args);
 
 
 		//for Each Sample, the dataStructure is
 		//[SampleDescript, section index, play rate, wait time, start position]
 		Routine.run{
-			playSamples.do{|thisSample, index|
+			args.playBoundles.do{|thisSample, index|
 				var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
 				var buf = thisSample[0].activeBuffer[thisSample[1]];
-				var dur = ((thisSample[0].activeDuration[thisSample[1]]) / thisSample[2].abs) * bufRateScale;
+				var duration = args.dur ? ((thisSample[0].activeDuration[thisSample[1]]) / thisSample[2].abs) * bufRateScale * (args.expand ? 1);
 				//("wait" + thisSample[3] + "seconds").postln;
-				thisSample.postln;
+				//thisSample.postln;
 				thisSample[3].wait;
 
 				//[buf, thisSample[2], thisSample[4], dur + 0.02, amp, pan].postln;
-				Synth(\playbuf, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: dur + 0.02, amp: amp, pan: pan]);
+				//[thisSample[0], thisSample[1], thisSample[2], thisSample[3], thisSample[4]].postln;
+
+				case
+				{args.expand.isNumber}{Synth(\expand, [buf: buf, expand: args.expand, dur: duration + 0.02, rate: thisSample[2], startPos: thisSample[4], amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur]);}
+
+				{true}{Synth(\playbuf, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: duration + 0.02, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend]);};
+
 			};
 		}
 	}
+
+
 
 
 	//==============================================================

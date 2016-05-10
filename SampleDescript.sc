@@ -1,6 +1,7 @@
 //Sample Descripter By Allen Wu
+//Extra classes requirements: wslib Quark.
 //SampleAnalyse is using SCMIR.  Make sure you have SCMIR installed in your SuperCollider extensions.  http://composerprogrammer.com/code.html
-//Extra classes requires wslib Quark.
+
 
 
 SampleDescript{
@@ -31,7 +32,7 @@ SampleDescript{
 
 	// **** local information by Onsets *****
 	// Temporal information
-	var <keynum;
+	var <>keynum;
 	var <activeDuration;
 	var <activeRMSData;
 	var <onsetTime;
@@ -68,25 +69,29 @@ SampleDescript{
 		//SCMIR.setFrameHop(512);
 		server.postln;
 		bufferServer = server;
+
+		/*
 		//Write Buffer into a file if the input is a buffer.
-		// if(fileName.class == Buffer)
-		// {//if input is a buffer, save the buffer into a file before loading to SCMIR
-		// 	buffer = fileName;
-		// 	if(buffer.path != nil)
-		// 	{
-		// 		if(PathName(buffer.path).extension != "")
-		// 		{filename = buffer.path;}//use buffer path provided already
-		// 		{//give an extension of buffer path and safe to a file
-		// 			filename = Platform.defaultTempDir +/+ PathName(buffer.path).fileName ++ ".aiff";
-		// 			fileName.write(filename, completionMessage: {cond.test=true;cond.signal;});
-		// 		};
-		// 	}
-		// 	{//provide a tempbuffer filename and save to a file.
-		// 		filename = Platform.defaultTempDir +/+ "tempbuffer" +/+ UniqueID +/+ ".aiff";
-		// 		fileName.write(filename, completionMessage: {cond.test=true;cond.signal;});
-		// 	};
-		// }
-		// {filename = fileName; cond.test=true; cond.signal;};//if it is not a buffer
+		if(fileName.class == Buffer)
+		{//if input is a buffer, save the buffer into a file before loading to SCMIR
+			buffer = fileName;
+			if(buffer.path != nil)
+			{
+				if(PathName(buffer.path).extension != "")
+				{filename = buffer.path;}//use buffer path provided already
+				{//give an extension of buffer path and safe to a file
+					filename = Platform.defaultTempDir +/+ PathName(buffer.path).fileName ++ ".aiff";
+					fileName.write(filename, completionMessage: {cond.test=true;cond.signal;});
+				};
+			}
+			{//provide a tempbuffer filename and save to a file.
+				filename = Platform.defaultTempDir +/+ "tempbuffer" +/+ UniqueID +/+ ".aiff";
+				fileName.write(filename, completionMessage: {cond.test=true;cond.signal;});
+			};
+		}
+		{filename = fileName; cond.test=true; cond.signal;};//if it is not a buffer
+		*/
+
 		filename = fileName;
 		file = SCMIRAudioFile(fileName, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
 			file.extractFeatures(false);
@@ -456,7 +461,7 @@ SampleDescript{
 
 		//return an envelope to represent the whole sound file
 	env {
-		^Env.pairs([frameTimes, rmsData].flop, \exp);
+		^Env.pairs([frameTimes, rmsData].flop, \lin);
 	}
 
 
@@ -469,7 +474,7 @@ SampleDescript{
 			var activeRmsData;
 			activeFrameTimes = frameTimes[startIndex[sectionIndex]..endIndex[sectionIndex]] - frameTimes[startIndex[sectionIndex]];
 			activeRmsData = rmsData[startIndex[sectionIndex]..endIndex[sectionIndex]];
-			envArray = envArray.add(Env.pairs([activeFrameTimes, activeRmsData].flop, \exp));
+			envArray = envArray.add(Env.pairs([activeFrameTimes, activeRmsData].flop, \lin));
 		};
 		^envArray;
 	}

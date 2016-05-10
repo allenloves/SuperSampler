@@ -8,20 +8,24 @@ t = Sampler(\tublar).load(a);
 t.key(rrand(50.0, 80.0));
 
 t.key(60)
+t.key(60, bend: [0, 1, 0.2, 1, 1, 3])
+t.key(60, [\peakat, 0.1], expand:1)
 t.key(-60)
 t.key(-60, [\peakat, 1])
 t.key([-60, 60])
+t.key([30, 40, 50, 60, 70, 80], bend: [0, 1, 0.2, 1, 1, 3])
+t.key([-60, 60], [\peakat, 1])
 
-t.key([-60, 60], [\peakat, 5])
 
+t.key([40, 30], ampenv: [0, 0, 0.5, 5, 1, 0]);
 
-t.key([40, 30]);
+t.key([69, 81], expand: 3);
 
-t.key([69, 81]);
-
-t.key([30, 40, -50, 50, -60, 60, 70, 80])
+t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 3])
 
 t.key([30, 81], \percussive);
+t.key([-81], \percussive);
+
 t.key([30, 81], \nosorting);
 
 t.setKeyRanges(\keyNumOnly);
@@ -63,13 +67,18 @@ a = (Platform.resourceDir +/+ "sounds/a11wlk01.wav").pathMatch;
 f = Sampler(\alva, \speak).load(a);
 )
 
+f.keynums;
 f.samples[0].keynum;
 f.samples[0].play;
 f.setKeyRanges(infoArray: 3);
 f.getPlayTime(f.getPlaySamples(70);).flop[3];
-f.key(60, \nosorting);
-f.key(-60, \nosorting);
-f.key([70, 30, 60]);
+f.key(60);
+f.key(60, expand: 3);
+
+f.key(34, texture: 0, expand: 10, grainRate: 40, grainDur: 1.2, bend: [0, 1, 0.3, 1, 1, 3]);
+f.key(1)
+f.key(-60);
+f.key([70, 30, 60], expand: 3);
 f.key([70, 30, 60], \percussive);
 f.key([70, 30, 60], \nosorting)
 
@@ -86,9 +95,12 @@ g = Sampler(\reel).load(a)
 )
 
 
-
+g.samples[0].keynum;
 g.key(38.033508618673)
-g.key(60)
+g.key(60, \percussive, dur: 0.01)
+g.key(60, dur: 0.5)
+
+g.key(60, expand: 7, grainRate: 100, bend: [0, 1, 0.3, 1, 1,  0.3]);
 
 g.key([70, 30, 50, 40, 60])
 
@@ -105,7 +117,7 @@ g.samples[0].activeDuration;
 g.samples[0].sampleRate;
 g.bufServer.sampleRate;
 g.samples[0].activeBuffer[0].plot;
-g.samples[0].keynum;
+
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -117,7 +129,7 @@ s.waitForBoot{
 )
 
 
-h.key([ 76, 95, 29] )
+h.key([ 76, 95, 29], expand: 20 )
 
 h.samples[0].temporalCentroid;
 h.key([60, 50]);
@@ -134,5 +146,6 @@ g.db;
 
 
 d = SamplerDB.dbs[\default];
+d.samplers;
 d.playEnv([60, 90, 50], Env());
 d.playEnv([60, 90, 50], ~alvaenv);
