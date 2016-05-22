@@ -23,3 +23,5 @@ SuperSampler is now an unregistered Quark, to install, type:
 ```supercollider
 Quarks.install("https://github.com/allenloves/SuperSampler");
 ```
+
+SuperSampler is not published to supercollider-quarks list.   Therefore it will not shown on ```supercollider Quarks.gui ``` list.
