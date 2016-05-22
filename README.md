@@ -21,7 +21,7 @@ Quarks.install("https://github.com/supercollider-quarks/wslib");
 ###Install SuperSampler
 
 
-SuperSampler is now a Quark.  However it not yet published to supercollider-quarks list.   Therefore it will not be shown on ```Quarks.gui``` list. To install, type:  
+SuperSampler is now a Quark.  However it not yet published to supercollider-quarks list.   Therefore it will not be shown in ```Quarks.gui``` window. To install, type:  
 ```supercollider
 Quarks.install("https://github.com/allenloves/SuperSampler");
 ```
