@@ -1,5 +1,5 @@
 
-a = SampleDescript(Platform.userExtensionDir ++ "/SuperSampler/Testcode/Reel Palindruome_44.1kHz_int16.aiff")
+a = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Reel Palindruome_44.1kHz_int16.aiff")
 
 a.arEnv(startThresh: 0.1, endThresh: 0.1);
 a.filename;
@@ -9,6 +9,9 @@ a.play(0);
 a.activeBuffer[0].duration;
 a.activeBuffer[0].write(Platform.userExtensionDir ++ "/SuperSampler/Testcode/Reel Palindruome_activeBuffer_44.1kHz_int16.aiff", sampleFormat: "int16")
 a.rmsData.plot;
+
+a.onsetTime;
+a.onsetIndex;
 
 a.startIndex
 a.startIndex * SCMIR.framehop;
@@ -50,7 +53,7 @@ a.play;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-f = SampleDescript(Platform.userExtensionDir ++ "/SuperSampler/Testcode/onsettest.wav")
+f = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/onsettest.wav")
 f.play;
 f.play(2);
 f.duration;
@@ -105,9 +108,10 @@ g.activeBuffer[2].plot;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 e = SampleDescript(Platform.resourceDir +/+ "sounds/a11wlk01.wav", loadToBuffer: false)
-e.play;
+e.play; //automatically load to buffer when you call play
+e.buffer;
 e.startTime;
-e.play(8);
+e.play(4);
 e.sampleRate;
 e.onsetIndex;
 e.file.onsetdata;
@@ -120,13 +124,13 @@ e.env.plot;
 e.env.peakTime;
 e.activeEnv.plot;
 e.pitchData.flop.plot;
-e.temporalCentroid;
 e.activeCentroidData;
 e.activeDissonanceData.plot;
 e.fileNameAsNote;
 e.keynum;
 e.loadToBuffer;
-e.buffer;
+
+e.temporalCentroid.plot;
 
 e.activeBuffer[1].plot;
 
@@ -157,3 +161,26 @@ m.buffer.class;
 m.free;
 m.play;
 m.class;
+
+// ////////////////////////////////////////////////////////////////
+// //Test SampleDescript with Buffer
+//
+// (
+// ~filename = Platform.defaultTempDir +/+ "supersampler" ++ UniqueID.next ++ ".aiff";
+// s.waitForBoot{
+// 	b = Buffer.alloc(s, s.sampleRate * 2);
+// }
+// )
+//
+// //record a buffer
+// {RecordBuf.ar(SoundIn.ar(), b, loop: 0, doneAction: 2)}.play;
+// b.plot;
+// b.play;
+//
+//
+// ~b2 = SampleDescript(b)
+// ~b2.filename;
+// ~b2.play();
+// ~b2.play(1);
+// ~b2.keynum;
+// ~b2.activeEnv.plot;

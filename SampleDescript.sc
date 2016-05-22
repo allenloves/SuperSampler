@@ -5,6 +5,19 @@
 
 
 SampleDescript{
+	//raw data
+	var <mirDataByFeatures; //[[RMS], [Pitch], [hasPitch], [centroid], [SensoryDissonance], [SpecFlatness]]
+	var <rmsData;
+	var <centroidData;
+	var <dissonanceData;
+	var <rmsDataBySection;
+	var <pitchData; //[[pitch, hasPitch]....]
+	var <activeCentroidData;  //frequency centroid
+	var <activeDissonanceData;  // higher value indicates dissonance
+	var <activeRMSData;
+	var <activeSpecFlatness;  // 0-1, 0 is single sinesoid wave, 1 is white noise.  This indicates the degree of noiseness.
+
+
 	//General information
 	var <file;  //An SCMIRAudioFile.
 	var <filename;
@@ -15,11 +28,7 @@ SampleDescript{
 	var <keynumFromFileName;  //get key number from file name, nil if there is none
 	var <keynumFromPitchFound;  //get key number from pitch detection. not necessarily an integer.
 	var <frameTimes;  //Time stamp of each frame
-	var <mirDataByFeatures; //[[RMS], [Pitch], [hasPitch], [centroid], [SensoryDissonance], [SpecFlatness]]
-	var <rmsData;
-	var <rmsDataBySection;
-	var <centroidData;
-	var <dissonanceData;
+
 
 	//****** global description *****
 	// time domain
@@ -34,7 +43,6 @@ SampleDescript{
 	// Temporal information
 	var <>keynum;
 	var <activeDuration;
-	var <activeRMSData;
 	var <onsetTime;
 	var <onsetIndex; //frame index at onset
 	var <startIndex;
@@ -49,17 +57,12 @@ SampleDescript{
 	var <temporalCentroid; // Shorter value indicates percussive sounds, longer value indicates sustained sounds.
 
 	// Frequency information
-	var <pitchData; //[[pitch, hasPitch]....]
-	var <activeCentroidData;  //frequency centroid
-	var <activeDissonanceData;  // higher value indicates dissonance
-
-	var <activeSpecFlatness;  // 0-1, 0 is single sinesoid wave, 1 is white noise.  This indicates the degree of noiseness.
 
 
 
 	//parameters
 	//File Name, Normalize, Start Tine, Duration, Threshold for attack point, Threshold for end point, Threshold for onset, Time threshold for onset grouping.
-	*new {arg filename, normtype=0, start=0, dur=0, startThresh=0.01, endThresh=0.01, onsetThresh=0.5, groupingThresh = 0.32, filenameAsNote = true, loadToBuffer = true, server = Server.default, action;
+	*new {arg filename, normtype=0, start=0, dur=0, startThresh=0.01, endThresh=0.01, onsetThresh=0.5, groupingThresh = 0.32, filenameAsNote = true, loadToBuffer = false, server = Server.default, action;
 
 		^super.new.init(filename, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, server, action);
 	}
@@ -70,33 +73,34 @@ SampleDescript{
 		server.postln;
 		bufferServer = server;
 
-		/*
-		//Write Buffer into a file if the input is a buffer.
-		if(fileName.class == Buffer)
-		{//if input is a buffer, save the buffer into a file before loading to SCMIR
-			buffer = fileName;
-			if(buffer.path != nil)
-			{
-				if(PathName(buffer.path).extension != "")
-				{filename = buffer.path;}//use buffer path provided already
-				{//give an extension of buffer path and safe to a file
-					filename = Platform.defaultTempDir +/+ PathName(buffer.path).fileName ++ ".aiff";
-					fileName.write(filename, completionMessage: {cond.test=true;cond.signal;});
-				};
-			}
-			{//provide a tempbuffer filename and save to a file.
-				filename = Platform.defaultTempDir +/+ "tempbuffer" +/+ UniqueID +/+ ".aiff";
-				fileName.write(filename, completionMessage: {cond.test=true;cond.signal;});
-			};
-		}
-		{filename = fileName; cond.test=true; cond.signal;};//if it is not a buffer
-		*/
+		// fork{
 
-		filename = fileName;
-		file = SCMIRAudioFile(fileName, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
+			// //Write Buffer into a file if the input is a buffer.
+			// if(fileName.class == Buffer)
+			// {//if input is a buffer, save the buffer into a file before loading to SCMIR
+			// 	buffer = fileName;
+			// 	loadToBuffer = false;
+			// 	filenameAsNote = false;
+			// 	//provide a tempbuffer filename and save to a file.
+			// 	filename = Platform.defaultTempDir +/+ "supersampler" ++ UniqueID.next ++ ".aiff";
+			// 	fileName.write(filename, completionMessage: {cond.test=true;cond.signal;});
+			// }
+			// {filename = fileName; cond.test=true; cond.signal;};//if it is not a buffer
+			//
+			// cond.wait;
+			//
+			// ("Buffer rendered to" + filename).postln;
+
+			filename = fileName;
+			//Check if the file exist
+		if(File.exists(filename).not){Error("File % could not be found".format(filename)).throw};
+
+
+		file = SCMIRAudioFile(filename, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
 			file.extractFeatures(false);
 			file.extractOnsets();
 			//get data from SCMIR
+
 			duration = file.duration;
 			mirDataByFeatures = file.featuredata.clump(file.numfeatures).flop;
 			rmsData = mirDataByFeatures[0];
@@ -107,19 +111,21 @@ SampleDescript{
 			globalPeakAmp = rmsData.maxItem;
 			frameTimes = file.frameTimes;
 			globalPeakTime = frameTimes.at(globalPeakIndex);
+
 			this.getOnsetTime(groupingThresh);
 			this.getOnsetIndex;
 			this.findPeaksByOnsets;
 			this.findBreakPointByOnset;
 			this.sectionRmsDataByOnset;
-		this.arEnv(startThresh, endThresh);
+			this.arEnv(startThresh, endThresh);
 			this.getActiveData;
-		this.getKeynum(filenameAsNote);
-		if(loadToBuffer){
-			server.waitForBoot{
-				this.loadToBuffer(bufferServer)};
-		};
+			this.getKeynum(filenameAsNote);
 
+			if(loadToBuffer){
+				server.waitForBoot{
+					this.loadToBuffer(bufferServer)};
+			};
+	// }
 	}
 
 	free {
@@ -172,7 +178,7 @@ SampleDescript{
 	}
 
 
-	loadToBuffer{arg server = Server.default, action;
+	loadToBuffer {arg server = Server.default, action;
 		var buf, startSample = 0, durSample;
 		var cond = Condition(false);
 		bufferServer = server;
@@ -201,7 +207,7 @@ SampleDescript{
 		}
 	}
 
-	getKeynum {arg filenameAsNote, pitchShift = 0;
+	getKeynum {arg filenameAsNote = true, pitchShift = 0;
 		var str=PathName(filename).fileNameWithoutExtension;
 		var l=str.size-1;
 		var i=l, j, c;
@@ -211,7 +217,8 @@ SampleDescript{
 		keynumFromPitchFound = [];
 		keynum = [];
 
-		//if there is a key number or note name at the end of file name, retrive the key number
+		//**************************************************************************************
+		//retrive the key number from file name, if there is one.
 		while ({i>=0 && "0123456789".includes(str.at(i))},{i=i-1});
 		if (i<l) { // had digit at end, i now before all digits
 			if (l - i >= 2){// had more than 2 digits at end
@@ -262,7 +269,8 @@ SampleDescript{
 		// else, no digit at end, use pitch material for keynumber
 		{keynumFromFileName = nil};
 
-		//get keynum from pitch material, keynum is not necessarily an integer.
+		//****************************************************************************
+		//get keynum from pitch material, keynum will not necessarily be an integer.
 		//The pitch is determined by the pitch data at the peak frame, if it has pitch.
 		//If pitch is not found at the peak frame, take the first frame that has pitch.
 		//Return nil if there is no pitch after 20 frames until the end of the section.
@@ -295,10 +303,13 @@ SampleDescript{
 		{keynum = Array.fill(peakIndex.size, keynumFromFileName) + pitchShift;}
 		{keynum = keynumFromPitchFound + pitchShift;}
 
-	}
+	}//end of getKeyNum
+
+
+
 
 	//get onset time, if an onset is too close to previous one, it will be abandoned
-	getOnsetTime{|groupingThresh = 0.32|
+	getOnsetTime {|groupingThresh = 0.32|
 		var onsets = [file.onsetdata[0]];
 		file.onsetdata.doAdjacentPairs({|thisOnset, nextOnset|
 			//filter onsets too close
@@ -309,7 +320,7 @@ SampleDescript{
 
 
 	//get frame index at the onset time
-	getOnsetIndex{
+	getOnsetIndex {
 		var onsetIndexTemp = [];
 		var franeGrid = file.frameStartTimes;
 		onsetTime.do{|thisOnsetTime, index|
@@ -319,7 +330,7 @@ SampleDescript{
 	}
 
 	//find local peaks by onsets
-	findPeaksByOnsets{
+	findPeaksByOnsets {
 		var peakArray = [];
 		onsetIndex.do{|thisOnset, index|
 			var nextOnset = onsetIndex[index + 1];
@@ -339,10 +350,17 @@ SampleDescript{
 		sectionBreakPoint = troughArray;
 	}
 
+
+	// // Use onset as breaking point for a sample file
+	// findBreakPointByOnset {
+	// 	sectionBreakPoint = onsetIndex;
+	// }
+
 	//Separate rmsData into subsections by breakpoints.
 	sectionRmsDataByOnset {
 		rmsDataBySection = rmsData.chop(sectionBreakPoint);
 	}
+
 
 
 	//Dictate attact/release time
@@ -443,7 +461,7 @@ SampleDescript{
 		var buf, cond = Condition.new(false);
 		server = server ? Server.default;
 		if(buffer == nil)
-		{this.loadToBuffer(server, action: {cond.test = true; cond.signal;})}
+		{server.waitForBoot{this.loadToBuffer(server, action: {cond.test = true; cond.signal;})}}
 		{cond.test = true; cond.signal;};
 		Routine.run{
 			cond.wait;
