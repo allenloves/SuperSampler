@@ -79,7 +79,7 @@ Sampler{
 	//load and analyze sound files
 	load {arg soundfiles, server = Server.default, filenameAsKeynum = true;
 		bufServer = server;
-		Routine.run{
+		fork{
 			var dict = Dictionary.newFrom([filenames, samples].flop.flat);
 			soundfiles.do{|filename, index|
 				var sample;
@@ -87,7 +87,7 @@ Sampler{
 				{"This file is already loaded, reloading".postln;
 					dict[filename.asSymbol].free;
 				};
-				sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum);
+				sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: true);
 				dict.put(filename.asSymbol, sample);
 			};
 			dict = dict.asSortedArray.flop;
