@@ -6,6 +6,10 @@ SuperSampler is a sampler synthesizer project on SuperCollider.  The sampler is 
 
 ###Install Dependences
 
+First, make sure you have installed SC3 plugins:
+
+https://github.com/supercollider/sc3-plugins
+
 SuperSampler is using SCMIR to extract data form sampled sounds.  Download SCMIR at:
 
 http://composerprogrammer.com/code.html
