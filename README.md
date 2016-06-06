@@ -15,8 +15,8 @@ unzip, and put it under ~/Library/Application Supprt/SuperCollider/Extensions/
 
 * **Fix SCMIR Bug:** 
 ```
-There is a bug in SCMIR with SuperCollider 3.7 due to the change of version.
-Until Nick update SCMIR to adapt new version of SuperCollider, please do the following to fix this bug: 
+There is a bug in SCMIR with SuperCollider 3.7 due to the change in SuperCollider.
+If you are using SuperCollider 3.7, please do the following to fix this bug: 
 
 Open up SCMIRExtensions/Classes/SCMIRScore.sc and change line 15 from
 
