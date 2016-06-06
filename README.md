@@ -15,8 +15,7 @@ unzip, and put it under ~/Library/Application Supprt/SuperCollider/Extensions/
 
 ```
 Note: There is a bug in SCMIR with SuperCollider 3.7 due to the change of version.
-Until Nick update SCMIR to adapt new version of SuperCollider, 
-please do the following to fix this bug: 
+Until Nick update SCMIR to adapt new version of SuperCollider, please do the following to fix this bug: 
 
 Open up SCMIRExtensions/Classes/SCMIRScore.sc and change line 15 from
 
@@ -24,7 +23,7 @@ cmd = program + "-v -2 -N" + oscFilePath.quote
 
 to
 
-cmd = program + "-v -2 -N" + oscFilePath.quote 
+cmd = program + "-V -2 -N" + oscFilePath.quote  // Change the lower-case v to capital V
 ```
 
 * Also, SuperSampler is depended on wslib Quark, it should be automatically installed when you install the SuperSampler Quark.  If somehow it doesn't happen, type:  
