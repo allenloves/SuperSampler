@@ -387,7 +387,6 @@ Sampler{
 
 				case
 				{args.expand.isNumber}{Synth(\expand, [buf: buf, expand: args.expand, dur: duration + 0.02, rate: thisSample[2], startPos: thisSample[4], amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur]);}
-
 				{true}{Synth(\playbuf, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: duration + 0.02, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend]);};
 
 			};

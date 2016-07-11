@@ -20,8 +20,8 @@
 				var ampgen = EnvGen.kr(ampctl, 1, amp, 0, timeScale: dur , doneAction:2);
 				var trigger = Impulse.kr(grainRate + LFNoise0.kr(grainRate*2,2.0/grainDur));
 				var position = Line.kr(start: startPos/BufDur.kr(buf), end: 1, dur: dur);  //dur:  ((BufDur.kr(buf) - startPos) * expand));
-				var outsig = ampgen * GrainBuf.ar(2, trigger, grainDur, buf, rate*skwgen,
-					position, 2, TRand.kr(-0.1,0.1,trigger)+pan);
+				var outsig = ampgen * GrainBuf.ar(numChannels: 2, trigger: trigger, dur: grainDur, sndbuf: buf, rate: rate*skwgen,
+					pos: position, interp: 2, pan: TRand.kr(-0.1,0.1,trigger)+pan);
 				Out.ar(bus: out, channelsArray: outsig);
 			}).add;
 

@@ -22,6 +22,7 @@ SampleDescript{
 	var <file;  //An SCMIRAudioFile.
 	var <filename;
 	var <sampleRate;
+	var <numChannels;
 	var <bufferServer;
 	var <buffer;
 	var <activeBuffer;  //Array of buffers with each section (is there a way to play one part of buffer without making a copy?)
@@ -50,7 +51,7 @@ SampleDescript{
 	var <endIndex;
 	var <endTime;
 	var <peakIndex;
-	var <peakTime;  //global time point of each peak
+	var <peakTime;  //global time point of each local peak
 	var <peakAmp;
 	var <attackDur;  // Attack Time
 	var <releaseDur;  // Release Time
@@ -73,59 +74,60 @@ SampleDescript{
 		server.postln;
 		bufferServer = server;
 
+		// //If a buffer is loaded to the sampler, write into a file before load to SCMIRAudioFile
 		// fork{
 
-			// //Write Buffer into a file if the input is a buffer.
-			// if(fileName.class == Buffer)
-			// {//if input is a buffer, save the buffer into a file before loading to SCMIR
-			// 	buffer = fileName;
-			// 	loadToBuffer = false;
-			// 	filenameAsNote = false;
-			// 	//provide a tempbuffer filename and save to a file.
-			// 	filename = Platform.defaultTempDir +/+ "supersampler" ++ UniqueID.next ++ ".aiff";
-			// 	fileName.write(filename, completionMessage: {cond.test=true;cond.signal;});
-			// }
-			// {filename = fileName; cond.test=true; cond.signal;};//if it is not a buffer
-			//
-			// cond.wait;
-			//
-			// ("Buffer rendered to" + filename).postln;
+		// //Write Buffer into a file if the input is a buffer.
+		// if(fileName.class == Buffer)
+		// {//if input is a buffer, save the buffer into a file before loading to SCMIR
+		// 	buffer = fileName;
+		// 	loadToBuffer = false;
+		// 	filenameAsNote = false;
+		// 	//provide a tempbuffer filename and save to a file.
+		// 	filename = Platform.defaultTempDir +/+ "supersampler" ++ UniqueID.next ++ ".aiff";
+		// 	fileName.write(filename, completionMessage: {cond.test=true;cond.signal;});
+		// }
+		// {filename = fileName; cond.test=true; cond.signal;};//if it is not a buffer
+		//
+		// cond.wait;
+		//
+		// ("Buffer rendered to" + filename).postln;
 
-			filename = fileName;
-			//Check if the file exist
+		filename = fileName;
+		//Check if the file exist
 		if(File.exists(filename).not){Error("File % could not be found".format(filename)).throw};
 
 
 		file = SCMIRAudioFile(filename, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
-			file.extractFeatures(false);
-			file.extractOnsets();
-			//get data from SCMIR
+		file.extractFeatures(false);
+		file.extractOnsets();
+		//get data from SCMIR
 
-			duration = file.duration;
-			mirDataByFeatures = file.featuredata.clump(file.numfeatures).flop;
-			rmsData = mirDataByFeatures[0];
-			pitchData = [mirDataByFeatures[1], mirDataByFeatures[2]].flop;
-			centroidData = mirDataByFeatures[3];
-			dissonanceData = mirDataByFeatures[4];
-			globalPeakIndex = rmsData.maxIndex;
-			globalPeakAmp = rmsData.maxItem;
-			frameTimes = file.frameTimes;
-			globalPeakTime = frameTimes.at(globalPeakIndex);
+		duration = file.duration;
+		mirDataByFeatures = file.featuredata.clump(file.numfeatures).flop;
+		rmsData = mirDataByFeatures[0];
+		pitchData = [mirDataByFeatures[1], mirDataByFeatures[2]].flop;
+		centroidData = mirDataByFeatures[3];
+		dissonanceData = mirDataByFeatures[4];
+		globalPeakIndex = rmsData.maxIndex;
+		globalPeakAmp = rmsData.maxItem;
+		frameTimes = file.frameTimes;
+		globalPeakTime = frameTimes.at(globalPeakIndex);
 
-			this.getOnsetTime(groupingThresh);
-			this.getOnsetIndex;
-			this.findPeaksByOnsets;
-			this.findBreakPointByOnset;
-			this.sectionRmsDataByOnset;
-			this.arEnv(startThresh, endThresh);
-			this.getActiveData;
-			this.getKeynum(filenameAsNote);
+		this.getOnsetTime(groupingThresh);
+		this.getOnsetIndex;
+		this.findBreakPointByOnsets;
+		this.findPeaksByOnsets;
+		this.sectionRmsDataByOnset;
+		this.arEnv(startThresh, endThresh);
+		this.getActiveData;
+		this.getKeynum(filenameAsNote);
 
-			if(loadToBuffer){
-				server.waitForBoot{
-					this.loadToBuffer(bufferServer)};
-			};
-	// }
+		if(loadToBuffer){
+			server.waitForBoot{
+				this.loadToBuffer(bufferServer)};
+		};
+		// }
 	}
 
 	free {
@@ -183,17 +185,19 @@ SampleDescript{
 		var cond = Condition(false);
 		bufferServer = server;
 		buffer.free;
+		//free buffers if they were loaded before.
 		activeBuffer.do({|buffer| buffer.free;});
 		activeBuffer = [];
 		"Loading soundfile into Buffer".postln;
 		server.waitForBoot{
 			Routine.run{
+				//load the sound file into a master buffer
 				buffer = Buffer.read(server, filename, action: {cond.test = true; cond.signal;});
 				cond.wait;
 				sampleRate = buffer.sampleRate;
-				//"master buffer loaded".postln;
+				numChannels = buffer.numChannels;
 
-
+				//load each sections into sub buffers
 				startIndex.do{|thisSectionStartIndex, sectionIndex|
 					startSample = thisSectionStartIndex * SCMIR.framehop;
 					durSample = (activeRMSData[sectionIndex].size - 1) * SCMIR.framehop;
@@ -219,6 +223,7 @@ SampleDescript{
 
 		//**************************************************************************************
 		//retrive the key number from file name, if there is one.
+		//From VKey by Prof. Heinrich Taube
 		while ({i>=0 && "0123456789".includes(str.at(i))},{i=i-1});
 		if (i<l) { // had digit at end, i now before all digits
 			if (l - i >= 2){// had more than 2 digits at end
@@ -266,7 +271,7 @@ SampleDescript{
 				// else
 				{keynumFromFileName = nil};
 		}}
-		// else, no digit at end, use pitch material for keynumber
+		// else, no digit at end of file name, use pitch material for keynumber
 		{keynumFromFileName = nil};
 
 		//****************************************************************************
@@ -277,6 +282,8 @@ SampleDescript{
 		peakIndex.do({|thisPeakIndex, sectionIndex|
 			var pitch, hasPitch;
 			var pitchCollection = [];
+
+			thisPeakIndex = thisPeakIndex.asInteger;
 
 			if(endTime[sectionIndex]-peakTime[sectionIndex] <= 0.5)
 			{pitch = pitchData[thisPeakIndex..endIndex[sectionIndex]].flop[0];
@@ -307,6 +314,12 @@ SampleDescript{
 
 
 
+	//********************************************************************************
+	//Separate sound file into recognizable sound sections if exist.
+	//Here is how it works:
+	//1. Find out onsets in this sound file using SCMIR onset data.
+	//2.
+
 
 	//get onset time, if an onset is too close to previous one, it will be abandoned
 	getOnsetTime {|groupingThresh = 0.32|
@@ -329,6 +342,7 @@ SampleDescript{
 		onsetIndex = onsetIndexTemp;
 	}
 
+/*
 	//find local peaks by onsets
 	findPeaksByOnsets {
 		var peakArray = [];
@@ -342,7 +356,7 @@ SampleDescript{
 
 	//Find breakpoint of a sample file by onsets.
 	//using lowest point in between local peaks to be section breakpoints.
-	findBreakPointByOnset {
+	findBreakPointByOnsets {
 		var troughArray = [];
 		peakIndex.doAdjacentPairs{|thisPeak, nextPeak|
 			troughArray = troughArray.add(rmsData[thisPeak..nextPeak].minIndex + thisPeak);
@@ -350,16 +364,60 @@ SampleDescript{
 		sectionBreakPoint = troughArray;
 	}
 
-
 	// // Use onset as breaking point for a sample file
-	// findBreakPointByOnset {
+	// findBreakPointByOnsets {
 	// 	sectionBreakPoint = onsetIndex;
 	// }
 
+*/
+
+
+	//Find breakpoint of a sample file by onsets.
+	//using lowest point in between onsets to be section breakpoints.
+	findBreakPointByOnsets {
+		var troughArray = [];
+		onsetIndex.do{|thisOnset, index|
+			var previousOnset = onsetIndex[index - 1];
+			troughArray = troughArray.add(rmsData[previousOnset..thisOnset].lastMinIndex + (previousOnset ?? 0));
+		};
+		sectionBreakPoint = troughArray;
+	}
+
 	//Separate rmsData into subsections by breakpoints.
 	sectionRmsDataByOnset {
-		rmsDataBySection = rmsData.chop(sectionBreakPoint);
+		var output = [];
+		sectionBreakPoint.do{|thisSection, index|
+			var nextSection = sectionBreakPoint[index + 1];
+			output = output.add(rmsData[thisSection..nextSection]);
+		};
+		rmsDataBySection = output;
 	}
+
+
+	//find local peaks in the section breakpoint
+	findPeaksByOnsets {
+		var peakArray = [];
+		var soundFile = SoundFile.openRead(filename);
+		var soundFileArray = FloatArray.newClear(soundFile.numFrames*soundFile.numChannels);
+		soundFile.readData(soundFileArray);
+		soundFileArray = soundFileArray.clump(soundFile.numChannels).flop;
+		sectionBreakPoint.do{|thisSection, index|
+			var nextSection = sectionBreakPoint[index + 1];
+			var peakhop = rmsData[thisSection..nextSection].maxIndex + thisSection;
+			var peaksInTheHop = [];
+			soundFileArray.numChannels.do{|channel|
+				var peakPoint = (soundFileArray[channel].abs[peakhop*SCMIR.framehop..(peakhop+1)*SCMIR.framehop].maxIndex)/SCMIR.framehop;
+				var peakLevel = soundFileArray[channel].abs[peakhop*SCMIR.framehop..(peakhop+1)*SCMIR.framehop].maxItem;
+				peaksInTheHop = peaksInTheHop.add([peakPoint, peakLevel]);
+			};
+			peaksInTheHop = peaksInTheHop.flop; //[peakPoints, peakLevels]
+			peaksInTheHop = peaksInTheHop[0][peaksInTheHop[1].maxIndex];
+			peakArray = peakArray.add(peakhop + peaksInTheHop);
+		};
+		peakIndex = peakArray;
+	}
+
+
 
 
 
@@ -380,7 +438,7 @@ SampleDescript{
 
 		//for each onset section, find peaks
 		rmsDataBySection.do{|thisSection, sectionIndex|
-			var thisSectionStartIndex = sectionBreakPoint.addFirst(0)[sectionIndex];
+			var thisSectionStartIndex = sectionBreakPoint[sectionIndex];
 			var localPeakFrame = thisSection.maxIndex;
 			var localPeakTime = (thisSection.maxIndex + 0.5) * SCMIR.hoptime;
 			var localPeakAmp = thisSection.maxItem;
@@ -391,7 +449,10 @@ SampleDescript{
 			peakAmp = peakAmp.add(localPeakAmp);
 			peakTime = peakTime.add(localPeakTime + (thisSectionStartIndex * SCMIR.hoptime)) ;
 
+			//startTime:
 			//search for the first point pass above threshold.
+			//TODO: Use adaptative threshold method (weakest effort method) for start time detection.
+			//Peeters, Geoffroy. “A Large Set of Audio Features for Sound Description (Similarity and Description) in the Cuidado Project.” IRCAM, Paris, France (2004).
 			block{|break|
 				thisSection.do({|rmsenergy, index|
 					if(rmsenergy >= startAmp ,
@@ -497,6 +558,11 @@ SampleDescript{
 		^envArray;
 	}
 
+	plot {
+		var plotWindow = Window.new;
 
+
+
+	}
 
 }

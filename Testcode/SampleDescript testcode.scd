@@ -7,11 +7,14 @@ a.duration;
 a.play;
 a.play(0);
 a.activeBuffer[0].duration;
-a.activeBuffer[0].write(Platform.userExtensionDir ++ "/SuperSampler/Testcode/Reel Palindruome_activeBuffer_44.1kHz_int16.aiff", sampleFormat: "int16")
 a.rmsData.plot;
+a.numChannels;
 
 a.onsetTime;
 a.onsetIndex;
+a.sectionBreakPoint;
+
+a.peakIndex;
 
 a.startIndex
 a.startIndex * SCMIR.framehop;
@@ -28,6 +31,9 @@ a.endTime;
 
 SCMIR.framehop;
 
+a.env.peakTime;
+a.peakTime;
+
 ((a.peakIndex+0.5) * SCMIR.hoptime);
 (a.peakIndex+2) * SCMIR.hoptime;
 SCMIR.frameTime(a.peakIndex);
@@ -36,6 +42,8 @@ a.peakTime;
 a.peakTime-a.startTime;
 a.attackDur;
 
+a.buffer.numChannels;
+a.activeBuffer[0].numChannels;
 
 a.pitchData.flop.plot;
 a.activeEnv.plot;
@@ -60,6 +68,7 @@ f.duration;
 f.mirDataByFeatures;
 f.rmsData.plot;
 f.onsetTime;
+f.sectionBreakPoint;
 f.globalPeakIndex;
 f.globalPeakAmp;
 f.frameTimes;
@@ -84,6 +93,7 @@ g = SampleDescript("/Volumes/My Sounds/Sound Fx/Hollywood Edge/Ct 03/3-04 Impact
 g.arEnv(startThresh: 0.05, endThresh: 0.05);
 g.play;
 g.play(0);
+g.numChannels;
 g.activeEnv.plot;
 g.onsetIndex;
 g.sectionBreakPoint;
@@ -102,7 +112,9 @@ g.keynumFromPitchFound;
 g.keynumFromFileName;
 g.keynum;
 g.loadToBuffer;
-g.buffer;
+g.buffer.numChannels;
+g.activeBuffer[2].numChannels;
+
 g.activeBuffer[2].plot;
 
 

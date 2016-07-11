@@ -3,6 +3,15 @@
 
 + Collection {
 
+	lastMinIndex {  // return the last index of minimum value when there are more then one
+		^this.size - 1 - this.reverse.minIndex;
+	}
+
+	lastMaxIndex {  // return the last index of minimum value when there are more then one
+		^this.size - 1 - this.reverse.maxIndex;
+	}
+
+
 	removeDups {    // output a new collection without any duplicate values
 		var result;
 		result = this.species.new(this.size);
