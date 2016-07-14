@@ -13,6 +13,9 @@ https://github.com/supercollider/sc3-plugins
 http://composerprogrammer.com/code.html  
 unzip, and put it under ~/Library/Application Supprt/SuperCollider/Extensions/
 
+The new version of SCMIR has fixed the conflict problem with SuperCollider 7.  Please go to website above to download the newest version.
+
+<!---
 * **Fix SCMIR Bug:** 
 ```
 There is a bug in SCMIR with SuperCollider 3.7 due to the change in SuperCollider.
@@ -26,6 +29,7 @@ to
 
 cmd = program + "-V -2 -N" + oscFilePath.quote  // Change the lower-case v to capital V
 ```
+-->
 
 * Also, SuperSampler is depended on wslib Quark, it should be automatically installed when you install the SuperSampler Quark.  If somehow it doesn't happen, type:  
 ```supercollider
