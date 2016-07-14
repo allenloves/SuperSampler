@@ -13,8 +13,6 @@ https://github.com/supercollider/sc3-plugins
 http://composerprogrammer.com/code.html  
 unzip, and put it under ~/Library/Application Supprt/SuperCollider/Extensions/
 
-The new version of SCMIR has fixed the conflict problem with SuperCollider 7.  Please go to website above to download the newest version.
-
 <!---
 * **Fix SCMIR Bug:** 
 ```
