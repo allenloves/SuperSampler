@@ -109,10 +109,7 @@ SampleDescript{
 		pitchData = [mirDataByFeatures[1], mirDataByFeatures[2]].flop;
 		centroidData = mirDataByFeatures[3];
 		dissonanceData = mirDataByFeatures[4];
-		globalPeakIndex = rmsData.maxIndex;
-		globalPeakAmp = rmsData.maxItem;
 		frameTimes = file.frameTimes;
-		globalPeakTime = frameTimes.at(globalPeakIndex);
 
 		this.getOnsetTime(groupingThresh);
 		this.getOnsetIndex;
@@ -376,6 +373,7 @@ SampleDescript{
 	//using lowest point in between onsets to be section breakpoints.
 	findBreakPointByOnsets {
 		var troughArray = [];
+		sectionBreakPoint = [];
 		onsetIndex.do{|thisOnset, index|
 			var previousOnset = onsetIndex[index - 1];
 			troughArray = troughArray.add(rmsData[previousOnset..thisOnset].lastMinIndex + (previousOnset ?? 0));
@@ -386,6 +384,7 @@ SampleDescript{
 	//Separate rmsData into subsections by breakpoints.
 	sectionRmsDataByOnset {
 		var output = [];
+		rmsDataBySection = [];
 		sectionBreakPoint.do{|thisSection, index|
 			var nextSection = sectionBreakPoint[index + 1];
 			output = output.add(rmsData[thisSection..nextSection]);
@@ -396,25 +395,36 @@ SampleDescript{
 
 	//find local peaks in the section breakpoint
 	findPeaksByOnsets {
-		var peakArray = [];
+		var peakArray = [], peakAmpArray = [];
 		var soundFile = SoundFile.openRead(filename);
 		var soundFileArray = FloatArray.newClear(soundFile.numFrames*soundFile.numChannels);
+		peakIndex = [];
+		peakTime = [];
+		peakAmp = [];
 		soundFile.readData(soundFileArray);
 		soundFileArray = soundFileArray.clump(soundFile.numChannels).flop;
 		sectionBreakPoint.do{|thisSection, index|
 			var nextSection = sectionBreakPoint[index + 1];
 			var peakhop = rmsData[thisSection..nextSection].maxIndex + thisSection;
+			var thisPeakLevel;
 			var peaksInTheHop = [];
 			soundFileArray.numChannels.do{|channel|
-				var peakPoint = (soundFileArray[channel].abs[peakhop*SCMIR.framehop..(peakhop+1)*SCMIR.framehop].maxIndex)/SCMIR.framehop;
-				var peakLevel = soundFileArray[channel].abs[peakhop*SCMIR.framehop..(peakhop+1)*SCMIR.framehop].maxItem;
-				peaksInTheHop = peaksInTheHop.add([peakPoint, peakLevel]);
+				var channelPeakPoint = (soundFileArray[channel].abs[peakhop*SCMIR.framehop..(peakhop+1)*SCMIR.framehop].maxIndex)/SCMIR.framehop;
+				var channelPeakLevel = soundFileArray[channel].abs[peakhop*SCMIR.framehop..(peakhop+1)*SCMIR.framehop].maxItem;
+				peaksInTheHop = peaksInTheHop.add([channelPeakPoint, channelPeakLevel]);
 			};
 			peaksInTheHop = peaksInTheHop.flop; //[peakPoints, peakLevels]
+			peakAmpArray = peakAmpArray.add(peaksInTheHop[1].maxItem);
 			peaksInTheHop = peaksInTheHop[0][peaksInTheHop[1].maxIndex];
 			peakArray = peakArray.add(peakhop + peaksInTheHop);
+
 		};
 		peakIndex = peakArray;
+		peakTime = peakIndex * SCMIR.hoptime;
+		peakAmp = peakAmpArray;
+		globalPeakAmp = peakAmpArray.maxItem;
+		globalPeakIndex = peakIndex[peakAmpArray.maxIndex];
+		globalPeakTime = peakTime[peakAmpArray.maxIndex];
 	}
 
 
@@ -433,25 +443,16 @@ SampleDescript{
 		attackDur = [];
 		releaseDur = [];
 		activeDuration = [];
-		peakTime = [];
-		peakAmp = [];
 
 		//for each onset section, find peaks
 		rmsDataBySection.do{|thisSection, sectionIndex|
 			var thisSectionStartIndex = sectionBreakPoint[sectionIndex];
-			var localPeakFrame = thisSection.maxIndex;
-			var localPeakTime = (thisSection.maxIndex + 0.5) * SCMIR.hoptime;
-			var localPeakAmp = thisSection.maxItem;
-
-			startAmp = startThresh * localPeakAmp;
-			endAmp = endThresh * localPeakAmp;
-
-			peakAmp = peakAmp.add(localPeakAmp);
-			peakTime = peakTime.add(localPeakTime + (thisSectionStartIndex * SCMIR.hoptime)) ;
+			var startAmp = startThresh * peakAmp[sectionIndex];
+			var endAmp = endThresh * peakAmp[sectionIndex];
 
 			//startTime:
 			//search for the first point pass above threshold.
-			//TODO: Use adaptative threshold method (weakest effort method) for start time detection.
+			//MAYBE: Use adaptative threshold method (weakest effort method) for start time detection.
 			//Peeters, Geoffroy. “A Large Set of Audio Features for Sound Description (Similarity and Description) in the Cuidado Project.” IRCAM, Paris, France (2004).
 			block{|break|
 				thisSection.do({|rmsenergy, index|
@@ -485,7 +486,7 @@ SampleDescript{
 	}
 
 
-	//Separate Datas into subsections by breakpoints.
+	//Separate Datas into subsections by active envelopes.
 	//includes:
 	//activeRMSData
 	//activeCentroid
