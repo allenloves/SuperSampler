@@ -5,6 +5,9 @@
 
 
 SampleDescript{
+
+	classvar guiTempFile;
+
 	//raw data
 	var <mirDataByFeatures; //[[RMS], [Pitch], [hasPitch], [centroid], [SensoryDissonance], [SpecFlatness]]
 	var <rmsData;
@@ -101,8 +104,8 @@ SampleDescript{
 		file = SCMIRAudioFile(filename, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
 		file.extractFeatures(false);
 		file.extractOnsets();
-		//get data from SCMIR
 
+		//get data from SCMIR
 		duration = file.duration;
 		mirDataByFeatures = file.featuredata.clump(file.numfeatures).flop;
 		rmsData = mirDataByFeatures[0];
@@ -315,7 +318,9 @@ SampleDescript{
 	//Separate sound file into recognizable sound sections if exist.
 	//Here is how it works:
 	//1. Find out onsets in this sound file using SCMIR onset data.
-	//2.
+	//2. Find section breaking point based on the RMS trough point inbetween each onsets.
+	//3. Find peak point inbetween each sections.
+	//4. Fint attact and ending point from the peak point.
 
 
 	//get onset time, if an onset is too close to previous one, it will be abandoned
@@ -339,34 +344,6 @@ SampleDescript{
 		onsetIndex = onsetIndexTemp;
 	}
 
-/*
-	//find local peaks by onsets
-	findPeaksByOnsets {
-		var peakArray = [];
-		onsetIndex.do{|thisOnset, index|
-			var nextOnset = onsetIndex[index + 1];
-			peakArray = peakArray.add(rmsData[thisOnset..nextOnset].maxIndex + thisOnset);
-		};
-		peakIndex = peakArray;
-	}
-
-
-	//Find breakpoint of a sample file by onsets.
-	//using lowest point in between local peaks to be section breakpoints.
-	findBreakPointByOnsets {
-		var troughArray = [];
-		peakIndex.doAdjacentPairs{|thisPeak, nextPeak|
-			troughArray = troughArray.add(rmsData[thisPeak..nextPeak].minIndex + thisPeak);
-		};
-		sectionBreakPoint = troughArray;
-	}
-
-	// // Use onset as breaking point for a sample file
-	// findBreakPointByOnsets {
-	// 	sectionBreakPoint = onsetIndex;
-	// }
-
-*/
 
 
 	//Find breakpoint of a sample file by onsets.
@@ -465,19 +442,19 @@ SampleDescript{
 				})
 			};
 
-
-
 			//search for the last point pass below threshold.
 			block{|break|
 				thisSection.reverseDo({|rmsenergy, index|
 					if(rmsenergy >= endAmp ,
 						{
-							endIndex = endIndex.add(sectionBreakPoint.addFirst(0)[sectionIndex] + thisSection.size - index);
+							endIndex = endIndex.add(sectionBreakPoint[sectionIndex] + thisSection.size - index);
 							endTime = endTime.add(endIndex.last * SCMIR.hoptime);
 							break.value(0);
 					})
 				})
 			};
+
+
 		};
 
 		attackDur = peakTime - startTime;
