@@ -1,6 +1,6 @@
 (
 s.waitForBoot{
-	a = (Platform.userExtensionDir ++ "/SuperSampler/Testcode/Tubular/*.aiff").pathMatch;
+	a = (Quarks.folder ++ "/SuperSampler/Testcode/Tubular/*.aiff").pathMatch;
 t = Sampler(\tublar).load(a);
 }
 )
@@ -23,9 +23,9 @@ t.key([69, 81], expand: 3);
 
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 3])
 
-t.key([30, 81], \percussive);
+t.key([70, 81]);
 t.key([-81], \percussive);
-
+t.key([30, 81]);
 t.key([30, 81], \nosorting);
 
 t.setKeyRanges(\keyNumOnly);
@@ -89,14 +89,12 @@ f.playEnv([70, 30, 60], Env());
 /////////////////////////////////////////////////////////////////////////////
 (
 s.waitForBoot{
-	a = (Platform.userExtensionDir ++ "/SuperSampler/Testcode/Reel Palindruome_44.1kHz_int16.aiff").pathMatch;
+	a = (Quarks.folder ++ "/SuperSampler/Testcode/Reel Palindruome_44.1kHz_int16.aiff").pathMatch;
 g = Sampler(\reel).load(a)
 }
 )
 
-
-g.samples[0].keynum;
-g.key(38.033508618673)
+g.key(g.samples[0].keynum) //original sound
 g.key(60, \percussive, dur: 0.01)
 g.key(60, dur: 0.5)
 
@@ -123,7 +121,7 @@ g.samples[0].activeBuffer[0].plot;
 
 (
 s.waitForBoot{
-	a = (Platform.userExtensionDir ++ "/SuperSampler/Testcode/onsettest.wav").pathMatch;
+	a = (Quarks.folder ++ "/SuperSampler/Testcode/onsettest.wav").pathMatch;
 	h = Sampler(\clicks).load(a);
 }
 )

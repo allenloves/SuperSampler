@@ -7,7 +7,7 @@ var onsetButton, onsetView, breakButton, breakView, peakIndexButton, peakIndexVi
 var soundfile;
 ~temp = nil;
 
-Window.closeAll;
+
 win = Window.new("Sound Descripter", Rect(140, 800, 1100, 200)).front.alwaysOnTop_(true).background_(colorSet1[2]);
 
 //*** Drop Area ***
@@ -42,10 +42,6 @@ drg = DragSink(win, Rect(15, 15, 700, 50))
 					};
 				)
 			};
-
-
-			//****Draw section start time***//
-
 
 		};)//.drawFunc
 	}//if statement
@@ -161,6 +157,8 @@ peakTimeButton = Button(win, Rect(830, 42, 90, 22))
 	}
 });//peakTimeButton
 
+
+//**Draw Start Time**//
 startButton = Button(win, Rect(930, 15, 90, 22))
 .resize_(3)
 .states_([
@@ -184,7 +182,7 @@ startButton = Button(win, Rect(930, 15, 90, 22))
 		}
 		{startView.remove};
 	}
-});//peakTimeButton
+});//startButton
 
 )
 

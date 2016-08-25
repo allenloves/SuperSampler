@@ -43,6 +43,10 @@ Creating a new SampleDescript instance.  In most of case you don't need to care 
 	argument:: action
 		Function to run when loading to buffer is finished.
 
+METHOD:: gui
+Open a GUI window for SampleDescript.  You can drag and drop a sound file onto the drop area to show the wavetable, and switch the buttons too show/hide various of parameters.  Grid lines on the wavetable indecate the SCMIR frame hop.
+
+The instance of the SamplerDescript generated with the GUI is stored in a global variable ~temp.
 
 
 INSTANCEMETHODS::
