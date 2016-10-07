@@ -1,6 +1,5 @@
 //Env dependent on wslib quark
 
-
 + Collection {
 
 	lastMinIndex {  // return the last index of minimum value when there are more then one
@@ -12,7 +11,7 @@
 	}
 
 
-	removeDups {    // output a new collection without any duplicate values
+	removeDups {    // output a new collection without any duplicate values, by Dr. Halim Beere
 		var result;
 		result = this.species.new(this.size);
 		this.do({ arg item;
@@ -77,8 +76,8 @@
 		^Env.new(yary,xary,curve);
 	}
 
-	//reciprocal of asArray on an Envelope.
-	// BE WARNED there is not error checking in this method.
+	//reciprocal of asArray on an Envelope. By Dr. Halim Beere
+	// BE WARNED there is no error checking in this method.
  	asEnv {
 		var array = this;
 		var result;
@@ -99,11 +98,11 @@
 }
 
 
-+SequenceableCollection {
++ SequenceableCollection {
 	//separate a Collection at the index point in an Array
 	chop {|indexArray|
 		var choppedArray = [];
-		var organizedIndexArray = indexArray.asArray.asInteger.flat.removeDups.sort; //removeDups is in "VKey Extra Classes.sc"
+		var organizedIndexArray = indexArray.asArray.asInteger.flat.removeDups.sort;
 		if(organizedIndexArray.isEmpty,
 			{^[this]},
 			{choppedArray = choppedArray.add(this[..organizedIndexArray.first-1]);
@@ -115,11 +114,23 @@
 			}
 		)
 	}
+
+	//make a flatted array a FloatArray
+	flatAsFloatArray {
+		var output = FloatArray.newClear(this.size);
+		if(this.maxDepth != 1){Error("This Array is not a flat array, makesure it's maxDepth == 1").throw};
+		this.do{|item, index|
+			if(item.isKindOf(SimpleNumber).not){Error("This Array contains items that is not SimpleNumber").throw};
+			output.put(index, item);
+		};
+		^output;
+	}
 }
 
 
-+Env {
-	//this is using welib Quark
++ Env {
+	//Get peak time in an Envelope
+	//this is using wslib Quark
 	peakTime {|groupThresh = 0.32|
 		var outcome = [];
 		if(this.at(0.01) < this.at(0)){outcome = outcome.add(0)}; // Check if the first node is a peak
@@ -143,7 +154,7 @@
 
 
 	//export an Env to breakpoint envelope array [x1, y1, x2, y2....]. x represents timeline and y represents levels.
-	//This one also dependent on welib quark.
+	//This one is dependent on wslib quark.
 	asPairsArray {|normalize = false|
 		var timeline = this.timeLine;
 		if(normalize){timeline = timeline / timeline.last};
@@ -152,9 +163,9 @@
 
 
 
-	//Output a portion of an envelope, plus a crossfade time at beginning and end of envelope
-	//This one also dependent on welib quark.
-	subEnv {|from  = 0, dur = 0, xfade = 0|
+	//Output a portion of a FLAT envelope
+	//This one also dependent on wslib quark.
+	subEnv {|from  = 0, dur = 0|
 		var outcome = [];
 		var timeline = this.timeLine.asArray;
 		var levels = this.levels.asArray;
@@ -164,15 +175,14 @@
 		if(start.isNil)
 		{outcome = nil}
 		{
-			var timecopy = timeline[start..end] - from + xfade;
+			var timecopy = timeline[start..end] - from;
 			var levelcopy = levels[start..end];
-			var copy = [timecopy, levelcopy].flop.flat;
-			outcome = (outcome ++ [0, 0, xfade, this.at(from)] ++ copy ++ [xfade+dur, this.at(from+dur)] ++ [xfade*2+dur, 0]).pairsAsEnv(curve: this.curves);
+			outcome = [timecopy, levelcopy].flop.flat.pairsAsEnv(curve: this.curves);
 		};
 		^outcome;
 	}
 
-	//integrating under an envelope (only works on simple linear, non-sustaining Envs)
+	//integrating under an envelope (only works on simple linear, non-sustaining Envs) By Dr. Halim Beere
 	integral {
 		var xs, ys, points, area = 0;
 		xs = this.times;
@@ -187,4 +197,66 @@
 		^area;
 	}
 
+	//output a copy of inverted Env
+	invert {
+		var level = (this.levels.flat.maxItem + this.levels.flat.minItem) - this.levels;
+		^Env.new(level, this.times, this.curves, this.releaseNode, this.loopNode, this.offset);
+	}
+
+	//output a copy of reversed Env
+	reverse {
+		^Env.new(this.levels.reverse, this.times.reverse, this.curves, this.releaseNode, this.loopNode, this.offset);
+	}
+
+	//Multiply two FLAT Envs
+	* {
+		arg anotherEnv;
+		var timeline = (this.timeLine.asArray ++ anotherEnv.timeLine.asArray).removeDups.sort;
+		var amp = [];
+		timeline.do{|time, index|
+			amp = amp.add(this.at(time) * anotherEnv.at(time));
+		};
+		^[timeline, amp].flop.flat.pairsAsEnv;
+	}
+
+}
+
+
++ SoundFile {
+
+	//Split a multichannel sound file into several mono sound files.
+	//The splitted mono files will be stored in the same file folder and same file type
+	//with the filename attached with channel number such as "filename_1.wav" and "filename_2.wav".
+	split {
+		var rawArray = FloatArray.newClear(this.numFrames*this.numChannels);
+		var path = PathName(this.path);
+		this.readData(rawArray);
+		rawArray = rawArray.clump(this.numChannels).flop; //[[channel 1], [channel 2], ...]
+		rawArray.do{|chanArray, index|
+			var file = SoundFile.new.headerFormat_(this.headerFormat).sampleFormat_(this.sampleFormat).numChannels_(1);
+			file.openWrite(path.pathOnly +/+ path.fileNameWithoutExtension ++ "_" ++ (index+1).asString ++ "." ++ path.extension);
+			file.writeData(chanArray.flatAsFloatArray);
+			file.close;
+		}
+	}
+
+}
+
+
++ Buffer {
+	//Split a stereo Buffer into an Array of two mono Buffers
+	split {
+		if(this.numChannels == 2){
+			var output = [Buffer.alloc(this.server, this.numFrames), Buffer.alloc(this.server, this.numFrames)];
+			this.loadToFloatArray(action:
+				{
+					|item, index|
+					var data = item.clump(this.numChannels).flop;
+					data.do{|frame, chn|
+						output[chn].setn(0, frame);
+					};
+			});
+			^output;
+		}
+	}
 }
