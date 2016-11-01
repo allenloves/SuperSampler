@@ -1,6 +1,6 @@
 (
 s.waitForBoot{
-	a = (Quarks.folder ++ "/SuperSampler/Testcode/Tubular/*.aiff").pathMatch;
+	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
 t = Sampler(\tublar).load(a);
 }
 )
@@ -41,6 +41,7 @@ t.samples[0].sampleRate;
 t.samples[0].bufferServer.sampleRate;
 t.samples[1].keynum;
 t.samples[0].numChannels;
+t.samples[0].buffer.numChannels;
 t.key(71)
 
 t.samples.do{|thisSample| thisSample.peakTime.postln};
@@ -80,7 +81,10 @@ f.getPlayTime(f.getPlaySamples(70);).flop[3];
 f.key(60);
 f.key(60, expand: 10);
 
-f.key(34, texture: 0, expand: 10, grainRate: 40, grainDur: 1.2, bend: [0, 1, 0.3, 1, 1, 3]);
+
+f.key(34);
+f.key(34, expand: 10);
+f.key(34, expand: 10, bend: [0, 1, 0.3, 1, 1, 3]);
 f.key(1)
 f.key(-60);
 
@@ -96,22 +100,23 @@ f.playEnv([70, 30, 60], Env());
 /////////////////////////////////////////////////////////////////////////////
 (
 s.waitForBoot{
-	a = (Quarks.folder ++ "/SuperSampler/Testcode/Reel Palindruome_44.1kHz_int16.aiff").pathMatch;
+	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff").pathMatch;
 g = Sampler(\reel).load(a)
 }
 )
 
 g.key(g.samples[0].keynum) //original sound
+g.key(60);
 g.key(60, \percussive, dur: 0.01)
-g.key(60, dur: 0.5)
-g.key(60, \percussive, expand: 30);
+g.key(60, dur: 0.2)
+g.key(60, expand: 10);
+g.key(60, expand: 0.5);
+g.key(40, ampenv: [0,1, 1, 0]);
 
 g.key(60, expand: 7, grainRate: 100, bend: [0, 1, 0.3, 1, 1,  0.3]);
 
 g.key([70, 30, 50, 40, 60])
-
 g.key([70, 30, 50, 40, 60], [\peakat, 1])
-
 g.key([70, 30, 50, 40, 60], \percussive, texture: 0)
 
 g.key([70, 30, 50, 40, 60], \nosorting)
@@ -129,13 +134,29 @@ g.samples[0].activeBuffer[0].plot;
 
 (
 s.waitForBoot{
-	a = (Quarks.folder ++ "/SuperSampler/Testcode/onsettest.wav").pathMatch;
+	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Nickel 2.wav").pathMatch;
+	i = Sampler(\nickel).load(a);
+}
+)
+
+i.key(10);
+i.key(30, expand: 30);
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+(
+s.waitForBoot{
+	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/onsettest.wav").pathMatch;
 	h = Sampler(\clicks).load(a);
 }
 )
 
 
-h.key([ 76, 95, 29], expand: 20 )
+h.key([ 76, 95, 29], expand: 20 );
 
 h.samples[0].temporalCentroid;
 h.key([60, 50]);

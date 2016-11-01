@@ -540,11 +540,8 @@ SampleDescript{
 		^envArray;
 	}
 
-	// plot {
-	// 	var plotWindow = Window.new;
-	//
-	//
-	//
-	// }
+	plot {
+		this.buffer.plot;
+	}
 
 }
