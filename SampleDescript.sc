@@ -96,9 +96,11 @@ SampleDescript{
 		//
 		// ("Buffer rendered to" + filename).postln;
 
-		filename = fileName;
+
 		//Check if the file exist
-		if(File.exists(filename).not){Error("File % could not be found".format(filename)).throw};
+		if(File.exists(fileName).not)
+		{Error("File % could not be found".format(fileName)).throw}
+		{filename = fileName;};
 
 
 		file = SCMIRAudioFile(filename, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
@@ -125,8 +127,10 @@ SampleDescript{
 
 		if(loadToBuffer){
 			server.waitForBoot{
-				this.loadToBuffer(bufferServer)};
+			this.loadToBuffer(bufferServer, action)};
 		};
+
+
 		// }
 	}
 
@@ -537,10 +541,7 @@ SampleDescript{
 	}
 
 	plot {
-		var plotWindow = Window.new;
-
-
-
+		this.buffer.plot;
 	}
 
 }

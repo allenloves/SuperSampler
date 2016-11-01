@@ -77,7 +77,7 @@ Sampler{
 
 	//============================
 	//load and analyze sound files
-	load {arg soundfiles, server = Server.default, filenameAsKeynum = true;
+	load {arg soundfiles, server = Server.default, filenameAsKeynum = true, action = nil;
 		bufServer = server;
 		fork{
 			var dict = Dictionary.newFrom([filenames, samples].flop.flat);
@@ -87,7 +87,7 @@ Sampler{
 				{"This file is already loaded, reloading".postln;
 					dict[filename.asSymbol].free;
 				};
-				sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: true);
+				sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, server: server, action: action);
 				dict.put(filename.asSymbol, sample);
 			};
 			dict = dict.asSortedArray.flop;
@@ -156,7 +156,7 @@ Sampler{
 	//provide a list of SampleDescripts and it's keynum of each active buffer inside the key range of provided keynum.
 	//for each qualified buffers, ourput a bufData array of [SampleDescript, section index, playRate]
 	//Out put will be [[bufferData1], [bufferData2], .....]
-	getPlaySamples{|args filterFunc = true|
+	getPlaySamples{|args, filterFunc = true|
 		var keyNums = args.keynums;
 		var texture = args.texture;
 		var finalList = [];
@@ -362,11 +362,11 @@ Sampler{
 	//Play samples by giving key numbers
 	//Defaults are also provided by SamplerArguments
 	//Negative key numbers reverses the buffer to play.
-	key{arg keynums = 60, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bend = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15;
+	key{arg keynums = 60, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bend = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0;
 		var args = SamplerArguments.new;
 		var playSamples;
 
-		args.set(keynums: keynums, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bend: bend, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur);
+		args.set(keynums: keynums, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bend: bend, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out);
 		this.getPlaySamples(args);
 		this.getPlayTime(args);
 
@@ -377,7 +377,7 @@ Sampler{
 			args.playBoundles.do{|thisSample, index|
 				var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
 				var buf = thisSample[0].activeBuffer[thisSample[1]];
-				var duration = args.dur ? ((thisSample[0].activeDuration[thisSample[1]]) / thisSample[2].abs) * bufRateScale * (args.expand ? 1);
+				var duration = args.dur ? ((thisSample[0].activeDuration[thisSample[1]]) / thisSample[2].abs) * bufRateScale; // * (args.expand ? 1)
 				//("wait" + thisSample[3] + "seconds").postln;
 				//thisSample.postln;
 				thisSample[3].wait;
@@ -386,8 +386,8 @@ Sampler{
 				//[thisSample[0], thisSample[1], thisSample[2], thisSample[3], thisSample[4]].postln;
 
 				case
-				{args.expand.isNumber}{Synth(\expand, [buf: buf, expand: args.expand, dur: duration + 0.02, rate: thisSample[2], startPos: thisSample[4], amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur]);}
-				{true}{Synth(\playbuf, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: duration + 0.02, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend]);};
+				{args.expand.isNumber}{Synth(\ssexpand, [buf: buf, expand: args.expand, dur: duration + 0.02, rate: thisSample[2], startPos: thisSample[4], amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);}
+				{true}{Synth(("\ssplaybuf"++buf.numChannels).asSymbol, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, out: args.out]);};
 
 			};
 		}

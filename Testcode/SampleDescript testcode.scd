@@ -1,4 +1,11 @@
 
+//////////////////////////////
+// Use GUI to show samples
+
+w = SampleDescript.gui;
+
+
+////////////////////////////////////////////////////////////////////
 a = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Reel Palindruome_44.1kHz_int16.aiff")
 
 a.arEnv(startThresh: 0.1, endThresh: 0.1);

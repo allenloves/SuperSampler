@@ -5,10 +5,10 @@ SamplerArguments{
 	var <> expand = nil;
 	var <> dur = nil;
 	var <> amp = 1;
-	var <> ampenv;
+	var <> ampenv;  //Default set in .init
 	var <> pan = 0;
 	var <> out = 0;
-	var <> panenv;
+	var <> panenv;  //Default set in .init
 	var <> bend = nil;
 	var <> texture = nil;
 	var <> grainRate = 20;
@@ -58,17 +58,23 @@ SamplerArguments{
 		this.amp = amp ? this.amp;
 		this.pan = pan ? this.pan;
 		this.out = out ? this.out;
-		this.panenv = panenv ? this.panenv;
 
-		case
-			{bend.isArray} {this.bend= bend.pairsAsEnv.asArray}
-			{bend.isKindOf(Env)}{this.bend=bend.asArray}
-			{true}{this.bend=#[1, 1, -99, -99, 1, 1, 5, 0]}; // default [0 1 1 1]
+		case //for ampenv
+		{ampenv.isArray} {this.ampenv= ampenv.pairsAsEnv.asArray}
+		{ampenv.isKindOf(Env)}{this.ampenv=ampenv.asArray}
+		{true}{this.ampenv=#[1, 1, -99, -99, 1, 1, 1, 0]}; // default [0 1 1 1]
 
-		case
-			{ampenv.isArray} {this.ampenv= ampenv.pairsAsEnv.asArray}
-			{ampenv.isKindOf(Env)}{this.ampenv=ampenv.asArray}
-			{true}{this.ampenv=#[1, 1, -99, -99, 1, 1, 5, 0]}; // default [0 1 1 1]
+		case  //for panenv
+		{panenv.isArray} {this.panenv= panenv.pairsAsEnv.asArray}
+		{panenv.isKindOf(Env)}{this.panenv=panenv.asArray}
+		{true}{this.panenv=#[ 0, 1, -99, -99, 0, 1, 1, 0 ]}; // default [0 0 1 0]
+
+		case  //for bend
+		{bend.isArray} {this.bend= bend.pairsAsEnv.asArray}
+		{bend.isKindOf(Env)}{this.bend=bend.asArray}
+		{true}{this.bend=#[1, 1, -99, -99, 1, 1, 1, 0]}; // default [0 1 1 1]
+
+
 
 		this.texture = texture ? this.texture;
 
