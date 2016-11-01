@@ -129,6 +129,17 @@
 
 
 + Env {
+
+	//Create an window envelope for cross fading
+	*xfade {|dur = 3, fadeDur = 1, curve = \lin, releaseNode = nil, loopNode = nil, offset = 0|
+		^this.new([0, 1, 1, 0], [(fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0), (dur - (fadeDur * 2)).thresh(0), (fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0)], curve: curve, releaseNode: releaseNode, loopNode: loopNode, offset: offset);
+	}
+
+	//same as xfade, different name, default with Welch window.
+	*window {|dur = 3, fadeDur = 1, curve = \welch, releaseNode = nil, loopNode = nil, offset = 0|
+		^this.new([0, 1, 1, 0], [(fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0), (dur - (fadeDur * 2)).thresh(0), (fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0)], curve: curve, releaseNode: releaseNode, loopNode: loopNode, offset: offset);
+	}
+
 	//Get peak time in an Envelope
 	//this is using wslib Quark
 	peakTime {|groupThresh = 0.32|
@@ -177,7 +188,7 @@
 		{
 			var timecopy = timeline[start..end] - from;
 			var levelcopy = levels[start..end];
-			outcome = [timecopy, levelcopy].flop.flat.pairsAsEnv(curve: this.curves);
+			outcome = [[0] ++ timecopy ++ [dur] , [this.at(from)] ++ levelcopy ++ [this.at(from + dur)]].flop.flat.pairsAsEnv(curve: this.curves);
 		};
 		^outcome;
 	}
@@ -244,7 +255,7 @@
 
 
 + Buffer {
-	//Split a stereo Buffer into an Array of two mono Buffers
+	//Split a stereo Buffer into an Array of two mono Buffers, not working!
 	split {
 		if(this.numChannels == 2){
 			var output = [Buffer.alloc(this.server, this.numFrames), Buffer.alloc(this.server, this.numFrames)];

@@ -156,7 +156,7 @@ Sampler{
 	//provide a list of SampleDescripts and it's keynum of each active buffer inside the key range of provided keynum.
 	//for each qualified buffers, ourput a bufData array of [SampleDescript, section index, playRate]
 	//Out put will be [[bufferData1], [bufferData2], .....]
-	getPlaySamples{|args filterFunc = true|
+	getPlaySamples{|args, filterFunc = true|
 		var keyNums = args.keynums;
 		var texture = args.texture;
 		var finalList = [];
@@ -377,7 +377,7 @@ Sampler{
 			args.playBoundles.do{|thisSample, index|
 				var bufRateScale = bufServer.sampleRate / thisSample[0].sampleRate;
 				var buf = thisSample[0].activeBuffer[thisSample[1]];
-				var duration = args.dur ? ((thisSample[0].activeDuration[thisSample[1]]) / thisSample[2].abs) * bufRateScale * (args.expand ? 1);
+				var duration = args.dur ? ((thisSample[0].activeDuration[thisSample[1]]) / thisSample[2].abs) * bufRateScale; // * (args.expand ? 1)
 				//("wait" + thisSample[3] + "seconds").postln;
 				//thisSample.postln;
 				thisSample[3].wait;
@@ -386,8 +386,8 @@ Sampler{
 				//[thisSample[0], thisSample[1], thisSample[2], thisSample[3], thisSample[4]].postln;
 
 				case
-				{args.expand.isNumber}{Synth(\expand, [buf: buf, expand: args.expand, dur: duration + 0.02, rate: thisSample[2], startPos: thisSample[4], amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);}
-				{true}{Synth(\playbuf, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: duration + 0.02, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, out: args.out]);};
+				{args.expand.isNumber}{Synth(\ssexpand, [buf: buf, expand: args.expand, dur: duration + 0.02, rate: thisSample[2], startPos: thisSample[4], amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);}
+				{true}{Synth(("\ssplaybuf"++buf.numChannels).asSymbol, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, out: args.out]);};
 
 			};
 		}
