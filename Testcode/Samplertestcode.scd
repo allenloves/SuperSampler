@@ -1,6 +1,6 @@
 (
 s.waitForBoot{
-	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
+	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/a5.aiff").pathMatch;
 t = Sampler(\tublar).load(a);
 }
 )
@@ -141,6 +141,8 @@ s.waitForBoot{
 
 i.key(10);
 i.key(30, expand: 30);
+
+i.key([10, 40, 80]);
 
 
 

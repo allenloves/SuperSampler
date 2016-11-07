@@ -46,7 +46,7 @@
 								.moveTo(linelocation @ 0)
 								.lineTo(linelocation @ (uview.bounds.height))
 								.stroke;
-								linelocation = linelocation + (SCMIR.hoptime * uview.bounds.width / soundfile.duration);
+								linelocation = linelocation + (~temp.hoptime * uview.bounds.width / soundfile.duration);
 							};
 						)
 					};
@@ -109,7 +109,7 @@
 					breakView = UserView(win, sfw.bounds).resize_(5).background_(Color(0,0,0,0))
 					.drawFunc_({|breakView|
 						soundfile.sectionBreakPoint.do({|btime|
-							var linelocation = breakView.bounds.width * btime * SCMIR.hoptime / soundfile.duration;
+							var linelocation = breakView.bounds.width * btime * ~temp.hoptime / soundfile.duration;
 							Pen.strokeColor_(Color.cyan)
 							.moveTo(linelocation @ 0)
 							.lineTo(linelocation @ (breakView.bounds.height))
@@ -138,7 +138,7 @@
 					peakIndexView = UserView(win, sfw.bounds).resize_(5).background_(Color(0,0,0,0))
 					.drawFunc_({|breakView|
 						soundfile.peakIndex.do({|ptime|
-							var linelocation = peakIndexView.bounds.width * ptime * SCMIR.hoptime / soundfile.duration;
+							var linelocation = peakIndexView.bounds.width * ptime * ~temp.hoptime / soundfile.duration;
 							Pen.strokeColor_(Color.white)
 							.moveTo(linelocation @ 0)
 							.lineTo(linelocation @ (peakIndexView.bounds.height))
