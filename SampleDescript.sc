@@ -12,11 +12,11 @@ SampleDescript{
 	var <mirDataByFeatures; //[[RMS], [Pitch], [hasPitch], [centroid], [SensoryDissonance], [SpecFlatness]]
 	var <rmsData;
 	var <centroidData;
-	var <dissonanceData;
+	var <noiseData;
 	var <rmsDataBySection;
 	var <pitchData; //[[pitch, hasPitch]....]
 	var <activeCentroidData;  //frequency centroid
-	var <activeDissonanceData;  // higher value indicates dissonance
+	var <activeNoiseData;  // higher value indicates dissonance
 	var <activeRMSData;
 	var <activeSpecFlatness;  // 0-1, 0 is single sinesoid wave, 1 is white noise.  This indicates the degree of noiseness.
 
@@ -31,6 +31,7 @@ SampleDescript{
 	var <activeBuffer;  //Array of buffers with each section (is there a way to play one part of buffer without making a copy?)
 	var <keynumFromFileName;  //get key number from file name, nil if there is none
 	var <keynumFromPitchFound;  //get key number from pitch detection. not necessarily an integer.
+	var <hoptime;      //for internal use, time for each hop
 	var <frameTimes;  //Time stamp of each frame
 
 
@@ -73,7 +74,8 @@ SampleDescript{
 
 	init {|fileName, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, server, action|
 		var cond = Condition.new(false);
-		//SCMIR.setFrameHop(512);
+		var soundFile, soundFileArray;
+
 		server.postln;
 		bufferServer = server;
 
@@ -102,19 +104,41 @@ SampleDescript{
 		{Error("File % could not be found".format(fileName)).throw}
 		{filename = fileName;};
 
+		soundFile = SoundFile.openRead(filename);
+		soundFileArray = FloatArray.newClear(soundFile.numFrames*soundFile.numChannels);
+		soundFile.readData(soundFileArray);
+		sampleRate = soundFile.sampleRate;
+		numChannels = soundFile.numChannels;
+		hoptime = SCMIR.framehop/sampleRate;
 
-		file = SCMIRAudioFile(filename, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
+
+		//file = SCMIRAudioFile(filename, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
+		file = SCMIRAudioFile(filename, [[\Tartini, 0], \SpecCentroid, \SpecFlatness], normtype, start, dur);
+
 		file.extractFeatures(false);
 		file.extractOnsets();
+
+
 
 		//get data from SCMIR
 		duration = file.duration;
 		mirDataByFeatures = file.featuredata.clump(file.numfeatures).flop;
+
+
+		/*
 		rmsData = mirDataByFeatures[0];
 		pitchData = [mirDataByFeatures[1], mirDataByFeatures[2]].flop;
 		centroidData = mirDataByFeatures[3];
 		dissonanceData = mirDataByFeatures[4];
-		frameTimes = file.frameTimes;
+		*/
+
+		rmsData = soundFileArray.rms(SCMIR.framehop * soundFile.numChannels); //average multiple channel sounds
+		pitchData = [mirDataByFeatures[0], mirDataByFeatures[1]].flop;
+		centroidData = mirDataByFeatures[2];
+		noiseData = mirDataByFeatures[3];
+
+
+		frameTimes = file.frameTimes * SCMIR.samplingrate / sampleRate;
 
 		this.getOnsetTime(groupingThresh);
 		this.getOnsetIndex;
@@ -145,7 +169,7 @@ SampleDescript{
 		rmsData = nil;
 		rmsDataBySection = nil;
 		centroidData = nil;
-		dissonanceData = nil;
+		noiseData = nil;
 		duration = nil;
 		sectionBreakPoint = nil;
 		globalPeakIndex = nil;
@@ -167,7 +191,7 @@ SampleDescript{
 		temporalCentroid = nil;
 		pitchData = nil;
 		activeCentroidData = nil;
-		activeDissonanceData = nil;
+		activeNoiseData = nil;
 		activeSpecFlatness = nil;
 
 		buffer.free;
@@ -198,8 +222,6 @@ SampleDescript{
 				//load the sound file into a master buffer
 				buffer = Buffer.read(server, filename, action: {cond.test = true; cond.signal;});
 				cond.wait;
-				sampleRate = buffer.sampleRate;
-				numChannels = buffer.numChannels;
 
 				//load each sections into sub buffers
 				startIndex.do{|thisSectionStartIndex, sectionIndex|
@@ -383,10 +405,10 @@ SampleDescript{
 		peakTime = [];
 		peakAmp = [];
 		soundFile.readData(soundFileArray);
-		soundFileArray = soundFileArray.clump(soundFile.numChannels).flop;
+		soundFileArray = soundFileArray.clump(soundFile.numChannels).flop; //[[channel 1], [channel 2],....]
 		sectionBreakPoint.do{|thisSection, index|
 			var nextSection = sectionBreakPoint[index + 1];
-			var peakhop = rmsData[thisSection..nextSection].maxIndex + thisSection;
+			var peakhop = rmsData[thisSection..nextSection].maxIndex + thisSection; //find the biggest rms session
 			var thisPeakLevel;
 			var peaksInTheHop = [];
 			soundFileArray.numChannels.do{|channel|
@@ -401,7 +423,7 @@ SampleDescript{
 
 		};
 		peakIndex = peakArray;
-		peakTime = peakIndex * SCMIR.hoptime;
+		peakTime = peakIndex * hoptime;
 		peakAmp = peakAmpArray;
 		globalPeakAmp = peakAmpArray.maxItem;
 		globalPeakIndex = peakIndex[peakAmpArray.maxIndex];
@@ -440,7 +462,7 @@ SampleDescript{
 					if(rmsenergy >= startAmp ,
 						{
 							startIndex = startIndex.add(thisSectionStartIndex + index);
-							startTime = startTime.add(startIndex.last * SCMIR.hoptime);
+							startTime = startTime.add(startIndex.last * hoptime);
 							break.value(0);
 					})
 				})
@@ -452,7 +474,7 @@ SampleDescript{
 					if(rmsenergy >= endAmp ,
 						{
 							endIndex = endIndex.add(sectionBreakPoint[sectionIndex] + thisSection.size - index);
-							endTime = endTime.add(endIndex.last * SCMIR.hoptime);
+							endTime = endTime.add(endIndex.last * hoptime);
 							break.value(0);
 					})
 				})
@@ -477,7 +499,7 @@ SampleDescript{
 
 		//Datas to retrive
 		activeCentroidData = [];
-		activeDissonanceData = [];
+		activeNoiseData = [];
 		temporalCentroid = [];
 		activeRMSData = [];
 
@@ -489,7 +511,7 @@ SampleDescript{
 
 			activeCentroidData = activeCentroidData.add(centroidData[thisStartIndex..endIndex[sectionIndex]]);
 
-			activeDissonanceData = activeDissonanceData.add(dissonanceData[thisStartIndex..endIndex[sectionIndex]]);
+			activeNoiseData = activeNoiseData.add(noiseData[thisStartIndex..endIndex[sectionIndex]]);
 
 			temporalCentroid = temporalCentroid.add(
 				(thisRMSData*activeTime).sum / thisRMSData.sum;

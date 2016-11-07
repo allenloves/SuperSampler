@@ -125,7 +125,14 @@
 		};
 		^output;
 	}
+
+	//rms values
+	rms {|framehop = 1024|
+		^this.clump(framehop).collect({|frame, index| sqrt(sum(frame ** 2 ) / frame.size)});
+	}
 }
+
+
 
 
 + Env {
