@@ -15,7 +15,6 @@
 				var skwgen = EnvGen.kr(skwctl, 1, 1, 0, timeScale: antiClipEnv.duration);
 				var ampgen = EnvGen.kr(ampctl, 1, amp, 0, timeScale: antiClipEnv.duration * skwgen.reciprocal, doneAction:2);
 				var source = ampgen * PlayBuf.ar(numChannels: 1, bufnum: buf, rate: rate * skwgen * BufRateScale.kr(buf), startPos: startPos * BufSampleRate.kr(buf));
-				"ssplaybuf1".postln;
 				Out.ar(bus: out, channelsArray: Pan2.ar(in: source * EnvGen.kr(envelope: antiClipEnv, doneAction: 2), pos: pan));
 			}).add;
 
@@ -27,7 +26,6 @@
 				var ampgen = EnvGen.kr(ampctl, 1, amp, 0, timeScale: antiClipEnv.duration * skwgen.reciprocal, doneAction:2);
 				var source0 = ampgen * PlayBuf.ar(numChannels: 1, bufnum: buf0, rate: rate * skwgen * BufRateScale.kr(buf0), startPos: startPos * BufSampleRate.kr(buf0));
 				var source1 = ampgen * PlayBuf.ar(numChannels: 1, bufnum: buf1, rate: rate * skwgen * BufRateScale.kr(buf1), startPos: startPos * BufSampleRate.kr(buf1));
-				"ssplaybuf2".postln;
 				Out.ar(bus: out, channelsArray: Balance2.ar(source0 * EnvGen.kr(envelope: antiClipEnv, doneAction: 2), source1 * EnvGen.kr(envelope: antiClipEnv, doneAction: 2), pos: pan));
 			}).add;
 
@@ -41,7 +39,6 @@
 				var position = Line.kr(start: startPos/BufDur.ir(buf), end: 1, dur:  (dur * expand));  //dur:  ((BufDur.ir(buf) - startPos) * expand));
 				var outsig = ampgen * GrainBuf.ar(numChannels: 2, trigger: trigger, dur: grainDur, sndbuf: buf, rate: rate * skwgen,
 				pos: position, interp: 2, pan: TRand.kr(panSpread * -1,panSpread,trigger) + pan );
-				"ssexpand1".postln;
 				Out.ar(bus: out, channelsArray: outsig);
 			}).add;
 
@@ -56,7 +53,6 @@
 				pos: position, interp: 2);
 				var outsig1 = ampgen * GrainBuf.ar(numChannels: 1, trigger: trigger, dur: grainDur, sndbuf: buf1, rate: rate * skwgen * BufRateScale.kr(buf1),
 				pos: position, interp: 2);
-				"ssexpand2".postln;
 				Out.ar(bus: out, channelsArray: Balance2.ar(outsig0, outsig1, pan));
 			}).add;
 
