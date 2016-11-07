@@ -12,7 +12,7 @@ t.key([60, 65], [\peakat, 1])
 t.key(60, bend: [0, 1, 0.2, 1, 1, 3])
 t.key(60, expand: 10);
 t.key(60);
-t.key(-60)
+t.key(-60);
 t.key(-60, [\peakat, 1])
 t.key([-60, 60])
 t.key([30, 40, 50, 60, 70, 80], bend: [0, 1, 0.2, 1, 1, 3])
@@ -47,7 +47,7 @@ t.key(71)
 
 t.samples.do{|thisSample| thisSample.peakTime.postln};
 
-t.samples;
+t.samples[0].keynum;
 t.filenames;
 
 //If you lost your database, you can always find it back
