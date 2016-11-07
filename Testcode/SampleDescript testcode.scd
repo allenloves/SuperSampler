@@ -3,17 +3,37 @@
 // Use GUI to show samples
 
 w = SampleDescript.gui;
+~temp.peakAmp;
 
+///////////////////////////////////////////////////////
+d = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Nickel 2.wav");
+d.peakAmp;
+d.globalPeakAmp;
+d.rmsData.maxIndex;
+d.rmsData.plot;
+d.peakAmp;
+d.peakTime;
+d.peakIndex;
+d.sampleRate;
+d.numChannels;
+
+
+SCMIR.hoptime;
+d.frameTimes;
+
+d.sectionBreakPoint;
+d.rmsData.maxIndex;
+d.rmsData.maxIndex * SCMIR.hoptime;
+d.rmsData.plot;
 
 ////////////////////////////////////////////////////////////////////
-a = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Reel Palindruome_44.1kHz_int16.aiff")
+a = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff")
 
 a.arEnv(startThresh: 0.1, endThresh: 0.1);
 a.filename;
 a.duration;
 a.play;
 a.play(0);
-a.activeBuffer[0].duration;
 a.rmsData.plot;
 a.numChannels;
 
@@ -22,41 +42,29 @@ a.onsetIndex;
 a.sectionBreakPoint;
 
 a.peakIndex;
+a.peakAmp;
 
 a.startIndex
 a.startIndex * SCMIR.framehop;
 a.startIndex *SCMIR.hoptime;
 a.startTime;
 
+//values below are supposed to be all equal
 (a.activeRMSData[0].size - 1) * SCMIR.hoptime;
+a.activeBuffer[0].duration;
 a.activeDuration;
 a.endTime-a.startTime;
 a.attackDur+a.releaseDur;
 
+
 a.endIndex * SCMIR.hoptime;
 a.endTime;
 
-SCMIR.framehop;
+a.env.plot;
 
 a.env.peakTime;
 a.peakTime;
 
-((a.peakIndex+0.5) * SCMIR.hoptime);
-(a.peakIndex+2) * SCMIR.hoptime;
-SCMIR.frameTime(a.peakIndex);
-a.peakTime;
-
-a.peakTime-a.startTime;
-a.attackDur;
-
-a.buffer.numChannels;
-a.activeBuffer[0].numChannels;
-
-a.pitchData.flop.plot;
-a.activeEnv.plot;
-a.temporalCentroid;
-a.activeDissonanceData.plot;
-a.activeEnv[0].plot;
 
 (
 {
@@ -68,9 +76,14 @@ a.play;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-f = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/onsettest.wav")
+f = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/onsettest.wav")
+f.loadToBuffer;
+f.buffer[0].plot;
+f.activeBuffer;
 f.play;
 f.play(2);
+f.numChannels;
+f.sampleRate;
 f.duration;
 f.mirDataByFeatures;
 f.rmsData.plot;
@@ -96,10 +109,11 @@ f.keynum;
 f.activeBuffer[2].plot;
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-g = SampleDescript("/Volumes/My Sounds/Sound Fx/Hollywood Edge/Ct 03/3-04 Impacts-Hollow Impacts 5 Versio.wav")
+g = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/3-04 Impacts-Hollow Impacts 5 Versio.wav")
 g.arEnv(startThresh: 0.05, endThresh: 0.05);
 g.play;
 g.play(0);
+g.rmsData.plot;
 g.numChannels;
 g.activeEnv.plot;
 g.onsetIndex;
@@ -163,7 +177,7 @@ e.activeBuffer[1].plot;
 
 
 //////////////////////////////////////////////////////////////
-m = SampleDescript("/Users/mac/Documents/UIUC/Algorythm Music 3/Samples/Crotales/c6.aiff", loadToBuffer: true)
+m = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Crotales/c6.aiff", loadToBuffer: true)
 m.frameTimes;
 m.play;
 m.buffer;

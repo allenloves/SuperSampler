@@ -1,12 +1,11 @@
 //Sample Descripter By Allen Wu
 //Sampler is dependent on following extentions:
 //SCMIR, Make sure you have SCMIR installed in your SuperCollider extensions.  http://composerprogrammer.com/code.html
-//VKey
 //wslib Quark
 
 
  //instance of Sampler is a database of multiple SampleDescript
-Sampler{
+Sampler {
 	var <dbs;  // a SamplerDB instance.
 	var <dbName;  //name of the SamplerDB class this sample stored into
 	var <samplerName;  //Name of this sampler
@@ -255,7 +254,7 @@ Sampler{
 					//("thisPeakTime =" + thisPeakTime).postln;
 					waittime = (previousPeakTime - thisPeakTime).thresh(0);
 
-					startpos = if(thisSample[2].isNegative){thisSample[0].activeBuffer[thisSample[1]].duration};
+					startpos = if(thisSample[2].isNegative){thisSample[0].activeBuffer[thisSample[1]][0].duration};
 					playSamples[index] = playSamples[index] ++ waittime ++ startpos;
 				}
 			},
@@ -320,7 +319,7 @@ Sampler{
 
 					startpos = if(thisSample[2].isPositive)
 					{adjust.neg.thresh(0) * thisSample[2].abs}
-					{thisSample[0].activeBuffer[thisSample[1]].duration - (adjust.neg.thresh(0) * thisSample[2].abs)};
+					{thisSample[0].activeBuffer[thisSample[1]][0].duration - (adjust.neg.thresh(0) * thisSample[2].abs)};
 
 					thisPeakTime = (thisPeakTime - adjust.neg.thresh(0)).thresh(0);
 					//("thisPeakTime =" + thisPeakTime).postln;
@@ -347,7 +346,7 @@ Sampler{
 			\nosorting,{
 				var startpos = 0, waittime = 0;
 				playSamples.do{|thisSample, index|
-					startpos = if(thisSample[2].isNegative){thisSample[0].activeBuffer[thisSample[1]].duration};
+					startpos = if(thisSample[2].isNegative){thisSample[0].activeBuffer[thisSample[1]][0].duration};
 					playSamples[index] = playSamples[index] ++ waittime ++ startpos;
 				}
 			}
@@ -386,8 +385,24 @@ Sampler{
 				//[thisSample[0], thisSample[1], thisSample[2], thisSample[3], thisSample[4]].postln;
 
 				case
-				{args.expand.isNumber}{Synth(\ssexpand, [buf: buf, expand: args.expand, dur: duration + 0.02, rate: thisSample[2], startPos: thisSample[4], amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);}
-				{true}{Synth(("\ssplaybuf"++buf.numChannels).asSymbol, [buf: buf, rate: thisSample[2], startPos: thisSample[4], dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, out: args.out]);};
+				{args.expand.isNumber}{
+					case
+					{buf.size == 2}{
+						Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: args.expand, dur: duration + 0.02, rate: thisSample[2], startPos: thisSample[4], amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);
+					}
+					{true}{
+						Synth(\ssexpand1, [buf: buf[0], expand: args.expand, dur: duration + 0.02, rate: thisSample[2], startPos: thisSample[4], amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);
+					};
+				}
+				{true}{
+					case
+					{buf.size == 2}{
+						Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample[2], startPos: thisSample[4], dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, out: args.out]);
+					}
+					{true}{
+						Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample[2], startPos: thisSample[4], dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, out: args.out]);
+					};
+				};
 
 			};
 		}
