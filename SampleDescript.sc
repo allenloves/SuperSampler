@@ -76,6 +76,7 @@ SampleDescript{
 		var cond = Condition.new(false);
 		var soundFile, soundFileArray;
 
+		buffer = [];
 		server.postln;
 		bufferServer = server;
 
@@ -207,7 +208,7 @@ SampleDescript{
 		};
 	}
 
-
+/*
 	loadToBuffer {arg server = Server.default, action;
 		var buf, startSample = 0, durSample;
 		var cond = Condition(false);
@@ -236,6 +237,56 @@ SampleDescript{
 			}
 		}
 	}
+*/
+
+
+	//load sound file into arrays of mono buffers
+	//for global sound file [channel 0, channel 1]
+	//for activeBuffer [[channel 0, channel 1], [channel 0, channel 1], ....]
+	loadToBuffer {arg server = Server.default, action;
+		var buf, startSample = 0, durSample;
+		var cond = Condition(false);
+		bufferServer = server;
+		if(buffer.isEmpty.not){
+			numChannels.do{|chan| buffer[chan].free;};
+			buffer = [];
+
+			//free buffers if they were loaded before.
+			activeBuffer.do({|buff| numChannels.do{|chan| buff[chan].free;}});
+			activeBuffer = [];
+		};
+
+			"Loading soundfile into Buffer".postln;
+
+		server.waitForBoot{
+			Routine.run{
+				//load the sound file into a master buffer
+				numChannels.do{|channel|
+					buffer = buffer.add(Buffer.readChannel(server, filename, channels: channel, action: {cond.test = true; cond.signal;}));
+					cond.wait;
+				};
+
+				//load each sections into sub buffers
+				startIndex.do{|thisSectionStartIndex, sectionIndex|
+					var monoBufArray = [];
+					startSample = thisSectionStartIndex * SCMIR.framehop;
+					durSample = (activeRMSData[sectionIndex].size - 1) * SCMIR.framehop;
+
+					numChannels.do{|channel|
+						var monoBuf;
+						monoBuf = Buffer.readChannel(server, filename, startSample, durSample, channel, {cond.test = true; cond.signal});
+						monoBuf.path = (PathName(filename).pathOnly ++ PathName(filename).fileNameWithoutExtension ++ "_" ++ sectionIndex ++ "_[" ++ channel ++ "]." ++ PathName(filename).extension);
+						monoBufArray = monoBufArray.add(monoBuf);
+						cond.wait;
+					};
+
+					activeBuffer = activeBuffer.add(monoBufArray);
+				};
+				action.value;
+			}
+		}
+	}
+
 
 	getKeynum {arg filenameAsNote = true, pitchShift = 0;
 		var str=PathName(filename).fileNameWithoutExtension;

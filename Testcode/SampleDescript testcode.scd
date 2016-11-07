@@ -77,8 +77,13 @@ a.play;
 /////////////////////////////////////////////////////////////////////////////////////////
 
 f = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/onsettest.wav")
+f.loadToBuffer;
+f.buffer[0].plot;
+f.activeBuffer;
 f.play;
 f.play(2);
+f.numChannels;
+f.sampleRate;
 f.duration;
 f.mirDataByFeatures;
 f.rmsData.plot;

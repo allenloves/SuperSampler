@@ -5,19 +5,20 @@ t = Sampler(\tublar).load(a);
 }
 )
 
-
+t.key(81);
 t.key(rrand(50.0, 80.0));
 
 t.key([60, 65], [\peakat, 1])
 t.key(60, bend: [0, 1, 0.2, 1, 1, 3])
 t.key(60, expand: 10);
-t.key(60)
+t.key(60);
 t.key(-60)
 t.key(-60, [\peakat, 1])
 t.key([-60, 60])
 t.key([30, 40, 50, 60, 70, 80], bend: [0, 1, 0.2, 1, 1, 3])
 t.key([-60, 60], [\peakat, 1])
 
+t.key([-60, 60], bend: [0, 1, 0.2, 1, 1, 3]);
 
 t.key([40, 30], ampenv: [0, 0, 0.5, 5, 1, 0]);
 
@@ -39,7 +40,7 @@ t.samples[0].peakTime;
 t.samples[0].attackDur;
 t.samples[0].sampleRate;
 t.samples[0].bufferServer.sampleRate;
-t.samples[1].keynum;
+t.samples[0].keynum;
 t.samples[0].numChannels;
 t.samples[0].buffer.numChannels;
 t.key(71)
@@ -73,6 +74,9 @@ f = Sampler(\alva, \speak).load(a);
 };
 )
 
+~alvaenv = f.samples[0].env;
+~alvaenv.plot;
+
 f.keynums;
 f.samples[0].keynum;
 f.samples[0].play;
@@ -93,7 +97,7 @@ f.key([70, 30, 60], [\peakat, 3], expand: 10);
 f.key([70, 30, 60], \percussive);
 f.key([70, 30, 60], \nosorting)
 
-~alvaenv = f.samples[0].env;
+
 
 f.playEnv([70, 30, 60], Env());
 
@@ -142,7 +146,7 @@ s.waitForBoot{
 i.key(10);
 i.key(30, expand: 30);
 
-i.key([10, 40, 80]);
+i.key([10, 40]);
 
 
 
@@ -158,6 +162,7 @@ s.waitForBoot{
 )
 
 
+h.numChannels;
 h.key([ 76, 95, 29], expand: 20 );
 
 h.samples[0].temporalCentroid;
