@@ -51,7 +51,7 @@ SampleDescript{
 	var <onsetTime;
 	var <onsetIndex; //frame index at onset
 	var <startIndex;
-	var <startTime;  //begging time of start frame
+	var <startTime;  //beginning time of start frame
 	var <endIndex;
 	var <endTime;
 	var <peakIndex;
@@ -140,6 +140,7 @@ SampleDescript{
 
 
 		frameTimes = file.frameTimes * SCMIR.samplingrate / sampleRate;
+
 
 		this.getOnsetTime(groupingThresh);
 		this.getOnsetIndex;
@@ -413,12 +414,17 @@ SampleDescript{
 
 	//get frame index at the onset time
 	getOnsetIndex {
+
+		/*
 		var onsetIndexTemp = [];
 		var franeGrid = file.frameStartTimes;
 		onsetTime.do{|thisOnsetTime, index|
 			onsetIndexTemp = onsetIndexTemp.add((file.frameStartTimes.indexOfGreaterThan(thisOnsetTime)) - 1);
 		};
 		onsetIndex = onsetIndexTemp;
+		*/
+
+		onsetIndex = (onsetTime / hoptime).asInteger;
 	}
 
 
@@ -510,24 +516,25 @@ SampleDescript{
 			//Peeters, Geoffroy. “A Large Set of Audio Features for Sound Description (Similarity and Description) in the Cuidado Project.” IRCAM, Paris, France (2004).
 			block{|break|
 				thisSection.do({|rmsenergy, index|
-					if(rmsenergy >= startAmp ,
-						{
-							startIndex = startIndex.add(thisSectionStartIndex + index);
-							startTime = startTime.add(startIndex.last * hoptime);
-							break.value(0);
-					})
+					if(rmsenergy >= startAmp)
+					{
+						startIndex = startIndex.add(thisSectionStartIndex + index);
+						startTime = startTime.add(startIndex.last * hoptime);
+						break.value(0);
+					};
 				})
 			};
 
 			//search for the last point pass below threshold.
 			block{|break|
+				var reversePeak = thisSection.reverse.maxIndex;
 				thisSection.reverseDo({|rmsenergy, index|
-					if(rmsenergy >= endAmp ,
-						{
-							endIndex = endIndex.add(sectionBreakPoint[sectionIndex] + thisSection.size - index);
-							endTime = endTime.add(endIndex.last * hoptime);
-							break.value(0);
-					})
+					if(rmsenergy >= endAmp)
+					{
+						endIndex = endIndex.add(sectionBreakPoint[sectionIndex] + thisSection.size - index);
+						endTime = endTime.add(endIndex.last * hoptime);
+						break.value(0);
+					};
 				})
 			};
 

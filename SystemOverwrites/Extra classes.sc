@@ -11,7 +11,7 @@
 	}
 
 
-	removeDups {    // output a new collection without any duplicate values, by Dr. Halim Beere
+	removeDups {    // output a new collection without any duplicate values, by Halim Beere
 		var result;
 		result = this.species.new(this.size);
 		this.do({ arg item;
@@ -76,7 +76,8 @@
 		^Env.new(yary,xary,curve);
 	}
 
-	//reciprocal of asArray on an Envelope. By Dr. Halim Beere
+
+	//reciprocal of asArray on an Envelope. By Halim Beere
 	// BE WARNED there is no error checking in this method.
  	asEnv {
 		var array = this;
@@ -200,7 +201,7 @@
 		^outcome;
 	}
 
-	//integrating under an envelope (only works on simple linear, non-sustaining Envs) By Dr. Halim Beere
+	//integrating under an envelope (only works on simple linear, non-sustaining Envs) By Halim Beere
 	integral {
 		var xs, ys, points, area = 0;
 		xs = this.times;
@@ -276,5 +277,10 @@
 			});
 			^output;
 		}
+	}
+
+
+	bufRateScale {
+		^this.sampleRate / this.server.sampleRate;
 	}
 }

@@ -151,67 +151,6 @@ Sampler {
 	}
 
 
-	//======================================================================================================
-	//provide a list of SampleDescripts and it's keynum of each active buffer inside the key range of provided keynum.
-	//for each qualified buffers, ourput a bufData array of [SampleDescript, section index, playRate]
-	//Out put will be [[bufferData1], [bufferData2], .....]
-	// getPlaySamples{|args, filterFunc = true|
-	// 	var keyNums = args.keynums;
-	// 	var texture = args.texture;
-	// 	var finalList = [];
-	//
-	// 	keyNums.asArray.do{|keyNum, keynumIndex|
-	// 		var sampleList = [];
-	// 		var keySign = keyNum.sign;
-	// 		keyNum = keyNum.abs;
-	//
-	// 		//find keyNums in the keyRanges of each sample sections, send the sample section information
-	// 		keyRanges.do{|thisSample, index|
-	// 			thisSample.do{|thisSection, idx|
-	// 				var playRate;
-	// 				if((keyNum <= thisSection[1]) && (keyNum >= thisSection[0]))
-	// 				{
-	// 					playRate = 2**((keyNum - samples[index].keynum[idx])/12);
-	// 				sampleList = sampleList.add([samples[index], idx, playRate * keySign])};
-	// 			}
-	// 		};
-	//
-	// 		//When nothing is found in the keyRange, find the closest keynum to be the buffer.
-	// 		if(sampleList.isEmpty)
-	// 		{
-	// 			var sortIndexes = Dictionary.new;
-	// 			var closestSample, closestSection, playRate;
-	// 			samples.do{|thisSample, index|
-	// 				thisSample.keynum.do{|thisKeynum, idx|
-	// 					//address arrays in the form of [Which sample, Which section]
-	// 					sortIndexes.put(thisKeynum, [index, idx]);
-	// 				}
-	// 			};
-	//
-	// 			sortIndexes = sortIndexes.asSortedArray.flop;
-	// 			// sortIndexes[0]==keynums in sorted order
-	// 			// sortIndexes[1]==Index arrays in sorted order
-	// 			// address for the clost keynum will be:
-	// 			//sortIndexes[1][sortIndexes[0].indexIn(keyNum)]
-	// 			closestSample = samples[sortIndexes[1][sortIndexes[0].indexIn(keyNum)][0]];
-	// 			closestSection = sortIndexes[1][sortIndexes[0].indexIn(keyNum)][1];
-	// 			playRate = 2**((keyNum - closestSample.keynum[closestSection]) / 12);
-	//
-	// 			sampleList = sampleList.add([closestSample, closestSection, playRate * keySign])
-	// 		};
-	//
-	// 		//reduce samples by texture value, based on the distance of key Numbers.
-	// 		//Sample pitch closer to the key number gets picked first.
-	// 		sampleList = sampleList.sort({|a,b| (a[0].keynum[a[1]]-keyNum).abs < (b[0].keynum[b[1]]-keyNum).abs})[0..(texture !? {texture-1})];
-	//
-	// 		finalList = finalList ++ sampleList;
-	// 	};
-	//
-	// 	finalList = finalList.scramble[0..(texture !? {texture-1})];
-	// 	args.playSamples = finalList;
-	// 	^finalList;  //[SampleDescript, section index, playRate]
-	// }
-
 
 
 getPlaySamples{|args, filterFunc = true|
@@ -222,12 +161,12 @@ getPlaySamples{|args, filterFunc = true|
 		keyNums.asArray.do{|keyNum, keynumIndex|
 			var sampleList = [];
 			var keySign = keyNum.sign;
+			var samplePrep = SamplerPrepare.new;
 			keyNum = keyNum.abs;
 
 			//find keyNums in the keyRanges of each sample sections, send the sample section information
 			keyRanges.do{|thisSample, index|
 				thisSample.do{|thisSection, idx|
-					var samplePrep = SamplerPrepare.new;
 					if((keyNum <= thisSection[1]) && (keyNum >= thisSection[0]))
 					{
 						samplePrep.sample = samples[index];
@@ -241,7 +180,6 @@ getPlaySamples{|args, filterFunc = true|
 			if(sampleList.isEmpty)
 			{
 				var sortIndexes = Dictionary.new;
-				var samplePrep = SamplerPrepare.new;
 				samples.do{|thisSample, index|
 					thisSample.keynum.do{|thisKeynum, idx|
 						//address arrays in the form of [Which sample, Which section]
@@ -269,162 +207,21 @@ getPlaySamples{|args, filterFunc = true|
 		};
 
 		finalList = finalList.scramble[0..(texture !? {texture-1})];
-		args.playSamples = finalList;
+		args.setSamples(finalList);
+
 		^finalList;  //list of SamplePrepare class
 	}
 
 
 
-
-
-	// //====================================================
-	// //calculate starting time for each sample in a group
-	// //The list from getPlaySamples sends to here.
-	// //the structure of sampleList is
-	// //[SampleDescript, section index, playRate]
-	// getPlayTime{arg args;
-	// 	var playSamples = args.playSamples;
-	// 	var syncmode = args.syncmode;
-	//
-	// 	switch(syncmode.asArray[0].asSymbol,
-	// 		//keep the full length to samples, line up the peak time together
-	// 		//Not working correctly.
-	// 		\keeplength,{
-	// 			var waittime = 0, startpos = 0;
-	//
-	// 			//sort samples by the attack time of the section, longer first
-	// 			playSamples = playSamples.sort({|a, b|
-	// 				var aAttack = if(a[2].isPositive) {a[0].attackDur[a[1]]} {a[0].releaseDur[a[1]]};
-	// 				var bAttack = if(b[2].isPositive) {b[0].attackDur[b[1]]} {b[0].releaseDur[b[1]]};
-	// 				(aAttack / a[2].abs) > (bAttack / b[2].abs)
-	// 			});
-	//
-	// 			playSamples.do{|thisSample, index|
-	// 				var previousIndex = (index - 1).thresh(0);
-	// 				var previousSample = playSamples[previousIndex];
-	// 				var thisPeakTime, previousPeakTime;
-	// 				thisPeakTime = if(thisSample[2].isPositive)
-	// 				{thisSample[0].attackDur[thisSample[1]] / thisSample[2].abs}
-	// 				{thisSample[0].releaseDur[thisSample[1]] / thisSample[2].abs};
-	//
-	// 				previousPeakTime = if(previousSample[2].isPositive)
-	// 				{previousSample[0].attackDur[previousSample[1]] / previousSample[2].abs}
-	// 				{previousSample[0].releaseDur[previousSample[1]] / previousSample[2].abs};
-	//
-	//
-	// 				//("thisPeakTime =" + thisPeakTime).postln;
-	// 				waittime = (previousPeakTime - thisPeakTime).thresh(0);
-	//
-	// 				startpos = if(thisSample[2].isNegative){thisSample[0].activeBuffer[thisSample[1]][0].duration};
-	// 				playSamples[index] = playSamples[index] ++ waittime ++ startpos;
-	// 			}
-	// 		},
-	//
-	// 		/*
-	// 		//Replaced by peakat
-	// 		\startat,{
-	// 		var startPoint = syncmode.asArray[1] ? 0;
-	// 		var startpos = 0, waittime = 0;
-	// 		var previousPeakTime;
-	//
-	// 		//sort samples by the attack time of the section, longer first
-	// 		playSamples = playSamples.sort({|a, b|
-	// 		var aAttack = if(a[2].isPositive) {a[0].attackDur[a[1]]} {a[0].releaseDur[a[1]]};
-	// 		var bAttack = if(b[2].isPositive) {b[0].attackDur[b[1]]} {b[0].releaseDur[b[1]]};
-	// 		(aAttack / a[2].abs) > (bAttack / b[2].abs)
-	// 		});
-	//
-	// 		//initial peak time with the first sample
-	// 		previousPeakTime = ((playSamples[0][0].attackDur[playSamples[0][1]] / playSamples[0][2]) - (startPoint * playSamples[0][2])).thresh(0);
-	//
-	// 		playSamples.do{|thisSample, index|
-	// 		var thisPeakTime = (thisSample[0].attackDur[thisSample[1]] / thisSample[2]);
-	// 		var adjust = previousPeakTime - thisPeakTime;
-	//
-	// 		waittime = adjust.thresh(0);
-	// 		startpos = adjust.neg.thresh(0) * thisSample[2];
-	//
-	// 		thisPeakTime = (thisPeakTime - adjust.neg.thresh(0)).thresh(0);
-	//
-	// 		//("thisPeakTime =" + thisPeakTime).postln;
-	// 		playSamples[index] = playSamples[index] ++ waittime ++ startpos;
-	// 		previousPeakTime = thisPeakTime;
-	//
-	// 		}
-	// 		},
-	// 		*/
-	//
-	//
-	// 		//assign a peak time where the pick of sound gesture happens
-	// 		\peakat,{
-	// 			var startpos = 0, waittime = 0;
-	// 			var previousPeakTime = syncmode.asArray[1] ? 0; //initial peak time
-	//
-	// 			//sort samples by the attack time of the section, longer first
-	// 			playSamples = playSamples.sort({|a, b|
-	// 				var aAttack = if(a[2].isPositive) {a[0].attackDur[a[1]]} {a[0].releaseDur[a[1]]};
-	// 				var bAttack = if(b[2].isPositive) {b[0].attackDur[b[1]]} {b[0].releaseDur[b[1]]};
-	// 				(aAttack / a[2].abs) > (bAttack / b[2].abs)
-	// 			});
-	//
-	//
-	// 			playSamples.do{|thisSample, index|
-	// 				var thisPeakTime, adjust;
-	// 				thisPeakTime = if(thisSample[2].isPositive)
-	// 				{thisSample[0].attackDur[thisSample[1]] / thisSample[2].abs}
-	// 				{thisSample[0].releaseDur[thisSample[1]] / thisSample[2].abs};
-	// 				adjust = previousPeakTime - thisPeakTime;
-	//
-	// 				waittime = adjust.thresh(0);
-	//
-	//
-	// 				startpos = if(thisSample[2].isPositive)
-	// 				{adjust.neg.thresh(0) * thisSample[2].abs}
-	// 				{thisSample[0].activeBuffer[thisSample[1]][0].duration - (adjust.neg.thresh(0) * thisSample[2].abs)};
-	//
-	// 				thisPeakTime = (thisPeakTime - adjust.neg.thresh(0)).thresh(0);
-	// 				//("thisPeakTime =" + thisPeakTime).postln;
-	// 				playSamples[index] = playSamples[index] ++ waittime ++ startpos;
-	//
-	// 				previousPeakTime = thisPeakTime;
-	// 			}
-	//
-	// 		},
-	//
-	// 		//cut the beginning of sample file, start from the peak point
-	// 		\percussive,{
-	// 			var startpos = 0, waittime = 0;
-	// 			playSamples.do{|thisSample, index|
-	// 				var thisPeakTime, startpos;
-	//
-	// 				thisPeakTime = thisSample[0].attackDur[thisSample[1]];
-	// 				startpos = (thisPeakTime-0.01).thresh(0);
-	// 				playSamples[index] = playSamples[index] ++ waittime ++ startpos;
-	// 			}
-	// 		},
-	//
-	// 		//conventional sample playing
-	// 		\nosorting,{
-	// 			var startpos = 0, waittime = 0;
-	// 			playSamples.do{|thisSample, index|
-	// 				startpos = if(thisSample[2].isNegative){thisSample[0].activeBuffer[thisSample[1]][0].duration};
-	// 				playSamples[index] = playSamples[index] ++ waittime ++ startpos;
-	// 			}
-	// 		}
-	// 	);
-	// 	args.playBoundles = playSamples;
-	// 	^playSamples;
-	// }
-
-
 	//====================================================
 	//calculate starting time for each sample in a group
-	//The list from getPlaySamples sends to here.
-	//the structure of sampleList is
-	//[SampleDescript, section index, playRate]
 	getPlayTime {arg args;
 		var playSamples = args.playSamples;
 		var syncmode = args.syncmode;
+		var globalDur;
+
+
 
 		switch(syncmode.asArray[0].asSymbol,
 			//keep the full length to samples, line up the peak time together
@@ -454,6 +251,8 @@ getPlaySamples{|args, filterFunc = true|
 					//("thisPeakTime =" + thisPeakTime).postln;
 					thisSample.wait = (previousPeakTime - thisPeakTime).thresh(0);
 					thisSample.position = if(thisSample.rate.isNegative){thisSample.sample.activeBuffer[thisSample.section][0].duration}{startpos};
+					thisSample.expand = args.expand;
+					thisSample.bend = args.bend;
 				}
 			},
 
@@ -478,11 +277,13 @@ getPlaySamples{|args, filterFunc = true|
 					adjust = previousPeakTime - thisPeakTime;
 
 					thisSample.wait = adjust.thresh(0);
+					thisSample.expand = args.expand;
+					thisSample.bend = args.bend;
 					thisSample.position = if(thisSample.rate.isPositive){
 						adjust.neg.thresh(0) * thisSample.rate.abs
 					}
 					{
-						thisSample.sample.activeBuffer[thisSample.section][0].duration - (adjust.neg.thresh(0) * thisSample.rate.abs)
+						thisSample.sample.activeBuffer[thisSample.section][0].duration - (adjust.neg.thresh(0) * thisSample.rate.abs);
 					};
 
 					thisPeakTime = (thisPeakTime - adjust.neg.thresh(0)).thresh(0);
@@ -496,10 +297,12 @@ getPlaySamples{|args, filterFunc = true|
 				var startpos = 0, waittime = 0;
 				playSamples.do{|thisSample, index|
 					var thisPeakTime, startpos;
-
 					thisPeakTime = thisSample.sample.attackDur[thisSample.section];
+
 					thisSample.position = (thisPeakTime-0.01).thresh(0);
 					thisSample.wait = waittime;
+					thisSample.expand = args.expand;
+					thisSample.bend = args.bend;
 				}
 			},
 
@@ -509,10 +312,24 @@ getPlaySamples{|args, filterFunc = true|
 				playSamples.do{|thisSample, index|
 					thisSample.position = if(thisSample.rate.isNegative){thisSample.sample.activeBuffer[thisSample.section][0].duration}{startpos};
 					thisSample.wait = 0;
+					thisSample.expand = args.expand;
+					thisSample.bend = args.bend;
+				}
+			},
+
+			//expand shorter sample to fit the largest sample
+			\stratchshort,{
+				var globalAttackDur = playSamples.collect({|thisSample, index| thisSample.sample.attackDur[thisSample.section]}).maxItem;
+				playSamples.do{|thisSample, index|
+					var stratch = globalAttackDur / (thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs);
+					thisSample.wait = 0;
+					thisSample.position = 0;
+					if(stratch != 1){thisSample.expand = stratch * (args.expand ? 1)}{thisSample.expand = args.expand;};
+					thisSample.bend = args.bend;
 				}
 			}
 		);
-		args.playBoundles = playSamples;
+		args.playSamples = playSamples;
 		^playSamples;
 	}
 
@@ -524,36 +341,35 @@ getPlaySamples{|args, filterFunc = true|
 	//Negative key numbers reverses the buffer to play.
 	key{arg keynums = 60, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bend = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0;
 		var args = SamplerArguments.new;
-		var playSamples;
 
 		args.set(keynums: keynums, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bend: bend, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out);
 		this.getPlaySamples(args);
 		this.getPlayTime(args);
 
 		Routine.run{
-			args.playBoundles.do{|thisSample, index|
+			args.playSamples.do{|thisSample, index| //thisSample are realizations of SamplerPrepare class
 				var bufRateScale = bufServer.sampleRate / thisSample.sample.sampleRate;
 				var buf = thisSample.sample.activeBuffer[thisSample.section];
 				var duration = args.dur ? ((thisSample.sample.activeDuration[thisSample.section]) / thisSample.rate.abs) * bufRateScale; // * (args.expand ? 1)
 
 				thisSample.wait.wait;
 				case
-				{args.expand.isNumber}{
+				{thisSample.expand.isNumber}{
 					case
 					{buf.size == 2}{
-						Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: args.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);
+						Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);
 					}
 					{true}{
-						Synth(\ssexpand1, [buf: buf[0], expand: args.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);
+						Synth(\ssexpand1, [buf: buf[0], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);
 					};
 				}
 				{true}{
 					case
 					{buf.size == 2}{
-						Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, out: args.out]);
+						Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, out: args.out]);
 					}
 					{true}{
-						Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: args.bend, out: args.out]);
+						Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, out: args.out]);
 					};
 				};
 
