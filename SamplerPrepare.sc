@@ -1,10 +1,11 @@
 SamplerPrepare {
-	var <> sample;
-	var <> section;
-	var <> wait;
-	var <> rate;
-	var <> position;
-	var <> expand;
+	var <> sample;    //SampleDescript realization
+	var <> section;   //subset of active data choosen
+	var <> wait;      //Wait time for playback
+	var <> rate;      //play rate for pitch adjustment
+	var <> position;  //start position in the buffer
+	var <> expand;    //Granular expansion
+	var <> bend;
 
 	*new {
 		^super.new.init();

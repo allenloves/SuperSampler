@@ -6,10 +6,10 @@ t = Sampler(\tublar).load(a);
 )
 
 t.key(81);
-t.key(rrand(50.0, 80.0));
+t.key(rrand(50.0, 80.0).postln);
 
-t.key([60, 65], [\peakat, 1])
-t.key(60, bend: [0, 1, 0.2, 1, 1, 3])
+t.key([60, 65], [\peakat, 1]);
+t.key(60, bend: [0, 1, 0.2, 1, 1, 3]);
 t.key(60, expand: 10);
 t.key(60);
 t.key(-60);
@@ -17,6 +17,7 @@ t.key(-60, [\peakat, 1])
 t.key([-60, 60])
 t.key([30, 40, 50, 60, 70, 80], bend: [0, 1, 0.2, 1, 1, 3])
 t.key([-60, 60], [\peakat, 1])
+t.key([-60, 60], expand: 2, bend: [0, 1, 0.2, 1, 1, 3])
 
 t.key([-60, 60], bend: [0, 1, 0.2, 1, 1, 3]);
 
@@ -26,9 +27,10 @@ t.key([69, 81], expand: 10);
 
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 3])
 
-t.key([70, 81]);
+t.key([70, 81], \stratchshort);
 t.key([-81], \percussive);  //Should be no sound.
 t.key([30, 81], [\peakat, 1]);
+t.key([30, 81], \stretchshort);
 t.key([30, 81], \nosorting);
 
 t.setKeyRanges(\keyNumOnly);
@@ -74,6 +76,7 @@ f = Sampler(\alva, \speak).load(a);
 };
 )
 
+
 ~alvaenv = f.samples[0].env;
 ~alvaenv.plot;
 
@@ -92,7 +95,7 @@ f.key(34, expand: 10, bend: [0, 1, 0.3, 1, 1, 3]);
 f.key(1)
 f.key(-60);
 
-f.key([70, 30, 60], [\peakat, 3], expand: 10);
+f.key([70, 30, 60], [\peakat, 3], expand: 10, amp: 0.5);
 
 f.key([70, 30, 60], \percussive);
 f.key([70, 30, 60], \nosorting)
@@ -114,16 +117,19 @@ g.key(60);
 g.key(60, \percussive, dur: 0.01)
 g.key(60, dur: 0.2)
 g.key(60, expand: 10);
-g.key(60, expand: 0.5);
+g.key(60, expand: 2);
 g.key(40, ampenv: [0,1, 1, 0]);
 
-g.key(60, expand: 7, grainRate: 100, bend: [0, 1, 0.3, 1, 1,  0.3]);
+
+g.key(60, expand: 7, bend: [0, 1, 0.3, 1, 1,  0.3]);
 
 g.key([70, 30, 50, 40, 60])
 g.key([70, 30, 50, 40, 60], [\peakat, 1])
 g.key([70, 30, 50, 40, 60], \percussive, texture: 0)
 
-g.key([70, 30, 50, 40, 60], \nosorting)
+g.key([70, 30, 50, 40, 60], \nosorting);
+g.key([70, 30, 50, 40, 60], \stratchshort)
+g.key([70, 30, 50, 40, 60], \stratchshort, expand: 5, bend: [0, 1, 0.3, 1, 1,  0.3]);
 
 g.samples[0].startTime;
 g.samples[0].peakTime;

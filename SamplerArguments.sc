@@ -17,7 +17,8 @@ SamplerArguments{
 	//============================
 	//These are outcomes from seeker calculation
 	var <> playSamples;
-	var <> playBoundles;
+
+	var < globalDur;
 
 
 
@@ -87,6 +88,30 @@ SamplerArguments{
 				this.grainDur = grainDur;
 			};
 		};
+	}
+
+	setSamples {|samples|
+		playSamples = samples;
+		this.getGlobalDur;
+	}
+
+	getGlobalDur {
+		var positiveArray;
+		var negativeArray;
+		var dursBeforePeak = [];
+		var dursAfterPeak = [];
+
+		positiveArray = playSamples.select({|thisSample| thisSample.rate.isPositive});
+		negativeArray = playSamples.select({|thisSample| thisSample.rate.isPositive.not});
+
+		dursBeforePeak = dursBeforePeak.add(positiveArray.collect({|thisSample| thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}));
+		dursBeforePeak = dursBeforePeak.add(negativeArray.collect({|thisSample| thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs})).flat;
+
+		dursAfterPeak = dursAfterPeak.add(positiveArray.collect({|thisSample| thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs}));
+		dursAfterPeak = dursAfterPeak.add(negativeArray.collect({|thisSample| thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs})).flat;
+
+		globalDur = (dursBeforePeak.maxItem + dursAfterPeak.maxItem) * (expand ? 1);
+		^globalDur;
 	}
 
 }
