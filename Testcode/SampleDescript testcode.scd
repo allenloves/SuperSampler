@@ -19,7 +19,6 @@ d.numChannels;
 
 
 SCMIR.hoptime;
-d.frameTimes;
 
 d.sectionBreakPoint;
 d.rmsData.maxIndex;
@@ -27,13 +26,19 @@ d.rmsData.maxIndex * SCMIR.hoptime;
 d.rmsData.plot;
 
 ////////////////////////////////////////////////////////////////////
-a = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff")
+a = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff", loadToBuffer: true)
 
 a.arEnv(startThresh: 0.1, endThresh: 0.1);
 a.filename;
 a.duration;
 a.play;
 a.play(0);
+
+a.numChannels; // This is a mono file
+a.buffer; // Buffer is stored in an array of each mono channels
+a.activeBuffer; // See the array structure
+a.activeBuffer[0][0].plot; // Buffer sections is also stored in an array of each mono channels
+
 a.rmsData.plot;
 a.numChannels;
 
@@ -45,7 +50,7 @@ a.peakIndex;
 a.peakAmp;
 
 a.startIndex
-a.startIndex * SCMIR.framehop;
+a.startIndex * SCMIR.framehop / a.sampleRate;
 a.startIndex *SCMIR.hoptime;
 a.startTime;
 
@@ -78,7 +83,9 @@ a.play;
 
 f = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/onsettest.wav")
 f.loadToBuffer;
-f.buffer[0].plot;
+f.numChannels; //This is a stereo file
+f.buffer[1].plot; // All stereo files are loaded into an array of two mono buffers
+f.activeBuffer[2][0].plot; // All stereo sections are also loaded into subarrays of two mono buffers
 f.activeBuffer;
 f.play;
 f.play(2);
@@ -106,7 +113,7 @@ f.activeDuration;
 f.activeCentroidData;
 f.temporalCentroid;
 f.keynum;
-f.activeBuffer[2].plot;
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 g = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/3-04 Impacts-Hollow Impacts 5 Versio.wav")
@@ -115,7 +122,7 @@ g.play;
 g.play(0);
 g.rmsData.plot;
 g.numChannels;
-g.activeEnv.plot;
+
 g.onsetIndex;
 g.sectionBreakPoint;
 g.startIndex;
@@ -134,10 +141,11 @@ g.keynumFromFileName;
 g.keynum;
 g.loadToBuffer;
 g.buffer.numChannels;
-g.activeBuffer[2].numChannels;
+g.activeBuffer[2].numChannels; //This is a stereo buffer
+g.activeBuffer[2][0].play;  // All stereo buffers are separated into two mono buffers
 
-g.activeBuffer[2].plot;
-
+g.env.plot;
+g.activeEnv.plot;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 e = SampleDescript(Platform.resourceDir +/+ "sounds/a11wlk01.wav", loadToBuffer: false)
@@ -195,25 +203,3 @@ m.free;
 m.play;
 m.class;
 
-// ////////////////////////////////////////////////////////////////
-// //Test SampleDescript with Buffer
-//
-// (
-// ~filename = Platform.defaultTempDir +/+ "supersampler" ++ UniqueID.next ++ ".aiff";
-// s.waitForBoot{
-// 	b = Buffer.alloc(s, s.sampleRate * 2);
-// }
-// )
-//
-// //record a buffer
-// {RecordBuf.ar(SoundIn.ar(), b, loop: 0, doneAction: 2)}.play;
-// b.plot;
-// b.play;
-//
-//
-// ~b2 = SampleDescript(b)
-// ~b2.filename;
-// ~b2.play();
-// ~b2.play(1);
-// ~b2.keynum;
-// ~b2.activeEnv.plot;

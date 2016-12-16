@@ -1,11 +1,15 @@
 (
 s.waitForBoot{
-	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/a5.aiff").pathMatch;
-t = Sampler(\tublar).load(a);
+	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
+t = Sampler(\tublar, \demo).load(a);
 }
 )
 
 t.key(81);
+t.key;  // play random note
+t.key([30, 40, 50, 60, 70, 80], \nosorting);
+t.key([30, 40, 50, 60, 70, 80], \percussive);
+
 t.key(rrand(50.0, 80.0).postln);
 
 t.key([60, 65], [\peakat, 1]);
@@ -13,8 +17,8 @@ t.key(60, bend: [0, 1, 0.2, 1, 1, 3]);
 t.key(60, expand: 10);
 t.key(60);
 t.key(-60);
-t.key(-60, [\peakat, 1])
-t.key([-60, 60])
+t.key(-60, [\peakat, 1]);
+t.key([-60, 60]);
 t.key([30, 40, 50, 60, 70, 80], bend: [0, 1, 0.2, 1, 1, 3])
 t.key([-60, 60], [\peakat, 1])
 t.key([-60, 60], expand: 2, bend: [0, 1, 0.2, 1, 1, 3])
@@ -35,6 +39,8 @@ t.key([30, 81], \nosorting);
 
 t.setKeyRanges(\keyNumOnly);
 
+
+//get information from sample
 t.samples[0].startTime;
 t.samples[0].startIndex * SCMIR.framehop;
 t.samples[0].peakTime;
@@ -45,7 +51,6 @@ t.samples[0].bufferServer.sampleRate;
 t.samples[0].keynum;
 t.samples[0].numChannels;
 t.samples[0].buffer.numChannels;
-t.key(71)
 
 t.samples.do{|thisSample| thisSample.peakTime.postln};
 
@@ -72,7 +77,7 @@ p = t.getPlaySamples([73, 75]);
 (
 s.waitForBoot{
 a = (Platform.resourceDir +/+ "sounds/a11wlk01.wav").pathMatch;
-f = Sampler(\alva, \speak).load(a);
+f = Sampler(\alva, \speak).load(a);  // The 2nd parameter indicates another SamplerDB database
 };
 )
 
@@ -114,6 +119,7 @@ g = Sampler(\reel).load(a)
 
 g.key(g.samples[0].keynum) //original sound
 g.key(60);
+g.key;
 g.key(60, \percussive, dur: 0.01)
 g.key(60, dur: 0.2)
 g.key(60, expand: 10);
@@ -123,11 +129,11 @@ g.key(40, ampenv: [0,1, 1, 0]);
 
 g.key(60, expand: 7, bend: [0, 1, 0.3, 1, 1,  0.3]);
 
+g.key([70, 30, 50, 40, 60], \nosorting);
+
 g.key([70, 30, 50, 40, 60])
 g.key([70, 30, 50, 40, 60], [\peakat, 1])
 g.key([70, 30, 50, 40, 60], \percussive, texture: 0)
-
-g.key([70, 30, 50, 40, 60], \nosorting);
 g.key([70, 30, 50, 40, 60], \stratchshort)
 g.key([70, 30, 50, 40, 60], \stratchshort, expand: 5, bend: [0, 1, 0.3, 1, 1,  0.3]);
 
@@ -140,6 +146,9 @@ g.bufServer.sampleRate;
 g.samples[0].activeBuffer[0].plot;
 
 
+g.getPlaySamples(SamplerArguments.new.set(keynums: [60, 80, 50]));
+
+
 /////////////////////////////////////////////////////////////////////////////
 
 (
@@ -149,12 +158,19 @@ s.waitForBoot{
 }
 )
 
-i.key(10);
+i.key;
 i.key(30, expand: 30);
 
+i.key([-40, 10]);
 i.key([10, 40]);
+i.key([10, 40], expand: 60, ampenv: ~alvaenv.normalize);
 
 
+Env().plot;
+i.playEnv([10, 40], Env());
+
+~alvaenv.plot;
+i.playEnv([10, 40], ~alvaenv.normalize);
 
 
 
@@ -187,5 +203,9 @@ g.db;
 
 d = SamplerDB.dbs[\default];
 d.samplers;
+
+Env().plot;
 d.playEnv([60, 90, 50], Env());
-d.playEnv([60, 90, 50], ~alvaenv);
+
+~alvaenv.plot;
+d.playEnv([60, 90, 50], ~alvaenv.normalize);

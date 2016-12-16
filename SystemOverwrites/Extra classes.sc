@@ -228,8 +228,7 @@
 	}
 
 	//Multiply two FLAT Envs
-	* {
-		arg anotherEnv;
+	* {|anotherEnv|
 		var timeline = (this.timeLine.asArray ++ anotherEnv.timeLine.asArray).removeDups.sort;
 		var amp = [];
 		timeline.do{|time, index|
@@ -238,6 +237,11 @@
 		^[timeline, amp].flop.flat.pairsAsEnv;
 	}
 
+
+	//Envelope normalization
+	normalize {|max = 1|
+		^this.range(0, max);
+	}
 }
 
 

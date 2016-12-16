@@ -48,20 +48,21 @@ SamplerDB{
 	}
 
 	//testrun
-	playEnv{arg keynum, env;
+	playEnv{arg keynums, env;
 
 		samplers.do{|thisSampler, samplerIndex|
 			if(thisSampler.samples[0].temporalCentroid[0] < 0.15)
-			{thisSampler.playEnv(keynum, env)}
+			{thisSampler.playEnv(keynums, env)}
 			{
 				env.peakTime.do{|thisPeakTime|
-					if(1.rand <= env.range.at(thisPeakTime))
-					{
-						var maxTexture = thisSampler.getPlaySamples(keynum).size;
+//					if(1.rand <= env.range.at(thisPeakTime))
+//					{
+						var args = SamplerArguments.new.set(keynums: keynums);
+						var maxTexture = thisSampler.getPlaySamples(args).size;
 						var texture = env.range.at(thisPeakTime).linlin(0, 1, 0, maxTexture).asInteger;
 						//("this texture = " + texture).postln;
-						thisSampler.key(keynum, [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
-					};
+						thisSampler.key(keynums, [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
+//					};
 				}
 			};
 		}
