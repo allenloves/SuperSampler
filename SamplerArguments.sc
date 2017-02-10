@@ -16,9 +16,13 @@ SamplerArguments{
 
 	//============================
 	//These are outcomes from seeker calculation
-	var <> playSamples;
+	var <> playSamples;  //Contains SamplePrepare class
 
+
+	//Duration after play rate, before pitch bend
 	var < globalDur;
+	var < globalAttackDur;
+	var < globalReleaseDur;
 
 
 
@@ -110,6 +114,8 @@ SamplerArguments{
 		dursAfterPeak = dursAfterPeak.add(positiveArray.collect({|thisSample| thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs}));
 		dursAfterPeak = dursAfterPeak.add(negativeArray.collect({|thisSample| thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs})).flat;
 
+		globalAttackDur = dursBeforePeak.maxItem * (expand ? 1);
+		globalReleaseDur = dursAfterPeak.maxItem * (expand ? 1);
 		globalDur = (dursBeforePeak.maxItem + dursAfterPeak.maxItem) * (expand ? 1);
 		^globalDur;
 	}

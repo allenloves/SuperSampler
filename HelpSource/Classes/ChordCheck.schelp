@@ -1,0 +1,70 @@
+TITLE:: ChordCheck
+summary:: Detecting chords when playing MIDI or OSC instruments real time.
+categories:: MIDI Chord Check
+related:: Classes/MIDIdef
+
+DESCRIPTION::
+ChordCheck works on both class level and instance level.  The class receives a series of numbers in a short time period, then evaluate the function with an array of numbers as it's first parameter.
+
+CLASSMETHODS::
+
+METHOD:: check
+Major method to check chords, see example
+
+ARGUMENT:: num
+Feeding key number from MIDI or OSC.
+
+ARGUMENT:: func
+A function to evaluate when the chord is finished.
+
+METHOD:: waittime
+The time period to determine if numbers feed in belong to the same chord.
+
+METHOD:: new
+Create a new instance of ChordCheck
+
+
+
+INSTANCEMETHODS::
+
+
+METHOD:: check
+Major method to check chords, see example
+
+ARGUMENT:: num
+Feeding key number from MIDI or OSC.
+
+ARGUMENT:: func
+A function to evaluate when the chord is finished.
+
+
+
+
+EXAMPLES::
+
+code::
+MIDIClient.init;
+MIDIIn.connectAll;
+
+//Using ChordCheck on class level
+(
+MIDIdef.noteOn(\test1, {|vel, key, chn, src|
+	ChordCheck.check(key, {|chord| chord.postln});
+});
+)
+
+MIDIdef(\test1).free;
+
+
+//Using ChordCheck on instance level
+(
+c = ChordCheck.new;
+
+MIDIdef.noteOn(\test2, {|vel, key, chn, src|
+	c.check(key, {|chord| chord.postln});
+});
+)
+
+MIDIdef(\test2).free;
+
+::

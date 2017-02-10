@@ -5,17 +5,17 @@
 SamplerDB{
 	classvar <dbs;  //System log for all sampler databases.
 	var <label;
-	var <samplers;  //database of Samplers
+	var <samplers;  //a Dictionary with the database of Samplers (label -> Sampler)
 
 	*new{arg dbname = \default;
 		^super.new.init(dbname);
 	}
 
-	*initClass{
+	*initClass {
 		dbs = Dictionary.new;
 	}
 
-	*isLoaded{arg dbname;
+	*isLoaded {arg dbname;
 		^dbs.at(dbname.asSymbol).isNil.not;
 	}
 
@@ -23,11 +23,11 @@ SamplerDB{
 		dbs = nil;
 	}
 
-	init{arg dbname;
+	init {arg dbname;
 		label = dbname;
 		if(this.class.dbs.at(label).isNil.not)
 		{
-			"Overwritting existing database".postln;
+			"Overwritting existing Sampler database".warn;
 			this.class.dbs.at(label).free;
 			this.class.dbs.put(label, this)
 		}
@@ -36,19 +36,27 @@ SamplerDB{
 		samplers = Dictionary.new;
 	}
 
-	put{arg name, sampler;
+	add {arg sampler;
+		samplers.put(sampler.name, sampler);
+	}
+
+	remove {arg label;
+		samplers.removeAt(label);
+	}
+
+	put {arg name, sampler;
 		samplers.put(name.asSymbol, sampler);
 	}
 
 
 	//TODO: Free all Samplers in the database.
-	free{
+	free {
 		dbs.removeAt(label);
 		samplers = nil;
 	}
 
 	//testrun
-	playEnv{arg keynums, env;
+	playEnv {arg keynums, env;
 
 		samplers.do{|thisSampler, samplerIndex|
 			if(thisSampler.samples[0].temporalCentroid[0] < 0.15)
@@ -67,5 +75,18 @@ SamplerDB{
 			};
 		}
 	}
+
+
+	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bend = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0;
+		var args = SamplerArguments.new;
+		var playkey = keynums ? rrand(10.0, 100.0);
+		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bend: bend, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out);
+
+
+
+	}
+
+
+
 }//End of SamplerDB class
 

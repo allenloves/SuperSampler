@@ -52,7 +52,7 @@
 		^output;
 	}
 
-	// converts breakpoint envelope [x1,y1,x2,y2,...] to Env
+	// converts breakpoint envelope [x1,y1,x2,y2,...] to Env by Henrich Taube
 	pairsAsEnv {|normalize = false, curve=\lin|
 		var len, xary=[], yary=[], head, tail;
 		if (this.isArray.not){Error("not an array of x y values:"+this).throw};
@@ -116,6 +116,7 @@
 		)
 	}
 
+
 	//make a flatted array a FloatArray
 	flatAsFloatArray {
 		var output = FloatArray.newClear(this.size);
@@ -126,6 +127,7 @@
 		};
 		^output;
 	}
+
 
 	//rms values
 	rms {|framehop = 1024|
@@ -188,33 +190,55 @@
 		var outcome = [];
 		var timeline = this.timeLine.asArray;
 		var levels = this.levels.asArray;
-		var start = timeline.indexOfGreaterThan(from).asInteger;
+		var start = timeline.indexOfGreaterThan(from);
 		var end = timeline.indexInBetween(from + dur).floor.asInteger;
 
 		if(start.isNil)
 		{outcome = nil}
 		{
-			var timecopy = timeline[start..end] - from;
-			var levelcopy = levels[start..end];
-			outcome = [[0] ++ timecopy ++ [dur] , [this.at(from)] ++ levelcopy ++ [this.at(from + dur)]].flop.flat.pairsAsEnv(curve: this.curves);
+			if(start > end) // no breakpoint in between the cutting point
+			{
+				outcome = [[0] ++ [dur] , [this.at(from)] ++ [this.at(from + dur)]].flop.flat.pairsAsEnv(curve: this.curves);
+			}
+			{
+				var timecopy = timeline[start..end] - from;
+				var levelcopy = levels[start..end];
+				if(timecopy.last >= dur){timecopy.removeAt(timecopy.size-1); levelcopy.removeAt(levelcopy.size-1);}; //sometimes Float does not pass exact values
+
+				outcome = [[0] ++ timecopy ++ [dur] , [this.at(from)] ++ levelcopy ++ [this.at(from + dur)]].flop.flat.pairsAsEnv(curve: this.curves);
+			};
 		};
 		^outcome;
 	}
 
-	//integrating under an envelope (only works on simple linear, non-sustaining Envs) By Halim Beere
-	integral {
-		var xs, ys, points, area = 0;
-		xs = this.times;
-		ys = this.levels;
-		points = ys.size - 1;
-		points.do({|index|
-			var length, height, temparea;
-			length = xs.at(index);
-			height = (ys.at(index + 1) + ys.at(index)) / 2;
-			area = area + (length * height);
+
+	//integrating under an envelope for only multi breakpoint linear envelopes, no curved, sine or others.
+	//if the integral time is more than the duration of the envelope, output the integral of the whole envelope.
+	integral {|time|
+		var area = 0;
+		var durations = this.times;
+		var levels = this.levels;
+		var timeindex = this.timeLine.indexOfGreaterThan(time ?? this.timeLine.maxItem) ?? this.timeLine.lastIndex;
+		var dur = min(time ?? this.duration, this.duration);
+
+
+		//add all trapezoid areas for each breakpoint
+		(timeindex-1).do({|index|
+			area = area + (levels[index] + levels[index + 1] * durations[index] / 2);
 		});
+
+		//add final trapezoid where the assigned time sits in
+		area = area + (levels[timeindex -1] + this.at(dur) * (dur - this.timeLine[timeindex - 1]) /2);
 		^area;
 	}
+
+
+	//get a reciprocal function of an envelope
+	reciprocal {
+		var level = this.levels.reciprocal;
+		^Env.new(level, this.times, this.curves, this.releaseNode, this.loopNode, this.offset);
+	}
+
 
 	//output a copy of inverted Env
 	invert {
@@ -227,7 +251,7 @@
 		^Env.new(this.levels.reverse, this.times.reverse, this.curves, this.releaseNode, this.loopNode, this.offset);
 	}
 
-	//Multiply two FLAT Envs
+	//Multiply the amplitude of two FLAT Envs
 	* {|anotherEnv|
 		var timeline = (this.timeLine.asArray ++ anotherEnv.timeLine.asArray).removeDups.sort;
 		var amp = [];
@@ -236,7 +260,6 @@
 		};
 		^[timeline, amp].flop.flat.pairsAsEnv;
 	}
-
 
 	//Envelope normalization
 	normalize {|max = 1|
@@ -268,6 +291,7 @@
 
 + Buffer {
 	//Split a stereo Buffer into an Array of two mono Buffers, not working!
+	/*
 	split {
 		if(this.numChannels == 2){
 			var output = [Buffer.alloc(this.server, this.numFrames), Buffer.alloc(this.server, this.numFrames)];
@@ -282,7 +306,7 @@
 			^output;
 		}
 	}
-
+*/
 
 	bufRateScale {
 		^this.sampleRate / this.server.sampleRate;
