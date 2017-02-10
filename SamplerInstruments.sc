@@ -2,12 +2,6 @@
 		*initClass{
 		StartUp.add({
 
-			SynthDef(\NRT_playbuf,
-				{
-					arg buf, out = 0;
-					Out.ar(out, PlayBuf.ar(buf.numChannels, buf, BufRateScale.ir(buf)));
-				}).add;
-
 			SynthDef(\ssplaybuf1, {arg buf, rate = 1, dur = 1, amp = 1, pan = 0, out = 0, startPos = 0;
 				var ampctl = Control.names([\ampenv]).kr(Env.newClear(32).asArray);  //ampenv parameter
 				var antiClipEnv = Env.linen(0.005, dur, 0.005, amp, \sine);

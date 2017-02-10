@@ -7,23 +7,29 @@ t = Sampler(\tublar, \demo).load(a);
 
 t.key(81);
 t.key;  // play random note
+t.key([30, 40, 50, 60, 70, 80])
 t.key([30, 40, 50, 60, 70, 80], \nosorting);
 t.key([30, 40, 50, 60, 70, 80], \percussive);
 
-t.key(rrand(50.0, 80.0).postln);
-
 t.key([60, 65], [\peakat, 1]);
-t.key(60, bend: [0, 1, 0.2, 1, 1, 3]);
-t.key(60, expand: 10);
-t.key(60);
+t.key([60, 66], bend: [0, 1, 0.2, 1, 1, 3]);
+t.key(60, expand: 2);
 t.key(-60);
-t.key(-60, [\peakat, 1]);
+t.key(-60, expand: 2);
+
+
 t.key([-60, 60]);
-t.key([30, 40, 50, 60, 70, 80], bend: [0, 1, 0.2, 1, 1, 3])
+t.key([-60, 60], expand: 2);
+t.key([-60], bend: [0, 1, 0.2, 1, 1, 3]);
+t.key([-60, 60, -48, 48], bend: [0, 1, 0.2, 1, 1, 3]);
+t.key([-48, 48], bend: [0, 2, 1, 2]);
+t.key([-60, 60, -48, 48], bend: [0, 1, 0.2, 1, 0.2, 1.3, 0.4, 1.3, 0.4, 1.6, 0.6, 1.6, 0.6, 2, 1, 2]);
+
+
 t.key([-60, 60], [\peakat, 1])
 t.key([-60, 60], expand: 2, bend: [0, 1, 0.2, 1, 1, 3])
 
-t.key([-60, 60], bend: [0, 1, 0.2, 1, 1, 3]);
+
 
 t.key([40, 30], ampenv: [0, 0, 0.5, 5, 1, 0]);
 
@@ -85,11 +91,14 @@ f = Sampler(\alva, \speak).load(a);  // The 2nd parameter indicates another Samp
 ~alvaenv = f.samples[0].env;
 ~alvaenv.plot;
 
+~alvaenv.reciprocal.plot;
+
 f.keynums;
 f.samples[0].keynum;
 f.samples[0].play;
 f.setKeyRanges(infoArray: 3);
 f.getPlayTime(f.getPlaySamples(70);).flop[3];
+f.key;
 f.key(60);
 f.key(60, expand: 10);
 
@@ -118,7 +127,7 @@ g = Sampler(\reel).load(a)
 )
 
 g.key(g.samples[0].keynum) //original sound
-g.key(60);
+g.key(40);
 g.key;
 g.key(60, \percussive, dur: 0.01)
 g.key(60, dur: 0.2)
@@ -132,7 +141,7 @@ g.key(60, expand: 7, bend: [0, 1, 0.3, 1, 1,  0.3]);
 g.key([70, 30, 50, 40, 60], \nosorting);
 
 g.key([70, 30, 50, 40, 60])
-g.key([70, 30, 50, 40, 60], [\peakat, 1])
+g.key([70, 30, 50, 40, 60], [\peakat, 3])
 g.key([70, 30, 50, 40, 60], \percussive, texture: 0)
 g.key([70, 30, 50, 40, 60], \stratchshort)
 g.key([70, 30, 50, 40, 60], \stratchshort, expand: 5, bend: [0, 1, 0.3, 1, 1,  0.3]);
@@ -194,11 +203,15 @@ h.playEnv([60, 90, 50], Env());
 
 //////////////////////////////////////////////////////////////////////////////
 //If you lost the pointer to your database, you can always find it back
-SamplerDB.dbs;
-SamplerDB.dbs[\default].samplers;
-g = SamplerDB.dbs[\default].samplers[\reel];
-g.db;
+SamplerDB.dbs; //list of all sampler databases
+SamplerDB.dbs[\default].samplers;  //list of samplers in this database
+g = SamplerDB.dbs[\default].samplers[\reel];  //a specific sampler
+g.name;
+g.db(\reel); //return a list of sampeler in the same database
+g.dbs; //an dictionary of pairs of names and SamplerDBs instance where this sampler belongs to
 
+
+g.dbs.do({|samplerDB, index| samplerDB.samplers.postln});
 
 
 d = SamplerDB.dbs[\default];

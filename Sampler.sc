@@ -6,9 +6,8 @@
 
  //instance of Sampler is a database of multiple SampleDescript
 Sampler {
-	var <dbs;  // a SamplerDB instance.
-	var <dbName;  //name of the SamplerDB class this sample stored into
-	var <samplerName;  //Name of this sampler
+	var <dbs;  // an array of SamplerDB instances that this Sampler is registered to.
+	var <name;  //Name of this sampler
 	var <filenames;
 	var <samples;  // samples are SampleDescript instances
 	var <bufServer;
@@ -17,25 +16,35 @@ Sampler {
 	var <keyRanges;// in format [[[upper, lower], [upper, lower]..], [[upper, lower], [upper, lower]...], ....]
 
 
-	*new{arg name, dbname = \default;
-		^super.new.init(name, dbname);
+	*new{arg samplerName, dbname = \default;
+		^super.new.init(samplerName, dbname);
 	}
 
 
 	//==============================================================
 	//return an array of samplers in the same SamplerDB database
-	db{arg name;
-		if(name.isNil.not)
+	db{arg samplerName;
+		if(samplerName.isNil.not)
 		{
-			var it = dbs.samplers.at(name);
-			if (it.isNil) {
-				Error("This sampler does not exist: " + name).throw;
+			var it = Dictionary.new;
+			dbs.do({|samplerDB, index|
+				if(samplerDB.samplers.keys.includes(samplerName))
+					{
+					it = it.put(samplerDB.label, samplerDB.samplers.at(samplerName));
+					};
+			});
+
+			if (it.isEmpty) {
+				Error("This sampler does not exist: " + samplerName).throw;
 			};
 			^it
 		}
 		{
-			var it = dbs.samplers;
-			if (it.isNil) {
+			var it = Dictionary.new;
+			dbs.do({|samplerDB, index|
+				it = it.put(samplerDB.label, samplerDB.samplers);
+			});
+			if (it.isEmpty) {
 				Error("This sampler does not exist: " + name).throw;
 			};
 			^it
@@ -44,26 +53,28 @@ Sampler {
 
 
 	//=============================
-	init{arg name, dbname;
-		dbName = dbname;
-		if(name.isNil){Error("A sampler name is needed").throw;};
+	init{arg samplerName, dbname;
+		var database;
+		dbs = Dictionary.new;
+		if(samplerName.isNil){Error("A sampler name is needed").throw;};
 		if(SamplerDB.isLoaded(dbname))
 		{
-			dbs = SamplerDB.dbs.at(dbname);
+			database = SamplerDB.dbs.at(dbname);
 		}
 		{
-			dbs = SamplerDB.new(dbname);
+			database = SamplerDB.new(dbname);
 
 		};
-		dbs.put(name.asSymbol, this);
-		samplerName = name.asSymbol;
+		database.put(samplerName.asSymbol, this);
+		dbs.put(dbname.asSymbol, database);
+		name = samplerName.asSymbol;
 	}
 
 
 	//==============================
 	//TODO: Check freeing sampler
 	free {
-		SamplerDB.dbs[dbName].removeAt(samplerName);
+		SamplerDB.dbs[name].removeAt(name);
 		samples.do{|thisSample|
 			thisSample.free;
 		};
@@ -170,7 +181,8 @@ getPlaySamples{|args, filterFunc = true|
 					if((keyNum <= thisSection[1]) && (keyNum >= thisSection[0]))
 					{
 						samplePrep.sample = samples[index];
-						samplePrep.rate = 2**((keyNum - samples[index].keynum[idx])/12) * keySign;
+						samplePrep.samplerName = name;
+						samplePrep.setRate(2**((keyNum - samples[index].keynum[idx])/12) * keySign);
 						samplePrep.section = idx;
 						sampleList = sampleList.add(samplePrep)};
 				}
@@ -193,8 +205,9 @@ getPlaySamples{|args, filterFunc = true|
 				// address for the clost keynum will be:
 				//sortIndexes[1][sortIndexes[0].indexIn(keyNum)]
 				samplePrep.sample = samples[sortIndexes[1][sortIndexes[0].indexIn(keyNum)][0]];
+				samplePrep.samplerName = name;
 				samplePrep.section = sortIndexes[1][sortIndexes[0].indexIn(keyNum)][1];
-				samplePrep.rate = 2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * keySign;
+				samplePrep.setRate(2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * keySign);
 
 				sampleList = sampleList.add(samplePrep)
 			};
@@ -207,7 +220,8 @@ getPlaySamples{|args, filterFunc = true|
 		};
 
 		finalList = finalList.scramble[0..(texture !? {texture-1})];
-		args.setSamples(finalList);
+
+		//args.setSamples(finalList); //send the list to SamplerArguments class and get global duration
 
 		^finalList;  //list of SamplePrepare class
 	}
@@ -216,17 +230,17 @@ getPlaySamples{|args, filterFunc = true|
 
 	//====================================================
 	//calculate starting time for each sample in a group
-	getPlayTime {arg args;
+	getPlayTime {arg args;  //args is a SamplerArguments class
 		var playSamples = args.playSamples;
 		var syncmode = args.syncmode;
-		var globalDur;
-
-
+		var globalDur = args.globalDur;
 
 		switch(syncmode.asArray[0].asSymbol,
+
+
 			//keep the full length to samples, line up the peak time together
 			\keeplength,{
-				var waittime = 0, startpos = 0;
+				var waittime = 0, startpos = 0, elapsed = 0;
 
 				//sort samples by the attack time of the section, longer first
 				playSamples = playSamples.sort({|a, b|
@@ -235,10 +249,12 @@ getPlaySamples{|args, filterFunc = true|
 					(aAttack / a.rate.abs) > (bAttack / b.rate.abs)
 				});
 
+				//thisSample is a SamplePrepare object
 				playSamples.do{|thisSample, index|
 					var previousIndex = (index - 1).thresh(0);
 					var previousSample = playSamples[previousIndex];
 					var thisPeakTime, previousPeakTime;
+
 					thisPeakTime = if(thisSample.rate.isPositive)
 					{thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}
 					{thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs};
@@ -247,14 +263,32 @@ getPlaySamples{|args, filterFunc = true|
 					{previousSample.sample.attackDur[previousSample.section] / previousSample.rate.abs}
 					{previousSample.sample.releaseDur[previousSample.section] / previousSample.rate.abs};
 
+					waittime = (previousPeakTime - thisPeakTime).thresh(0);  //wait time before pitch bend.
 
-					//("thisPeakTime =" + thisPeakTime).postln;
-					thisSample.wait = (previousPeakTime - thisPeakTime).thresh(0);
+					thisSample.wait = waittime;
 					thisSample.position = if(thisSample.rate.isNegative){thisSample.sample.activeBuffer[thisSample.section][0].duration}{startpos};
 					thisSample.expand = args.expand;
 					thisSample.bend = args.bend;
+
+
+					//pitch bend adjustments
+					if(args.bend != #[1, 1, -99, -99, 1, 1, 1, 0]){
+						var nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
+						var nWait = waittime / globalDur;
+						var nDur = thisSample.duration / globalDur;
+						var rBendEnv = args.bend.asEnv.reciprocal;
+
+						//wait time equals to the integral of reciprocal bend envelope
+						thisSample.wait = (rBendEnv.integral(nElapsed + nWait) - rBendEnv.integral(nElapsed)) * rBendEnv.copy.duration_(globalDur).integral;
+						//local bend envelope for each sound
+						thisSample.bend = args.bend.asEnv.subEnv(nElapsed + nWait, nDur).asArray;
+
+						elapsed = elapsed + thisSample.wait;
+					};
+					{elapsed = elapsed + waittime;}
 				}
 			},
+
 
 			//assign a peak time where the pick of sound gesture happens
 			\peakat,{
@@ -267,6 +301,7 @@ getPlaySamples{|args, filterFunc = true|
 					var bAttack = if(b.rate.isPositive) {b.sample.attackDur[b.section]} {b.sample.releaseDur[b.section]};
 					(aAttack / a.rate.abs) > (bAttack / b.rate.abs)
 				});
+
 
 
 				playSamples.do{|thisSample, index|
@@ -329,7 +364,7 @@ getPlaySamples{|args, filterFunc = true|
 				}
 			}
 		);
-		args.playSamples = playSamples;
+		//args.playSamples = playSamples;
 		^playSamples;
 	}
 
@@ -339,12 +374,12 @@ getPlaySamples{|args, filterFunc = true|
 	//Play samples by giving key numbers
 	//Defaults are also provided by SamplerArguments
 	//Negative key numbers reverses the buffer to play.
-	key{arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bend = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0;
+	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bend = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? rrand(10.0, 100.0);
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bend: bend, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out);
-		this.getPlaySamples(args);
-		this.getPlayTime(args);
+		args.setSamples(this.getPlaySamples(args));
+		args.playSamples = this.getPlayTime(args);
 
 		Routine.run{
 			args.playSamples.do{|thisSample, index| //thisSample are realizations of SamplerPrepare class
