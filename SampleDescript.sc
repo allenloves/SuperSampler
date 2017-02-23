@@ -354,8 +354,7 @@ SampleDescript{
 
 		//****************************************************************************
 		//get keynum from pitch material, keynum will not necessarily be an integer.
-		//The pitch is determined by the pitch data at the peak frame, if it has pitch.
-		//If pitch is not found at the peak frame, take the first frame that has pitch.
+		//The pitch data is gathered by the pitch data after the peak frame, if it has pitch.
 		//Return nil if there is no pitch after 20 frames until the end of the section.
 		peakIndex.do({|thisPeakIndex, sectionIndex|
 			var pitch, hasPitch;
@@ -371,10 +370,17 @@ SampleDescript{
 			//find collections of data with pitch
 			pitch.do{|thisPitch, index|
 				if(hasPitch[index] >= 0.9)
-				{//pitchCollection = pitchCollection.add(69 + (12 * log2(freq/440)))
+				{
 				pitchCollection = pitchCollection.add(thisPitch)
 				};
 			};
+
+			//if no picth data is collected, find pitch before peak time
+
+
+
+
+
 			//if no pitch data is collected, than use centroid data for pitch
 			//if there are pitch data collected, get the most occurred data for keynum
 			if(pitchCollection.size == 0 || pitchCollection.occurrencesArray(0.5).maxItem == 1)
@@ -398,7 +404,7 @@ SampleDescript{
 	//1. Find out onsets in this sound file using SCMIR onset data.
 	//2. Find section breaking point based on the RMS trough point inbetween each onsets.
 	//3. Find peak point inbetween each sections.
-	//4. Fint attact and ending point from the peak point.
+	//4. Find attact and ending point from the peak point using fixed threshold method.
 
 
 	//get onset time, if an onset is too close to previous one, it will be abandoned
@@ -414,16 +420,6 @@ SampleDescript{
 
 	//get frame index at the onset time
 	getOnsetIndex {
-
-		/*
-		var onsetIndexTemp = [];
-		var franeGrid = file.frameStartTimes;
-		onsetTime.do{|thisOnsetTime, index|
-			onsetIndexTemp = onsetIndexTemp.add((file.frameStartTimes.indexOfGreaterThan(thisOnsetTime)) - 1);
-		};
-		onsetIndex = onsetIndexTemp;
-		*/
-
 		onsetIndex = (onsetTime / hoptime).asInteger;
 	}
 
@@ -580,12 +576,13 @@ SampleDescript{
 
 
 	//play the sound file, using(at) to play each onset.  If (at) is larger than the last onset index, it plays a random onset.
-	play {|at = nil, outbus = 0, server|
+	play {arg at = nil, out = 0, server, rate = 1, pan = 0, level = 1;
 		var buf, cond = Condition.new(false);
 		server = server ? Server.default;
 		if(buffer == nil)
 		{server.waitForBoot{this.loadToBuffer(server, action: {cond.test = true; cond.signal;})}}
 		{cond.test = true; cond.signal;};
+
 		Routine.run{
 			cond.wait;
 			if(at==nil)
@@ -595,7 +592,10 @@ SampleDescript{
 				{buf = activeBuffer[at.asInteger]}
 				{buf = activeBuffer[activeBuffer.size.rand]}
 			};
-			{PlayBuf.ar(file.numChannels, buf, doneAction: 2, rate: BufRateScale.kr(buf))}.play(outbus: outbus);
+
+			if(buf.size == 1)
+			{{Pan2.ar(PlayBuf.ar(1, buf[0], doneAction: 2, rate: BufRateScale.kr(buf[0]) * rate), pan, level)}.play(outbus: out)}
+			{{Balance2.ar(PlayBuf.ar(1, buf[0], doneAction: 2, rate: BufRateScale.kr(buf[0]) * rate), PlayBuf.ar(1, buf[1], doneAction: 2, rate: BufRateScale.kr(buf[1]) * rate), pan, level)}.play(outbus: out)};
 		}
 	}
 

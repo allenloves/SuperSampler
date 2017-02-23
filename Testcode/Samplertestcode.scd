@@ -22,11 +22,14 @@ t.key([-60, 60]);
 t.key([-60, 60], expand: 2);
 t.key([-60], bend: [0, 1, 0.2, 1, 1, 3]);
 t.key([-60, 60, -48, 48], bend: [0, 1, 0.2, 1, 1, 3]);
+t.key([-60, 60, -48, 48], [\peakat, 15], bend: [0, 1, 0.2, 1, 1, 3]);
+
+
 t.key([-48, 48], bend: [0, 2, 1, 2]);
 t.key([-60, 60, -48, 48], bend: [0, 1, 0.2, 1, 0.2, 1.3, 0.4, 1.3, 0.4, 1.6, 0.6, 1.6, 0.6, 2, 1, 2]);
 
 
-t.key([-60, 60], [\peakat, 1])
+
 t.key([-60, 60], expand: 2, bend: [0, 1, 0.2, 1, 1, 3])
 
 
@@ -56,12 +59,14 @@ t.samples[0].sampleRate;
 t.samples[0].bufferServer.sampleRate;
 t.samples[0].keynum;
 t.samples[0].numChannels;
-t.samples[0].buffer.numChannels;
+t.samples[0].buffer;
 
 t.samples.do{|thisSample| thisSample.peakTime.postln};
 
 t.samples[0].keynum;
 t.filenames;
+
+t.samples[0].play;
 
 //If you lost your database, you can always find it back
 SamplerDB.dbs;
@@ -114,6 +119,7 @@ f.key([70, 30, 60], [\peakat, 3], expand: 10, amp: 0.5);
 f.key([70, 30, 60], \percussive);
 f.key([70, 30, 60], \nosorting)
 
+f.samples[0].play(pan: 0);
 
 
 f.playEnv([70, 30, 60], Env());
@@ -153,6 +159,7 @@ g.samples[0].activeDuration;
 g.samples[0].sampleRate;
 g.bufServer.sampleRate;
 g.samples[0].activeBuffer[0].plot;
+g.samples[0].play;
 
 
 g.getPlaySamples(SamplerArguments.new.set(keynums: [60, 80, 50]));
