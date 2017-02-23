@@ -20,9 +20,9 @@ SamplerArguments{
 
 
 	//Duration after play rate, before pitch bend
-	var < globalDur;
-	var < globalAttackDur;
-	var < globalReleaseDur;
+	var <> globalDur;
+	var <> globalAttackDur;
+	var <> globalReleaseDur;
 
 
 
@@ -50,10 +50,9 @@ SamplerArguments{
 				name = (timestamp.asString ++ "_" ++ serialNumber).asSymbol;
 		});
 
-		this.class.dbs.put(name,this);
+		this.class.dbs.put(name,this);  //trace back old sounds
 		ampenv = Env([1, 1], [1]);
 		panenv = Env([0, 0], [1]);
-		("Sampler" + name).postln;
 	}
 
 	set{|keynums, syncmode, dur, amp, ampenv, pan, out, panenv, bend, texture, expand, grainRate, grainDur|

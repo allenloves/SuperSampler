@@ -16,6 +16,7 @@ d.peakTime;
 d.peakIndex;
 d.sampleRate;
 d.numChannels;
+d.keynum;
 
 
 SCMIR.hoptime;
@@ -118,6 +119,7 @@ f.keynum;
 ////////////////////////////////////////////////////////////////////////////////////////////
 g = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/3-04 Impacts-Hollow Impacts 5 Versio.wav")
 g.arEnv(startThresh: 0.05, endThresh: 0.05);
+g.keynum;
 g.play;
 g.play(0);
 g.rmsData.plot;

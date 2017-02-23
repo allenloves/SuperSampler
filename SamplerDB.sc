@@ -65,11 +65,11 @@ SamplerDB{
 				env.peakTime.do{|thisPeakTime|
 //					if(1.rand <= env.range.at(thisPeakTime))
 //					{
-						var args = SamplerArguments.new.set(keynums: keynums);
+						var args = SamplerArguments.new.set(keynums: keynums.asArray.choose);
 						var maxTexture = thisSampler.getPlaySamples(args).size;
 						var texture = env.range.at(thisPeakTime).linlin(0, 1, 0, maxTexture).asInteger;
 						//("this texture = " + texture).postln;
-						thisSampler.key(keynums, [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
+						thisSampler.key(keynums.asArray.choose, [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
 //					};
 				}
 			};
