@@ -1,4 +1,5 @@
 SamplerPrepare {
+	var <> bufServer;
 	var <> samplerName;   //Sampler name as address in SamplerDB
 	var <> sample;    //SampleDescript realization
 	var <> section;   //subset of active data choosen

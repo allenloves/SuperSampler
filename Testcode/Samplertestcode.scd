@@ -1,13 +1,13 @@
 (
 s.waitForBoot{
 	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
-t = Sampler(\tublar, \demo).load(a);
+t = Sampler(\tublar).load(a);
 }
 )
 
 t.key(81);
 t.key;  // play random note
-t.key([30, 40, 50, 60, 70, 80])
+t.key([30, 40, 50, 60, 70, 80]);
 t.key([30, 40, 50, 60, 70, 80], \nosorting);
 t.key([30, 40, 50, 60, 70, 80], \percussive);
 
@@ -17,6 +17,7 @@ t.key(60, expand: 2);
 t.key(-60);
 t.key(-60, expand: 2);
 
+SamplerQuery.playing[0];
 
 t.key([-60, 60]);
 t.key([-60, 60], expand: 2);
@@ -60,8 +61,10 @@ t.samples[0].bufferServer.sampleRate;
 t.samples[0].keynum;
 t.samples[0].numChannels;
 t.samples[0].buffer;
+t.samples[0].mfcc;
 
 t.samples.do{|thisSample| thisSample.peakTime.postln};
+t.samples.do{|thisSample| thisSample.activeDuration.postln};
 
 t.samples[0].keynum;
 t.filenames;
@@ -81,7 +84,6 @@ t.keyRanges;
 t.setKeyRanges(\keynumRadious, 5)
 
 p = t.getPlaySamples([73, 75]);
-
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -131,6 +133,8 @@ s.waitForBoot{
 g = Sampler(\reel).load(a)
 }
 )
+
+g.dbs.at(\default).key([40, 80]);
 
 g.key(g.samples[0].keynum) //original sound
 g.key(40);
@@ -221,8 +225,18 @@ g.dbs; //an dictionary of pairs of names and SamplerDBs instance where this samp
 g.dbs.do({|samplerDB, index| samplerDB.samplers.postln});
 
 
+
+
 d = SamplerDB.dbs[\default];
 d.samplers;
+d.makeTree;
+
+d.shapeTree.asArray(incLabels:true);
+d.mfccTree.asArray(incLabels:true);
+
+d.key(-70);
+g.key(30);
+
 
 Env().plot;
 d.playEnv([60, 90, 50], Env());

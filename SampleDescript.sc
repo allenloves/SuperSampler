@@ -15,6 +15,7 @@ SampleDescript{
 	var <noiseData;
 	var <rmsDataBySection;
 	var <pitchData; //[[pitch, hasPitch]....]
+	var <mfccData;
 	var <activeCentroidData;  //frequency centroid
 	var <activeNoiseData;  // higher value indicates dissonance
 	var <activeRMSData;
@@ -48,13 +49,14 @@ SampleDescript{
 	// Temporal information
 	var <>keynum;
 	var <activeDuration;
+	var <mfcc;
 	var <onsetTime;
 	var <onsetIndex; //frame index at onset
 	var <startIndex;
 	var <startTime;  //beginning time of start frame
 	var <endIndex;
 	var <endTime;
-	var <peakIndex;
+	var <peakIndex; //frame index at the peak time.  NOTE: this one might not be an integer
 	var <peakTime;  //global time point of each local peak
 	var <peakAmp;
 	var <attackDur;  // Attack Time
@@ -114,7 +116,7 @@ SampleDescript{
 
 
 		//file = SCMIRAudioFile(filename, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
-		file = SCMIRAudioFile(filename, [[\Tartini, 0], \SpecCentroid, \SpecFlatness], normtype, start, dur);
+		file = SCMIRAudioFile(filename, [[\Tartini, 0], \SpecCentroid, \SpecFlatness, [\MFCC, 13]], normtype, start, dur);
 
 		file.extractFeatures(false);
 		file.extractOnsets();
@@ -137,6 +139,7 @@ SampleDescript{
 		pitchData = [mirDataByFeatures[0], mirDataByFeatures[1]].flop;
 		centroidData = mirDataByFeatures[2];
 		noiseData = mirDataByFeatures[3];
+		mfccData = mirDataByFeatures[4..17].flop;
 
 
 		frameTimes = file.frameTimes * SCMIR.samplingrate / sampleRate;
@@ -150,6 +153,7 @@ SampleDescript{
 		this.arEnv(startThresh, endThresh);
 		this.getActiveData;
 		this.getKeynum(filenameAsNote);
+		this.getMFCC;
 
 		if(loadToBuffer){
 			server.waitForBoot{
@@ -352,6 +356,7 @@ SampleDescript{
 		// else, no digit at end of file name, use pitch material for keynumber
 		{keynumFromFileName = nil};
 
+
 		//****************************************************************************
 		//get keynum from pitch material, keynum will not necessarily be an integer.
 		//The pitch data is gathered by the pitch data after the peak frame, if it has pitch.
@@ -362,7 +367,7 @@ SampleDescript{
 
 			thisPeakIndex = thisPeakIndex.asInteger;
 
-			if(endTime[sectionIndex]-peakTime[sectionIndex] <= 0.5)
+			if(endTime[sectionIndex]-peakTime[sectionIndex] <= (hoptime * 20))
 			{pitch = pitchData[thisPeakIndex..endIndex[sectionIndex]].flop[0];
 				hasPitch = pitchData[thisPeakIndex..endIndex[sectionIndex]].flop[1]}
 			{pitch = pitchData[thisPeakIndex..thisPeakIndex + 20].flop[0];
@@ -376,10 +381,20 @@ SampleDescript{
 			};
 
 			//if no picth data is collected, find pitch before peak time
-
-
-
-
+			if(pitchCollection.size == 0)
+			{
+				if(peakTime[sectionIndex]-startTime[sectionIndex] <= (hoptime * 20))
+				{pitch = pitchData[startIndex..thisPeakIndex[sectionIndex]].flop[0];
+					hasPitch = pitchData[startIndex..thisPeakIndex[sectionIndex]].flop[1]}
+				{pitch = pitchData[(thisPeakIndex - 20)..thisPeakIndex].flop[0];
+					hasPitch = pitchData[(thisPeakIndex - 20)..thisPeakIndex].flop[1];};
+				pitch.do{|thisPitch, index|
+					if(hasPitch[index] >= 0.9)
+					{
+						pitchCollection = pitchCollection.add(thisPitch)
+					};
+				};
+			};
 
 			//if no pitch data is collected, than use centroid data for pitch
 			//if there are pitch data collected, get the most occurred data for keynum
@@ -573,6 +588,19 @@ SampleDescript{
 		})
 	}
 
+
+	//MFCC of a sound is decided arbitrarily to be the average MFCC data of 20 frames around the peak point
+	getMFCC {
+		var start, end;
+		mfcc = [];
+		peakIndex.do({|thisPeakIndex, sectionIndex|
+			thisPeakIndex = thisPeakIndex.asInteger;
+			if(thisPeakIndex-startIndex[sectionIndex] <= 10){start = startIndex[sectionIndex]}{start = thisPeakIndex - 10};
+			if(endIndex[sectionIndex]-thisPeakIndex <= 10){end = endIndex[sectionIndex]}{end = thisPeakIndex - 10};
+			mfcc = mfcc.add(mfccData[start..end].flop.collect({|data| data.sum/data.size}));
+		});
+		^mfcc;
+	}
 
 
 	//play the sound file, using(at) to play each onset.  If (at) is larger than the last onset index, it plays a random onset.
