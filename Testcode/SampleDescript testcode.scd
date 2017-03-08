@@ -17,6 +17,9 @@ d.peakIndex;
 d.sampleRate;
 d.numChannels;
 d.keynum;
+d.mfcc;
+
+
 
 
 SCMIR.hoptime;
@@ -124,6 +127,7 @@ g.play;
 g.play(0);
 g.rmsData.plot;
 g.numChannels;
+g.mfcc.size;
 
 g.onsetIndex;
 g.sectionBreakPoint;
@@ -147,7 +151,7 @@ g.activeBuffer[2].numChannels; //This is a stereo buffer
 g.activeBuffer[2][0].play;  // All stereo buffers are separated into two mono buffers
 
 g.env.plot;
-g.activeEnv.plot;
+g.activeEnv.plot
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 e = SampleDescript(Platform.resourceDir +/+ "sounds/a11wlk01.wav", loadToBuffer: false)

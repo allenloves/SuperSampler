@@ -103,6 +103,9 @@ Sampler {
 			dict = dict.asSortedArray.flop;
 			filenames = dict[0];
 			samples = dict[1];
+
+			dbs.do{|thisDB| thisDB.makeTree};
+
 			this.setKeyRanges;
 		}
 	}
@@ -169,10 +172,10 @@ Sampler {
 	//Play samples by giving key numbers
 	//Defaults are also provided by SamplerArguments
 	//Negative key numbers reverses the buffer to play.
-	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bend = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0;
+	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bend = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0, midiChannel = 0;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? rrand(10.0, 100.0);
-		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bend: bend, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out);
+		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bend: bend, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 		//args.setSamples(this.getPlaySamples(args));
 		args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));  //find play samples
 		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
@@ -182,25 +185,26 @@ Sampler {
 				var bufRateScale = bufServer.sampleRate / thisSample.sample.sampleRate;
 				var buf = thisSample.sample.activeBuffer[thisSample.section];
 				var duration = args.dur ? ((thisSample.sample.activeDuration[thisSample.section]) / thisSample.rate.abs) * bufRateScale; // * (args.expand ? 1)
+				var synthID = UniqueID.next.asSymbol;
 
 				thisSample.wait.wait;
 				case
 				{thisSample.expand.isNumber}{
 					case
 					{buf.size == 2}{
-						Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);
+						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
 					}
 					{true}{
-						Synth(\ssexpand1, [buf: buf[0], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);
+						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssexpand1, [buf: buf[0], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
 					};
 				}
 				{true}{
 					case
 					{buf.size == 2}{
-						Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, out: args.out]);
+						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
 					}
 					{true}{
-						Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, out: args.out]);
+						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
 					};
 				};
 

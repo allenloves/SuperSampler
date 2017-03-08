@@ -13,9 +13,10 @@ SamplerArguments{
 	var <> texture = nil;
 	var <> grainRate = 20;
 	var <> grainDur = 0.15;
+	var <> midiChannel = 0;
 
 	//============================
-	//These are outcomes from seeker calculation
+	//These are outcomes from query calculation
 	var <> playSamples;  //Contains SamplePrepare class
 
 
@@ -51,17 +52,19 @@ SamplerArguments{
 		});
 
 		this.class.dbs.put(name,this);  //trace back old sounds
+		playSamples = [];
 		ampenv = Env([1, 1], [1]);
 		panenv = Env([0, 0], [1]);
 	}
 
-	set{|keynums, syncmode, dur, amp, ampenv, pan, out, panenv, bend, texture, expand, grainRate, grainDur|
+	set{|keynums, syncmode, dur, amp, ampenv, pan, out, panenv, bend, texture, expand, grainRate, grainDur, midiChannel|
 		this.keynums = keynums ? this.keynums;
 		this.syncmode = syncmode ? this.syncmode;
 		this.dur = dur ? this.dur;
 		this.amp = amp ? this.amp;
 		this.pan = pan ? this.pan;
 		this.out = out ? this.out;
+		this.midiChannel = midiChannel ? this.midiChannel;
 
 		case //for ampenv
 		{ampenv.isArray} {this.ampenv= ampenv.pairsAsEnv.asArray}

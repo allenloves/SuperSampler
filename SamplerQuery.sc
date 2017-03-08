@@ -2,8 +2,19 @@
 
 SamplerQuery {
 
+	classvar <> playing; //a temporary address for all sounds that is playing for applying .set() to sounds after it's triggered
+
+	*initClass {
+		playing = [];
+		17.do{
+			var midiChannel = Dictionary.new;
+			playing = playing.add(midiChannel);
+		};
+	}
+
+
 	//gather samples by using midi key numbers
-	*getSamplesByKeynum{|sampler, args, filterFunc = true|
+	*getSamplesByKeynum {|sampler, args, filterFunc = true|
 		var keyNums = args.keynums;
 		var texture = args.texture;
 		var finalList = [];
@@ -12,6 +23,7 @@ SamplerQuery {
 			var sampleList = [];
 			var keySign = keyNum.sign;
 			var samplePrep = SamplerPrepare.new;
+			samplePrep.bufServer = sampler.bufServer;
 			keyNum = keyNum.abs;
 
 			//find keyNums in the keyRanges of each sample sections, send the sample section information
@@ -20,7 +32,7 @@ SamplerQuery {
 					if((keyNum <= thisSection[1]) && (keyNum >= thisSection[0]))
 					{
 						samplePrep.sample = sampler.samples[index];
-						samplePrep.samplerName = name;
+						samplePrep.samplerName = sampler.name;
 						samplePrep.setRate(2**((keyNum - sampler.samples[index].keynum[idx])/12) * keySign);
 						samplePrep.section = idx;
 						sampleList = sampleList.add(samplePrep)};
@@ -44,7 +56,7 @@ SamplerQuery {
 				// address for the clost keynum will be:
 				//sortIndexes[1][sortIndexes[0].indexIn(keyNum)]
 				samplePrep.sample = sampler.samples[sortIndexes[1][sortIndexes[0].indexIn(keyNum)][0]];
-				samplePrep.samplerName = name;
+				samplePrep.samplerName = sampler.name;
 				samplePrep.section = sortIndexes[1][sortIndexes[0].indexIn(keyNum)][1];
 				samplePrep.setRate(2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * keySign);
 
@@ -64,6 +76,8 @@ SamplerQuery {
 
 		^finalList;  //list of SamplePrepare class
 	}
+
+
 
 
 
@@ -180,7 +194,7 @@ SamplerQuery {
 						var nDur = thisSample.duration / globalDur;
 						var nWait;
 
-						thisPeakTime = (rBendEnv.integral(nThisPeakTime + nElapsed) - rBendEnv.integral(nElapsed)) * rBendEnv.copy.duration_(globalDur).integral;
+						thisPeakTime = rBendEnv.integral(nThisPeakTime + nElapsed) - rBendEnv.integral(nElapsed) * rBendEnv.copy.duration_(globalDur).integral;
 						waittime = previousPeakTime - thisPeakTime;
 						nWait = waittime / globalDur;
 						thisSample.bend = args.bend.asEnv.subEnv(nElapsed + nWait, nDur).asArray;
@@ -189,6 +203,7 @@ SamplerQuery {
 						extraTime = 0; //then discard the extra time
 					}//-----------------------
 					{waittime = previousPeakTime - thisPeakTime};
+
 
 					thisSample.wait = waittime.thresh(0);
 					thisSample.expand = args.expand;
