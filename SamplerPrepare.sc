@@ -7,8 +7,8 @@ SamplerPrepare {
 	var <> rate;      //play rate for pitch adjustment
 	var <> position;  //start position in the buffer
 	var <> expand;    //Granular expansion
-	var <> bend;
-	var <> duration;  //play duration after pitch adjustment, before pitch bend
+	var <> bendenv;
+	var <> duration;  //play duration after pitch adjustment, before pitch bendenv
 
 	*new {
 		^super.new.init();

@@ -21,17 +21,17 @@ SamplerQuery.playing[0];
 
 t.key([-60, 60]);
 t.key([-60, 60], expand: 2);
-t.key([-60], bend: [0, 1, 0.2, 1, 1, 3]);
-t.key([-60, 60, -48, 48], bend: [0, 1, 0.2, 1, 1, 3]);
-t.key([-60, 60, -48, 48], [\peakat, 15], bend: [0, 1, 0.2, 1, 1, 3]);
+t.key([-60], bendenv: [0, 1, 0.2, 1, 1, 3]);
+t.key([-60, 60, -48, 48], bendenv: [0, 1, 0.2, 1, 1, 3]);
+t.key([-60, 60, -48, 48], [\peakat, 15], bendenv: [0, 1, 0.2, 1, 1, 3]);
 
 
-t.key([-48, 48], bend: [0, 2, 1, 2]);
-t.key([-60, 60, -48, 48], bend: [0, 1, 0.2, 1, 0.2, 1.3, 0.4, 1.3, 0.4, 1.6, 0.6, 1.6, 0.6, 2, 1, 2]);
+t.key([-48, 48], bendenv: [0, 2, 1, 2]);
+t.key([-60, 60, -48, 48], bendenv: [0, 1, 0.2, 1, 0.2, 1.3, 0.4, 1.3, 0.4, 1.6, 0.6, 1.6, 0.6, 2, 1, 2]);
 
 
 
-t.key([-60, 60], expand: 2, bend: [0, 1, 0.2, 1, 1, 3])
+t.key([-60, 60], expand: 2, bendenv: [0, 1, 0.2, 1, 1, 3])
 
 
 
@@ -112,7 +112,7 @@ f.key(60, expand: 10);
 
 f.key(34);
 f.key(34, expand: 10);
-f.key(34, expand: 10, bend: [0, 1, 0.3, 1, 1, 3]);
+f.key(34, expand: 10, bendenv: [0, 1, 0.3, 1, 1, 3]);
 f.key(1)
 f.key(-60);
 
@@ -239,7 +239,7 @@ g.key(30);
 
 
 Env().plot;
-d.playEnv([60, 90, 50], Env());
+d.playEnv(env: Env(), pitch: [60, 90, 50]);
 
 ~alvaenv.plot;
-d.playEnv([60, 90, 50], ~alvaenv.normalize);
+d.playEnv(env: ~alvaenv.normalize, pitch: [60, 90, 50]);

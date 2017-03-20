@@ -7,10 +7,11 @@ SamplerArguments{
 	var <> amp = 1;
 	var <> ampenv;  //Default set in .init
 	var <> pan = 0;
-	var <> out = 0;
 	var <> panenv;  //Default set in .init
-	var <> bend = nil;
+	var <> bend;
+	var <> bendenv = nil;
 	var <> texture = nil;
+	var <> out = 0;
 	var <> grainRate = 20;
 	var <> grainDur = 0.15;
 	var <> midiChannel = 0;
@@ -57,8 +58,8 @@ SamplerArguments{
 		panenv = Env([0, 0], [1]);
 	}
 
-	set{|keynums, syncmode, dur, amp, ampenv, pan, out, panenv, bend, texture, expand, grainRate, grainDur, midiChannel|
-		this.keynums = keynums ? this.keynums;
+	set{|keynums, syncmode, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel|
+		this.keynums = keynums ? this.keynums.asArray.flat;
 		this.syncmode = syncmode ? this.syncmode;
 		this.dur = dur ? this.dur;
 		this.amp = amp ? this.amp;
@@ -76,10 +77,10 @@ SamplerArguments{
 		{panenv.isKindOf(Env)}{this.panenv=panenv.asArray}
 		{true}{this.panenv=#[ 0, 1, -99, -99, 0, 1, 1, 0 ]}; // default [0 0 1 0]
 
-		case  //for bend
-		{bend.isArray} {this.bend= bend.pairsAsEnv.asArray}
-		{bend.isKindOf(Env)}{this.bend=bend.asArray}
-		{true}{this.bend=#[1, 1, -99, -99, 1, 1, 1, 0]}; // default [0 1 1 1]
+		case  //for bendenv
+		{bendenv.isArray} {this.bendenv= bendenv.pairsAsEnv.asArray}
+		{bendenv.isKindOf(Env)}{this.bendenv=bendenv.asArray}
+		{true}{this.bendenv=#[1, 1, -99, -99, 1, 1, 1, 0]}; // default [0 1 1 1]
 
 
 
