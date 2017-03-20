@@ -98,7 +98,7 @@ SamplerDB{
 		samplers = nil;
 	}
 
-
+/*
 	//testrun
 	playEnv {arg keynums, env;
 
@@ -107,14 +107,43 @@ SamplerDB{
 			{thisSampler.playEnv(keynums, env)}
 			{
 				env.peakTime.do{|thisPeakTime|
-//					if(1.rand <= env.range.at(thisPeakTime))
-//					{
 						var args = SamplerArguments.new.set(keynums: keynums.asArray.choose);
 						var maxTexture = thisSampler.getPlaySamples(args).size;
 						var texture = env.range.at(thisPeakTime).linlin(0, 1, 0, maxTexture).asInteger;
 						//("this texture = " + texture).postln;
 						thisSampler.key(keynums.asArray.choose, [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
-//					};
+				}
+			};
+		}
+	}
+*/
+
+	playEnv {arg env, pitch, maxTexture = nil, morph = [0, \xfade];
+		var subenvs = [];
+
+		//First, separate envelope by morph strategy
+		if(morph[0] = 0)
+		{subenvs = env}
+		{
+			var subenvDur = env.duration / (morph[0] + 1);
+
+		};
+
+
+
+
+
+
+		samplers.do{|thisSampler, samplerIndex|
+			if(thisSampler.samples[0].temporalCentroid[0] < 0.15)
+			{thisSampler.playEnv(pitch, env)}
+			{
+				env.peakTime.do{|thisPeakTime|
+					var args = SamplerArguments.new.set(keynums: pitch.asArray.choose);
+					var maxTexture = thisSampler.getPlaySamples(args).size;
+					var texture = env.range.at(thisPeakTime).linlin(0, 1, 0, maxTexture).asInteger;
+					//("this texture = " + texture).postln;
+					thisSampler.key(pitch.asArray.choose, [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
 				}
 			};
 		}

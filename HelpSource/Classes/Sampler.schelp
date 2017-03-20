@@ -50,7 +50,7 @@ Negative key numbers reverses the buffer to play.
 ARGUMENT:: syncmode
 The strategy to syncronize different samples:
 
-\keeplength: keep the length of all playing sound, align all at peak point of the sample with the longest attack time.
+\keeplength: keep the length of all playing sound, align all at peak point of the sample with the longest attack time.  This is the default strategy.
 
 \percussive: make a percussive sound, starts all sounds from peak point.
 
@@ -189,5 +189,22 @@ returns:: An array of MIDI key numbers indicating the upper and lower key number
 EXAMPLES::
 
 code::
-(some example code)
+(
+s.waitForBoot{
+	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff").pathMatch;
+g = Sampler(\reel).load(a)
+}
+)
+
+g.key;  //play a random keynote
+g.key(40);
+
+//play chord with different strategies
+g.key([30, 40, 50, 60, 70]);
+g.key([70, 30, 50, 40, 60], [\peakat, 3]);
+g.key([30, 40, 50, 60, 70], \percussive);
+g.key([70, 30, 50, 40, 60], \stratchshort);
+g.key([30, 40, 50, 60, 70], \nosorting);
+
+
 ::
