@@ -118,21 +118,7 @@ SamplerDB{
 	}
 */
 
-	playEnv {arg env, pitch, maxTexture = nil, morph = [0, \xfade];
-		var subenvs = [];
-
-		//First, separate envelope by morph strategy
-		if(morph[0] = 0)
-		{subenvs = env}
-		{
-			var subenvDur = env.duration / (morph[0] + 1);
-
-		};
-
-
-
-
-
+	playEnv {arg env, pitch, maxTexture = nil;
 
 		samplers.do{|thisSampler, samplerIndex|
 			if(thisSampler.samples[0].temporalCentroid[0] < 0.15)
@@ -140,10 +126,10 @@ SamplerDB{
 			{
 				env.peakTime.do{|thisPeakTime|
 					var args = SamplerArguments.new.set(keynums: pitch.asArray.choose);
-					var maxTexture = thisSampler.getPlaySamples(args).size;
+					var maxTexture = SamplerQuery.getSamplesByKeynum(thisSampler, args).size;
 					var texture = env.range.at(thisPeakTime).linlin(0, 1, 0, maxTexture).asInteger;
 					//("this texture = " + texture).postln;
-					thisSampler.key(pitch.asArray.choose, [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
+					thisSampler.key(pitch.asArray.choose, [\peakat, thisPeakTime], amp: env.at(thisPeakTime));
 				}
 			};
 		}
@@ -151,10 +137,10 @@ SamplerDB{
 
 
 
-	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bend = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0, midiChannel = 0;
+	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0, midiChannel = 0;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? rrand(10.0, 100.0);
-		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bend: bend, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
+		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 
 		samplers.do{|thisSampler, samplerIndex|
 			args.playSamples = args.playSamples.add(SamplerQuery.getSamplesByKeynum(thisSampler, args)).flat;
@@ -175,19 +161,19 @@ SamplerDB{
 				{thisSample.expand.isNumber}{
 					case
 					{buf.size == 2}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
+						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
 					}
 					{true}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssexpand1, [buf: buf[0], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
+						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssexpand1, [buf: buf[0], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
 					};
 				}
 				{true}{
 					case
 					{buf.size == 2}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
+						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
 					}
 					{true}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bend: thisSample.bend, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
+						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
 					};
 				};
 

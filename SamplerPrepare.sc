@@ -2,6 +2,7 @@ SamplerPrepare {
 	var <> bufServer;
 	var <> samplerName;   //Sampler name as address in SamplerDB
 	var <> sample;    //SampleDescript realization
+	var <> buffer;    //buffer to be played = sample.activeBuffer[section]
 	var <> section;   //subset of active data choosen
 	var <> wait;      //Wait time for playback
 	var <> rate;      //play rate for pitch adjustment

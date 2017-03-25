@@ -12,7 +12,7 @@ t.key([30, 40, 50, 60, 70, 80], \nosorting);
 t.key([30, 40, 50, 60, 70, 80], \percussive);
 
 t.key([60, 65], [\peakat, 1]);
-t.key([60, 66], bend: [0, 1, 0.2, 1, 1, 3]);
+t.key([60, 66], bendenv: [0, 1, 0.2, 1, 1, 3]);
 t.key(60, expand: 2);
 t.key(-60);
 t.key(-60, expand: 2);
@@ -33,15 +33,12 @@ t.key([-60, 60, -48, 48], bendenv: [0, 1, 0.2, 1, 0.2, 1.3, 0.4, 1.3, 0.4, 1.6, 
 
 t.key([-60, 60], expand: 2, bendenv: [0, 1, 0.2, 1, 1, 3])
 
-
-
 t.key([40, 30], ampenv: [0, 0, 0.5, 5, 1, 0]);
-
-t.key([69, 81], expand: 10);
 
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 3])
 
 t.key([70, 81], \stratchshort);
+t.key([70, 81], \percussive);
 t.key([-81], \percussive);  //Should be no sound.
 t.key([30, 81], [\peakat, 1]);
 t.key([30, 81], \stretchshort);
@@ -77,13 +74,9 @@ SamplerDB.dbs[\default].samplers;
 t = SamplerDB.dbs[\default].samplers[\tublar];
 t.db;
 
-~buf = t.getPlaySamples(90)[0][0].activeBuffer[0];
-x = Synth(\key, [buf: ~buf])
-
 t.keyRanges;
 t.setKeyRanges(\keynumRadious, 5)
 
-p = t.getPlaySamples([73, 75]);
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -95,7 +88,7 @@ f = Sampler(\alva, \speak).load(a);  // The 2nd parameter indicates another Samp
 )
 
 
-~alvaenv = f.samples[0].env;
+~alvaenv = f.samples[0].env.normalize(1);
 ~alvaenv.plot;
 
 ~alvaenv.reciprocal.plot;
@@ -108,7 +101,7 @@ f.getPlayTime(f.getPlaySamples(70);).flop[3];
 f.key;
 f.key(60);
 f.key(60, expand: 10);
-
+f.key(60, [\peakat, 3]);
 
 f.key(34);
 f.key(34, expand: 10);
@@ -239,7 +232,7 @@ g.key(30);
 
 
 Env().plot;
-d.playEnv(env: Env(), pitch: [60, 90, 50]);
+d.playEnv(env: Env.new(), pitch: [60, 90, 50]);
 
 ~alvaenv.plot;
 d.playEnv(env: ~alvaenv.normalize, pitch: [60, 90, 50]);

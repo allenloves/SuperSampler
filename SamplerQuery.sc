@@ -35,6 +35,7 @@ SamplerQuery {
 						samplePrep.samplerName = sampler.name;
 						samplePrep.setRate(2**((keyNum - sampler.samples[index].keynum[idx])/12) * keySign);
 						samplePrep.section = idx;
+						samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 						sampleList = sampleList.add(samplePrep)};
 				}
 			};
@@ -59,6 +60,7 @@ SamplerQuery {
 				samplePrep.samplerName = sampler.name;
 				samplePrep.section = sortIndexes[1][sortIndexes[0].indexIn(keyNum)][1];
 				samplePrep.setRate(2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * keySign);
+				samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 
 				sampleList = sampleList.add(samplePrep)
 			};
@@ -92,7 +94,6 @@ SamplerQuery {
 		var globalAttackDur = args.globalAttackDur;
 
 		switch(syncmode.asArray[0].asSymbol,
-
 
 			//keep the full length to samples, line up the peak time together
 			\keeplength,{
@@ -150,29 +151,9 @@ SamplerQuery {
 
 			//assign a peak time where the pick of sound gesture happens
 			\peakat,{
+				var previousPeakTime = syncmode.asArray[1] ? 0; //initial peak time
 
-				var previousPeakTime = syncmode.asArray[1] ? globalAttackDur; //initial peak time
-				var extraTime, nglobalAttackDur, rBendEnv, elapsed = 0;
-
-
-				//1:  adjust for the global peak time after pitch bend
-				//    variation with n in the front means "normalized", value from 0-1
-				//-------- For pitch bend ------
-				if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0]){
-					extraTime = previousPeakTime - globalAttackDur;
-					nglobalAttackDur = globalAttackDur / globalDur;
-					//this might be a choice of design:
-					//cut the bend envelope when some portion of audio needs to be cut from setting the peak time
-					if(extraTime.isNegative){
-						var nExtraTime = extraTime.abs / globalDur;
-						args.bendenv = args.bendenv.asEnv.subEnv(nExtraTime, 1 - nExtraTime).asArray;
-					};
-					rBendEnv = args.bend.asEnv.reciprocal;
-					previousPeakTime = (rBendEnv.integral(nglobalAttackDur) * rBendEnv.copy.duration_(globalDur).integral) + extraTime.thresh(0);
-				};//-----------------------------
-
-
-				//2:  sort samples by the attack time of the section, longer first
+				//sort samples by the attack time of the section, longer first
 				playSamples = playSamples.sort({|a, b|
 					var aAttack = if(a.rate.isPositive) {a.sample.attackDur[a.section]} {a.sample.releaseDur[a.section]};
 					var bAttack = if(b.rate.isPositive) {b.sample.attackDur[b.section]} {b.sample.releaseDur[b.section]};
@@ -180,48 +161,105 @@ SamplerQuery {
 				});
 
 
-				//3:  find waiting time by difference of peak time
 				playSamples.do{|thisSample, index|
-					var thisPeakTime, waittime;
+					var thisPeakTime, adjust;
 					thisPeakTime = if(thisSample.rate.isPositive)
 					{thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}
 					{thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs};
 
-					//------for pitch bend-------
-					if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0]){
-						var nThisPeakTime = thisPeakTime / globalDur;
-						var nElapsed = elapsed / globalDur;
-						var nDur = thisSample.duration / globalDur;
-						var nWait;
+					adjust = previousPeakTime - thisPeakTime;
 
-						thisPeakTime = rBendEnv.integral(nThisPeakTime + nElapsed) - rBendEnv.integral(nElapsed) * rBendEnv.copy.duration_(globalDur).integral;
-						waittime = previousPeakTime - thisPeakTime;
-						nWait = waittime / globalDur;
-						thisSample.bendenv = args.bendenv.asEnv.subEnv(nElapsed + nWait, nDur).asArray;
-						extraTime.postln;
-						elapsed = elapsed + waittime - extraTime.thresh(0); //for the first time: elapsed will be 0
-						extraTime = 0; //then discard the extra time
-					}//-----------------------
-					{waittime = previousPeakTime - thisPeakTime};
-
-
-					thisSample.wait = waittime.thresh(0);
+					thisSample.wait = adjust.thresh(0);
 					thisSample.expand = args.expand;
-					thisSample.position = if(thisSample.rate.isPositive){
-						waittime.neg.thresh(0) * thisSample.rate.abs
-					}
-					{
-						thisSample.sample.activeBuffer[thisSample.section][0].duration - (waittime.neg.thresh(0) * thisSample.rate.abs);
-					};
+					thisSample.bendenv = args.bendenv;
 
-					thisPeakTime = (thisPeakTime - waittime.neg.thresh(0)).thresh(0);
+
+					thisSample.position = if(thisSample.rate.isPositive)
+					{adjust.neg.thresh(0) * thisSample.rate.abs}
+					{thisSample.buffer[0].duration - (adjust.neg.thresh(0) * thisSample.rate.abs)};
+
+					thisPeakTime = (thisPeakTime - adjust.neg.thresh(0)).thresh(0);
+
 					previousPeakTime = thisPeakTime;
-
-
-
 				}
 
 			},
+
+
+			// \peakat,{
+			//
+			// 	var previousPeakTime = syncmode.asArray[1] ? globalAttackDur; //initial peak time
+			// 	var extraTime, nglobalAttackDur, rBendEnv, elapsed = 0;
+			//
+			//
+			// 	//1:  adjust for the global peak time after pitch bend
+			// 	//    variation with n in the front means "normalized", value from 0-1
+			// 	//-------- For pitch bend ------
+			// 	if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0]){
+			// 		extraTime = previousPeakTime - globalAttackDur;
+			// 		nglobalAttackDur = globalAttackDur / globalDur;
+			// 		//this might be a choice of design:
+			// 		//cut the bend envelope when some portion of audio needs to be cut from setting the peak time
+			// 		if(extraTime.isNegative){
+			// 			var nExtraTime = extraTime.abs / globalDur;
+			// 			args.bendenv = args.bendenv.asEnv.subEnv(nExtraTime, 1 - nExtraTime).asArray;
+			// 		};
+			// 		rBendEnv = args.bend.asEnv.reciprocal;
+			// 		previousPeakTime = (rBendEnv.integral(nglobalAttackDur) * rBendEnv.copy.duration_(globalDur).integral) + extraTime.thresh(0);
+			// 	};//-----------------------------
+			//
+			//
+			// 	//2:  sort samples by the attack time of the section, longer first
+			// 	playSamples = playSamples.sort({|a, b|
+			// 		var aAttack = if(a.rate.isPositive) {a.sample.attackDur[a.section]} {a.sample.releaseDur[a.section]};
+			// 		var bAttack = if(b.rate.isPositive) {b.sample.attackDur[b.section]} {b.sample.releaseDur[b.section]};
+			// 		(aAttack / a.rate.abs) > (bAttack / b.rate.abs)
+			// 	});
+			//
+			//
+			// 	//3:  find waiting time by difference of peak time
+			// 	playSamples.do{|thisSample, index|
+			// 		var thisPeakTime, waittime;
+			// 		thisPeakTime = if(thisSample.rate.isPositive)
+			// 		{thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}
+			// 		{thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs};
+			//
+			// 		//------for pitch bend-------
+			// 		if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0]){
+			// 			var nThisPeakTime = thisPeakTime / globalDur;
+			// 			var nElapsed = elapsed / globalDur;
+			// 			var nDur = thisSample.duration / globalDur;
+			// 			var nWait;
+			//
+			// 			thisPeakTime = rBendEnv.integral(nThisPeakTime + nElapsed) - rBendEnv.integral(nElapsed) * rBendEnv.copy.duration_(globalDur).integral;
+			// 			waittime = previousPeakTime - thisPeakTime;
+			// 			nWait = waittime / globalDur;
+			// 			thisSample.bendenv = args.bendenv.asEnv.subEnv(nElapsed + nWait, nDur).asArray;
+			// 			extraTime.postln;
+			// 			elapsed = elapsed + waittime - extraTime.thresh(0); //for the first time: elapsed will be 0
+			// 			extraTime = 0; //then discard the extra time
+			// 		}//-----------------------
+			// 		{waittime = previousPeakTime - thisPeakTime};
+			//
+			//
+			// 		thisSample.wait = waittime.thresh(0);
+			// 		thisSample.expand = args.expand;
+			// 		thisSample.position = if(thisSample.rate.isPositive){
+			// 			waittime.neg.thresh(0) * thisSample.rate.abs
+			// 		}
+			// 		{
+			// 			thisSample.sample.activeBuffer[thisSample.section][0].duration - (waittime.neg.thresh(0) * thisSample.rate.abs);
+			// 		};
+			//
+			// 		thisPeakTime = (thisPeakTime - waittime.neg.thresh(0)).thresh(0);
+			// 		previousPeakTime = thisPeakTime;
+			//
+			//
+			//
+			// 	}
+			//
+			// },
+
 
 			//cut the beginning of sample file, start from the peak point
 			\percussive,{
