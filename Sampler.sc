@@ -183,7 +183,7 @@ Sampler {
 		Routine.run{
 			args.playSamples.do{|thisSample, index| //thisSample are realizations of SamplerPrepare class
 				var bufRateScale = bufServer.sampleRate / thisSample.sample.sampleRate;
-				var buf = thisSample.sample.activeBuffer[thisSample.section];
+				var buf = thisSample.buffer;
 				var duration = args.dur ? ((thisSample.sample.activeDuration[thisSample.section]) / thisSample.rate.abs) * bufRateScale; // * (args.expand ? 1)
 				var synthID = UniqueID.next.asSymbol;
 

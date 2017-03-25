@@ -12,7 +12,33 @@
 		^this.new([0, 1, 1, 0], [(fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0), (dur - (fadeDur * 2)).thresh(0), (fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0)], curve: curve, releaseNode: releaseNode, loopNode: loopNode, offset: offset);
 	}
 
-	//Get peak time in an Envelope
+	//Multiply the amplitude of two FLAT Envs
+	* {|anotherEnv|
+		var timeline = (this.timeLine.asArray ++ anotherEnv.timeLine.asArray).removeDups.sort;
+		var amp = [];
+		timeline.do{|time, index|
+			amp = amp.add(this.at(time) * anotherEnv.at(time));
+		};
+		^[timeline, amp].flop.flat.pairsAsEnv;
+	}
+
+	//concatenate two envelopes
+	++ {|anotherEnv|
+		if(anotherEnv.isNil)
+		{^this}
+		{^Env.new(this.levels ++ anotherEnv.levels, this.times++0++anotherEnv.times, this.curves, this.releaseNode, this.loopNode, this.offset).removeOverlap};
+	}
+
+	removeOverlap {
+		var level = this.levels;
+		var time = this.times;
+		time.do{|thisTime, index|
+			if((thisTime == 0) && (level[index] == level[index + 1])){level.removeAt(index); time.removeAt(index)};
+		}
+		^Env.new(level, time, this.curves, this.releaseNode, this.loopNode, this.offset);
+	}
+
+	//Get peaking times in an Envelope
 	//this is using wslib Quark
 	peakTime {|groupThresh = 0.32|
 		var outcome = [];
@@ -31,6 +57,15 @@
 				}
 				{outcome = outcome.add(thisNode)};
 			};
+		};
+		^outcome;
+	}
+
+	//get amplitude in each peak times
+	peakAmp {|groupThresh = 0.32|
+		var outcome = [];
+		this.peakTime(groupThresh).do{|thisPeakTime, index|
+			outcome = outcome.add(this.at(thisPeakTime));
 		};
 		^outcome;
 	}
@@ -113,20 +148,121 @@
 		^Env.new(this.levels.reverse, this.times.reverse, this.curves, this.releaseNode, this.loopNode, this.offset);
 	}
 
-	//Multiply the amplitude of two FLAT Envs
-	* {|anotherEnv|
-		var timeline = (this.timeLine.asArray ++ anotherEnv.timeLine.asArray).removeDups.sort;
-		var amp = [];
-		timeline.do{|time, index|
-			amp = amp.add(this.at(time) * anotherEnv.at(time));
-		};
-		^[timeline, amp].flop.flat.pairsAsEnv;
-	}
+
 
 	//Envelope normalization
 	normalize {|max = 1|
 		^this.range(0, max);
 	}
 
+
+	//segment an envelope to several envelopes
+	//the outcome is an array of two items:
+	//[[Array of Envelopes], [wait time on each envelope for a Routine]]
+	segment {arg numSegs = 1, strategy = \atpeak, crossfade = 1;
+		var segmentTime = [], envs =[], waittime;
+		var strat = strategy.asArray[0];
+
+		crossfade = min(crossfade.abs, this.duration / (numSegs + 3));
+		numSegs = (numSegs - 1).asInteger.thresh(0);
+
+		case
+		//strategy: geometric series, 2 would be default base
+		////put e.g. [\geo, 2]
+		{strat == \geo}
+		{
+			var base = strategy.asArray[1] ? 2;
+			numSegs.do{|index|
+				var a = this.duration * ((1-base) / (1- (base ** numSegs)));
+				segmentTime = segmentTime.add(a * (base ** index));
+			}
+		}
+
+		//strategy: exponential, 2 would be default exponential
+		//put e.g. [\expo, 2]
+		{strat == \expo}
+		{
+			var expl, explseg;
+			var powr = strategy.asArray[1] ? 2;
+
+			expl = {|powr, base|
+				case
+				{powr < 0}{powr = 0}
+				{powr > 1}{powr = 1};
+
+				if(base == 1)
+				{powr}
+				{ (base**powr - 1) / (base - 1)};
+			};
+
+			numSegs.do{|index|
+				var x1 = (index + 1) / numSegs;
+				var x2 = index / numSegs;
+				var f1 = expl.value(x1, powr);
+				var f2 = expl.value(x2, powr);
+				segmentTime = segmentTime.add( this.duration * (f1 - f2) );
+			}
+		}
+
+		//strategy: at peak
+		{strat == \atpeak}
+		{
+			var peakAmp = this.peakAmp;
+			var peakTime = this.peakTime;
+			var extraSegs, ampOrder;
+
+			extraSegs = (numSegs - peakAmp.size).thresh(0);
+
+			//exclude if peak is close to the beginning or ending of the envelope
+			peakTime.do{|thisPeakTime, index|
+				if((peakTime[index] <= crossfade) || (peakTime[index] >= (this.duration - crossfade)))
+				{peakTime.removeAt(index); peakAmp.removeAt(index)};
+			};
+
+			extraSegs = (numSegs - peakAmp.size).thresh(0);
+			ampOrder = peakAmp.order({|a,b| a>b});
+
+			(numSegs - extraSegs).do{|index|
+				segmentTime = segmentTime.add(peakTime[ampOrder[index]]);
+			};
+
+			extraSegs.do{|index|
+				segmentTime = segmentTime.add((this.duration - (crossfade * 2)).rand + crossfade);
+			}
+		}
+
+		//strategy: random
+		{strat == \random}
+		{
+			numSegs.do{
+				segmentTime = segmentTime.add((this.duration - (crossfade * 2)).rand + crossfade);
+			};
+		};
+
+		//gather envelopes from segment time
+		segmentTime = segmentTime.sort.postln;
+		if(segmentTime.isEmpty)
+		{^this}
+		{
+			envs = envs.add((this.subEnv(0, segmentTime.first) ++ if(crossfade > 0){Env.new([this.at(segmentTime.first), 0], [crossfade])}).removeOverlap);
+
+			segmentTime.doAdjacentPairs{|thisTime, nextTime, index|
+				var attack, release;
+				if(crossfade > 0)
+				{
+					attack = Env.new([0, this.at(thisTime)], [min(crossfade, thisTime)]);
+					release = Env.new([this.at(nextTime), 0], [min(crossfade, (this.duration - nextTime))]);
+					//release.plot;
+				};
+				envs = envs.add((attack ++ this.subEnv(thisTime, nextTime-thisTime) ++ release).removeOverlap);
+				waittime = waittime.add(if(index == 0){thisTime - attack.duration}{thisTime - segmentTime[index - 1]});
+			};
+
+			envs = envs.add((if(crossfade>0){Env.new([0, this.at(segmentTime.last)],[crossfade])} ++ this.subEnv(segmentTime.last, this.duration - segmentTime.last)).removeOverlap);
+			waittime = waittime.add(segmentTime.last - segmentTime[segmentTime.size - 2]);
+			^[envs, waittime];
+		};
+
+	}
 
 }
