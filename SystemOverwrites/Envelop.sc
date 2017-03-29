@@ -26,10 +26,10 @@
 	++ {|anotherEnv|
 		if(anotherEnv.isNil)
 		{^this}
-		{^Env.new(this.levels ++ anotherEnv.levels, this.times++0++anotherEnv.times, this.curves, this.releaseNode, this.loopNode, this.offset).removeOverlap};
+		{^Env.new(this.levels ++ anotherEnv.levels, this.times++0++anotherEnv.times, this.curves, this.releaseNode, this.loopNode, this.offset).removeDups};
 	}
 
-	removeOverlap {
+	removeDups {
 		var level = this.levels;
 		var time = this.times;
 		time.do{|thisTime, index|
@@ -240,11 +240,11 @@
 		};
 
 		//gather envelopes from segment time
-		segmentTime = segmentTime.sort.postln;
+		segmentTime = segmentTime.sort;
 		if(segmentTime.isEmpty)
-		{^this}
+		{^[[this, 0]]}
 		{
-			envs = envs.add((this.subEnv(0, segmentTime.first) ++ if(crossfade > 0){Env.new([this.at(segmentTime.first), 0], [crossfade])}).removeOverlap);
+			envs = envs.add((this.subEnv(0, segmentTime.first) ++ if(crossfade > 0){Env.new([this.at(segmentTime.first), 0], [crossfade])}).removeDups);
 
 			segmentTime.doAdjacentPairs{|thisTime, nextTime, index|
 				var attack, release;
@@ -254,13 +254,13 @@
 					release = Env.new([this.at(nextTime), 0], [min(crossfade, (this.duration - nextTime))]);
 					//release.plot;
 				};
-				envs = envs.add((attack ++ this.subEnv(thisTime, nextTime-thisTime) ++ release).removeOverlap);
+				envs = envs.add((attack ++ this.subEnv(thisTime, nextTime-thisTime) ++ release).removeDups);
 				waittime = waittime.add(if(index == 0){thisTime - attack.duration}{thisTime - segmentTime[index - 1]});
 			};
 
-			envs = envs.add((if(crossfade>0){Env.new([0, this.at(segmentTime.last)],[crossfade])} ++ this.subEnv(segmentTime.last, this.duration - segmentTime.last)).removeOverlap);
-			waittime = waittime.add(segmentTime.last - segmentTime[segmentTime.size - 2]);
-			^[envs, waittime];
+			envs = envs.add((if(crossfade>0){Env.new([0, this.at(segmentTime.last)],[crossfade])} ++ this.subEnv(segmentTime.last, this.duration - segmentTime.last)).removeDups);
+			waittime = waittime.add(segmentTime.last - segmentTime[segmentTime.size - 2]).add(0);
+			^[envs, waittime].flop;
 		};
 
 	}

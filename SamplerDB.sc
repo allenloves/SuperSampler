@@ -98,43 +98,30 @@ SamplerDB{
 		samplers = nil;
 	}
 
-/*
-	//testrun
-	playEnv {arg keynums, env;
 
-		samplers.do{|thisSampler, samplerIndex|
-			if(thisSampler.samples[0].temporalCentroid[0] < 0.15)
-			{thisSampler.playEnv(keynums, env)}
-			{
-				env.peakTime.do{|thisPeakTime|
-						var args = SamplerArguments.new.set(keynums: keynums.asArray.choose);
-						var maxTexture = thisSampler.getPlaySamples(args).size;
-						var texture = env.range.at(thisPeakTime).linlin(0, 1, 0, maxTexture).asInteger;
-						//("this texture = " + texture).postln;
-						thisSampler.key(keynums.asArray.choose, [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
-				}
-			};
-		}
+	playEnv {arg env, pitch, maxTexture = nil, morph = [0, \atpeak, 1];
+		var morphEnvs = env.segment(morph.asArray[0], morph.asArray[1], morph.asArray[2]);
+
+		Routine.run({
+			morphEnvs.do{|thisEnv, envIndex|
+				var waittime = thisEnv[1];
+				var envelope = thisEnv[0];
+				samplers.do{|thisSampler, samplerIndex|
+					if(thisSampler.samples[0].temporalCentroid[0] < 0.15)
+					{thisSampler.playEnv(pitch, envelope)}
+					{
+						env.peakTime.do{|thisPeakTime|
+							var args = SamplerArguments.new.set(keynums: pitch.asArray.choose);
+							var maxTexture = SamplerQuery.getSamplesByKeynum(thisSampler, args).size;
+							var texture = envelope.range.at(thisPeakTime).linlin(0, 1, 1, maxTexture).asInteger;
+							thisSampler.key(pitch.asArray.choose, [\peakat, thisPeakTime], amp: envelope.at(thisPeakTime), texture: texture);
+						}
+					};
+				};
+				waittime.yield;
+			}
+		});
 	}
-*/
-
-	playEnv {arg env, pitch, maxTexture = nil;
-
-		samplers.do{|thisSampler, samplerIndex|
-			if(thisSampler.samples[0].temporalCentroid[0] < 0.15)
-			{thisSampler.playEnv(pitch, env)}
-			{
-				env.peakTime.do{|thisPeakTime|
-					var args = SamplerArguments.new.set(keynums: pitch.asArray.choose);
-					var maxTexture = SamplerQuery.getSamplesByKeynum(thisSampler, args).size;
-					var texture = env.range.at(thisPeakTime).linlin(0, 1, 0, maxTexture).asInteger;
-					//("this texture = " + texture).postln;
-					thisSampler.key(pitch.asArray.choose, [\peakat, thisPeakTime], amp: env.at(thisPeakTime));
-				}
-			};
-		}
-	}
-
 
 
 	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0, midiChannel = 0;
@@ -146,43 +133,8 @@ SamplerDB{
 			args.playSamples = args.playSamples.add(SamplerQuery.getSamplesByKeynum(thisSampler, args)).flat;
 		};
 		args.getGlobalDur;
-
-		args.playSamples = SamplerQuery.getPlayTime(args);
-
-		Routine.run{
-			args.playSamples.do{|thisSample, index| //thisSample are realizations of SamplerPrepare class
-				var bufRateScale = thisSample.bufServer.sampleRate / thisSample.sample.sampleRate;
-				var buf = thisSample.sample.activeBuffer[thisSample.section];
-				var duration = args.dur ? ((thisSample.sample.activeDuration[thisSample.section]) / thisSample.rate.abs) * bufRateScale; // * (args.expand ? 1)
-				var synthID = UniqueID.next.asSymbol;
-
-				thisSample.wait.wait;
-				case
-				{thisSample.expand.isNumber}{
-					case
-					{buf.size == 2}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
-					}
-					{true}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssexpand1, [buf: buf[0], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
-					};
-				}
-				{true}{
-					case
-					{buf.size == 2}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
-					}
-					{true}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
-					};
-				};
-
-			};
-		}
+		Sampler.playArgs(args);
 	}
-
-
-
 
 
 }//End of SamplerDB class
