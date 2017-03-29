@@ -20,6 +20,40 @@ Sampler {
 		^super.new.init(samplerName, dbname);
 	}
 
+	*playArgs{|args|
+		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
+
+		Routine.run{
+			args.playSamples.do{|thisSample, index| //thisSample are realizations of SamplerPrepare class
+				var bufRateScale = thisSample.bufServer.sampleRate / thisSample.sample.sampleRate;
+				var buf = thisSample.buffer;
+				var duration = args.dur ? ((thisSample.sample.activeDuration[thisSample.section]) / thisSample.rate.abs) * bufRateScale; // * (args.expand ? 1)
+				var synthID = UniqueID.next.asSymbol;
+
+				thisSample.wait.wait;
+				case
+				{thisSample.expand.isNumber}{
+					case
+					{buf.size == 2}{
+						SamplerQuery.playing[thisSample.midiChannel].put(synthID, Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[thisSample.midiChannel].removeAt(synthID)});
+					}
+					{true}{
+						SamplerQuery.playing[thisSample.midiChannel].put(synthID, Synth(\ssexpand1, [buf: buf[0], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[thisSample.midiChannel].removeAt(synthID)});
+					};
+				}
+				{true}{
+					case
+					{buf.size == 2}{
+						SamplerQuery.playing[thisSample.midiChannel].put(synthID, Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, out: args.out]).onFree{SamplerQuery.playing[thisSample.midiChannel].removeAt(synthID)});
+					}
+					{true}{
+						SamplerQuery.playing[thisSample.midiChannel].put(synthID, Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, out: args.out]).onFree{SamplerQuery.playing[thisSample.midiChannel].removeAt(synthID)});
+					};
+				};
+
+			};
+		}
+	}
 
 	//==============================================================
 	//return an array of samplers in the same SamplerDB database
@@ -172,59 +206,34 @@ Sampler {
 	//Play samples by giving key numbers
 	//Defaults are also provided by SamplerArguments
 	//Negative key numbers reverses the buffer to play.
-	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0, midiChannel = 0;
+	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? rrand(10.0, 100.0);
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
-		//args.setSamples(this.getPlaySamples(args));
 		args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));  //find play samples
-		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
 
-		Routine.run{
-			args.playSamples.do{|thisSample, index| //thisSample are realizations of SamplerPrepare class
-				var bufRateScale = bufServer.sampleRate / thisSample.sample.sampleRate;
-				var buf = thisSample.buffer;
-				var duration = args.dur ? ((thisSample.sample.activeDuration[thisSample.section]) / thisSample.rate.abs) * bufRateScale; // * (args.expand ? 1)
-				var synthID = UniqueID.next.asSymbol;
-
-				thisSample.wait.wait;
-				case
-				{thisSample.expand.isNumber}{
-					case
-					{buf.size == 2}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
-					}
-					{true}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssexpand1, [buf: buf[0], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
-					};
-				}
-				{true}{
-					case
-					{buf.size == 2}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
-					}
-					{true}{
-						SamplerQuery.playing[midiChannel].put(synthID, Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, out: args.out]).onFree{SamplerQuery.playing[midiChannel].removeAt(synthID)});
-					};
-				};
-
-			};
-		}
+		if(play){this.playArgs(args)};
+		^args;
 	}
 
+
+	playArgs {|args|
+		this.class.playArgs(args);
+	}
 
 
 
 	//==============================================================
 	//TODO: Play a sample with the influence of a global envelope
-	playEnv{arg keynums, env, syncmode = \percussive;
+	playEnv {arg keynums, env, syncmode = \percussive, maxtexture = 5;
 
 		Routine.run{
 			var elapsed = 0;
 			while({elapsed < env.duration},
 				{
 					var delayTime = 0.02;
-					this.key(keynums.asArray.choose, syncmode, amp: env.at(elapsed));
+					var texture = env.at(elapsed).linlin(0, 1, 1, maxtexture).asInteger;
+					this.key(keynums.asArray.choose, syncmode, amp: env.at(elapsed), texture: texture);
 					elapsed = elapsed + delayTime;
 					delayTime.wait;
 				}

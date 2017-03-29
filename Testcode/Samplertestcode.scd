@@ -10,8 +10,9 @@ t.key;  // play random note
 t.key([30, 40, 50, 60, 70, 80]);
 t.key([30, 40, 50, 60, 70, 80], \nosorting);
 t.key([30, 40, 50, 60, 70, 80], \percussive);
+t.key([30, 40, 50, 60, 70, 80], \stratchshort);
+t.key([30, 40, 50, 60, 70, 80], [\peakat, 2]);
 
-t.key([60, 65], [\peakat, 1]);
 t.key([60, 66], bendenv: [0, 1, 0.2, 1, 1, 3]);
 t.key(60, expand: 2);
 t.key(-60);
@@ -22,27 +23,24 @@ SamplerQuery.playing[0];
 t.key([-60, 60]);
 t.key([-60, 60], expand: 2);
 t.key([-60], bendenv: [0, 1, 0.2, 1, 1, 3]);
-t.key([-60, 60, -48, 48], bendenv: [0, 1, 0.2, 1, 1, 3]);
-t.key([-60, 60, -48, 48], [\peakat, 15], bendenv: [0, 1, 0.2, 1, 1, 3]);
+t.key([-60, 60], bendenv: [0, 1, 0.2, 1, 1, 3], amp: 2);
+t.key([-60, 60], [\peakat, 5], bendenv: [0, 1, 0.2, 1, 1, 3]);//incorrect
 
-
-t.key([-48, 48], bendenv: [0, 2, 1, 2]);
-t.key([-60, 60, -48, 48], bendenv: [0, 1, 0.2, 1, 0.2, 1.3, 0.4, 1.3, 0.4, 1.6, 0.6, 1.6, 0.6, 2, 1, 2]);
-
-
+t.key([-50, 50, -60, 60, -48, 48], bendenv: [0, 1, 0.2, 1, 0.2, 1.3, 0.4, 1.3, 0.4, 1.6, 0.6, 1.6, 0.6, 2, 1, 2]);
 
 t.key([-60, 60], expand: 2, bendenv: [0, 1, 0.2, 1, 1, 3])
 
 t.key([40, 30], ampenv: [0, 0, 0.5, 5, 1, 0]);
 
-t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 3])
+t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 1])
+t.key([30, 40, -50, 50, -60, 60, 70, 80], [\startats, 1])
 
 t.key([70, 81], \stratchshort);
 t.key([70, 81], \percussive);
 t.key([-81], \percussive);  //Should be no sound.
-t.key([30, 81], [\peakat, 1]);
-t.key([30, 81], \stretchshort);
-t.key([30, 81], \nosorting);
+t.key([30, 81], [\percussive, 1]);
+t.key([30, 81], \stratchshort);
+t.key([30, 81], [\nosorting, 1]);
 
 t.setKeyRanges(\keyNumOnly);
 
@@ -82,22 +80,22 @@ t.setKeyRanges(\keynumRadious, 5)
 /////////////////////////////////////////////////////////////////////////////
 (
 s.waitForBoot{
-a = (Platform.resourceDir +/+ "sounds/a11wlk01.wav").pathMatch;
-f = Sampler(\alva, \speak).load(a);  // The 2nd parameter indicates another SamplerDB database
+f = Sampler(\cage, \speak).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/cage.wav"]);
 };
 )
-
-
-~alvaenv = f.samples[0].env.normalize(1);
-~alvaenv.plot;
-
-~alvaenv.reciprocal.plot;
-
 f.keynums;
+f.setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
+
+~cageenv = f.samples[0].env.normalize(1);
+~cageenv.plot;
+
+~cageenv.reciprocal.plot;
+
+
 f.samples[0].keynum;
 f.samples[0].play;
 f.setKeyRanges(infoArray: 3);
-f.getPlayTime(f.getPlaySamples(70);).flop[3];
+
 f.key;
 f.key(60);
 f.key(60, expand: 10);
@@ -227,12 +225,12 @@ d.makeTree;
 d.shapeTree.asArray(incLabels:true);
 d.mfccTree.asArray(incLabels:true);
 
-d.key(-70);
+d.key(70);
 g.key(30);
 
 
 Env().plot;
-d.playEnv(env: Env.new(), pitch: [60, 90, 50]);
+d.playEnv(env: Env.new(), pitch: [-60, 60, 90, 50]);
 
-~alvaenv.plot;
-d.playEnv(env: ~alvaenv.normalize, pitch: [60, 90, 50]);
+~cageenv.plot;
+d.playEnv(env: ~alvaenv.normalize, pitch: [60, 90, 50, 70, -60, -80, 30], morph: [3, \atpeak, 1]);
