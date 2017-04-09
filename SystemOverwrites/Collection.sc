@@ -98,6 +98,7 @@
 
 
 + SequenceableCollection {
+
 	//separate a Collection at the index point in an Array
 	chop {|indexArray|
 		var choppedArray = [];
@@ -130,5 +131,22 @@
 	//rms values
 	rms {|framehop = 1024|
 		^this.clump(framehop).collect({|frame, index| sqrt(sum(frame ** 2 ) / frame.size)});
+	}
+
+	//calculate the distance of two points in an Euclidean space
+	distance{|that|
+		var delta = 0, distance;
+		if(this.size != that.size){Error("Two arrays should be the same size.").throw};
+		this.asArray.do{|value, index|
+			if(value.isNumber.not || that.asArray[index].isNumber.not)
+			{Error("Arrays should contain only numbers").throw}
+			{delta = delta + squared(value - that.asArray[index])};
+		};
+		distance = delta.sqrt;
+		^distance;
+	}
+
+	<-> {|another|
+		^distance(this, another);
 	}
 }

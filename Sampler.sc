@@ -55,6 +55,7 @@ Sampler {
 		}
 	}
 
+
 	//==============================================================
 	//return an array of samplers in the same SamplerDB database
 	db{arg samplerName;
@@ -121,7 +122,7 @@ Sampler {
 
 	//============================
 	//load and analyze sound files
-	load {arg soundfiles, server = Server.default, filenameAsKeynum = true, action = nil;
+	load {arg soundfiles, server = Server.default, filenameAsKeynum = false, normalize = false, action = nil;
 		bufServer = server;
 		fork{
 			var dict = Dictionary.newFrom([filenames, samples].flop.flat);
@@ -131,7 +132,7 @@ Sampler {
 				{"This file is already loaded, reloading".postln;
 					dict[filename.asSymbol].free;
 				};
-				sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, server: server, action: action);
+				sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: action);
 				dict.put(filename.asSymbol, sample);
 			};
 			dict = dict.asSortedArray.flop;
@@ -225,20 +226,23 @@ Sampler {
 
 	//==============================================================
 	//TODO: Play a sample with the influence of a global envelope
-	playEnv {arg keynums, env, syncmode = \percussive, maxtexture = 5;
+	playEnv {arg env, keynums, morph = [0, 1, \atpeak], maxtexture = 5;
+		var playkey = keynums ? rrand(10.0, 100.0);
 
 		Routine.run{
 			var elapsed = 0;
 			while({elapsed < env.duration},
 				{
 					var delayTime = 0.02;
-					var texture = env.at(elapsed).linlin(0, 1, 1, maxtexture).asInteger;
-					this.key(keynums.asArray.choose, syncmode, amp: env.at(elapsed), texture: texture);
+					var texture = env.at(elapsed).linlin(0, env.levels.maxItem, 1, maxtexture).asInteger;
+					this.key(keynums.asArray.choose, \percussive, amp: env.at(elapsed), texture: texture);
 					elapsed = elapsed + delayTime;
 					delayTime.wait;
 				}
 			)
 		}
+
+
 	}
 }//end of Sampler class
 

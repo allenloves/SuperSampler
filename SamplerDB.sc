@@ -99,7 +99,7 @@ SamplerDB{
 	}
 
 
-	playEnv {arg env, pitch, maxTexture = nil, morph = [0, \atpeak, 1];
+	playEnv {arg env, pitch, maxTexture = nil, morph = [0, 1, \atpeak];
 		var morphEnvs = env.segment(morph.asArray[0], morph.asArray[1], morph.asArray[2]);
 
 		Routine.run({
@@ -108,7 +108,7 @@ SamplerDB{
 				var envelope = thisEnv[0];
 				samplers.do{|thisSampler, samplerIndex|
 					if(thisSampler.samples[0].temporalCentroid[0] < 0.15)
-					{thisSampler.playEnv(pitch, envelope)}
+					{thisSampler.playEnv(envelope, pitch)}
 					{
 						env.peakTime.do{|thisPeakTime|
 							var args = SamplerArguments.new.set(keynums: pitch.asArray.choose);

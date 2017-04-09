@@ -69,12 +69,12 @@ SampleDescript{
 
 	//parameters
 	//File Name, Normalize, Start Tine, Duration, Threshold for attack point, Threshold for end point, Threshold for onset, Time threshold for onset grouping.
-	*new {arg filename, normtype=0, start=0, dur=0, startThresh=0.01, endThresh=0.01, onsetThresh=0.5, groupingThresh = 0.32, filenameAsNote = true, loadToBuffer = false, server = Server.default, action;
+	*new {arg filename, normtype=0, start=0, dur=0, startThresh=0.01, endThresh=0.01, onsetThresh=0.5, groupingThresh = 0.32, filenameAsNote = false, loadToBuffer = false, normalize = false,server = Server.default, action;
 
-		^super.new.init(filename, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, server, action);
+		^super.new.init(filename, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, normalize, server, action);
 	}
 
-	init {|fileName, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, server, action|
+	init {|fileName, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, normalize, server, action|
 		var cond = Condition.new(false);
 		var soundFile, soundFileArray;
 
@@ -118,7 +118,7 @@ SampleDescript{
 		//file = SCMIRAudioFile(filename, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
 		file = SCMIRAudioFile(filename, [[\Tartini, 0], \SpecCentroid, \SpecFlatness, [\MFCC, 13]], normtype, start, dur);
 
-		file.extractFeatures(false);
+		file.extractFeatures(normalize);
 		file.extractOnsets();
 
 
@@ -293,7 +293,7 @@ SampleDescript{
 	}
 
 
-	getKeynum {arg filenameAsNote = true, pitchShift = 0;
+	getKeynum {arg filenameAsNote = false, pitchShift = 0;
 		var str=PathName(filename).fileNameWithoutExtension;
 		var l=str.size-1;
 		var i=l, j, c;
@@ -303,7 +303,9 @@ SampleDescript{
 		keynumFromPitchFound = [];
 		keynum = [];
 
-		//**************************************************************************************
+
+
+
 		//retrive the key number from file name, if there is one.
 		//From VKey by Prof. Heinrich Taube
 		while ({i>=0 && "0123456789".includes(str.at(i))},{i=i-1});
@@ -357,7 +359,8 @@ SampleDescript{
 		{keynumFromFileName = nil};
 
 
-		//****************************************************************************
+
+
 		//get keynum from pitch material, keynum will not necessarily be an integer.
 		//The pitch data is gathered by the pitch data after the peak frame, if it has pitch.
 		//Return nil if there is no pitch after 20 frames until the end of the section.
@@ -366,6 +369,7 @@ SampleDescript{
 			var pitchCollection = [];
 
 			thisPeakIndex = thisPeakIndex.asInteger;
+
 
 			if(endTime[sectionIndex]-peakTime[sectionIndex] <= (hoptime * 20))
 			{pitch = pitchData[thisPeakIndex..endIndex[sectionIndex]].flop[0];
@@ -379,6 +383,7 @@ SampleDescript{
 				pitchCollection = pitchCollection.add(thisPitch)
 				};
 			};
+
 
 			//if no picth data is collected, find pitch before peak time
 			if(pitchCollection.size == 0)
@@ -403,6 +408,7 @@ SampleDescript{
 			"no pitch detected, using centorid".postln;}
 			{keynumFromPitchFound = keynumFromPitchFound.add(pitchCollection.mostOccurredItems(0.5).mean)};
 		});
+
 
 		//Now determine which answer to use
 		if(filenameAsNote && keynumFromFileName.isNil.not)
@@ -490,12 +496,19 @@ SampleDescript{
 			peakArray = peakArray.add(peakhop + peaksInTheHop);
 
 		};
-		peakIndex = peakArray;
-		peakTime = peakIndex * hoptime;
-		peakAmp = peakAmpArray;
+
 		globalPeakAmp = peakAmpArray.maxItem;
+		peakIndex = peakArray.select({|item, i| peakAmpArray[i] > (globalPeakAmp * 0.1)});
+		sectionBreakPoint = sectionBreakPoint.select({|item, i| peakAmpArray[i] > (globalPeakAmp * 0.1)});
+		peakAmp = peakAmpArray.select({|item, i| item > (globalPeakAmp * 0.1)});
+
 		globalPeakIndex = peakIndex[peakAmpArray.maxIndex];
 		globalPeakTime = peakTime[peakAmpArray.maxIndex];
+
+
+		peakTime = peakIndex * hoptime;
+
+
 	}
 
 
@@ -551,6 +564,7 @@ SampleDescript{
 
 
 		};
+
 
 		attackDur = peakTime - startTime;
 		releaseDur = endTime - peakTime;

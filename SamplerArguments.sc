@@ -16,6 +16,12 @@ SamplerArguments{
 	var <> grainDur = 0.15;
 	var <> midiChannel = 0;
 
+	//for playEnv
+	var <> env;
+	var <> morphNum = 0;
+	var <> morphMode = \atpeak;
+	var <> morphCrossfade = 1;
+
 	//============================
 	//These are outcomes from query calculation
 	var <> playSamples;  //Contains SamplePrepare class
@@ -25,6 +31,7 @@ SamplerArguments{
 	var <> globalDur;
 	var <> globalAttackDur;
 	var <> globalReleaseDur;
+
 
 
 
@@ -56,16 +63,24 @@ SamplerArguments{
 		playSamples = [];
 		ampenv = Env([1, 1], [1]);
 		panenv = Env([0, 0], [1]);
+		env = Env();
 	}
 
-	set{|keynums, syncmode, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel|
-		this.keynums = keynums ? this.keynums.asArray.flat;
+	set{|keynums, syncmode, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel, env, morph|
+		this.keynums = keynums.value.asArray.flat ? this.keynums.asArray.flat;
 		this.syncmode = syncmode ? this.syncmode;
-		this.dur = dur ? this.dur;
-		this.amp = amp ? this.amp;
-		this.pan = pan ? this.pan;
+		this.dur = dur.value ? this.dur;
+		this.amp = amp.value ? this.amp;
+		this.pan = pan.value ? this.pan;
 		this.out = out ? this.out;
 		this.midiChannel = midiChannel ? this.midiChannel;
+		// this.env = env.value ? this.env;
+		this.texture = texture.value ? this.texture;
+		// this.morphNum = morph.asArray[0] ? this.morphNum;
+		// this.morphCrossfade = morph.asArray[1] ? this.morphCrossfade;
+		// this.morphMode = morph.asArray[2] ? this.morphMode;
+		//
+		// this.env = env.segment(this.morphNum, this.morphCrossfade, this.morphMode);
 
 		case //for ampenv
 		{ampenv.isArray} {this.ampenv= ampenv.pairsAsEnv.asArray}
@@ -82,17 +97,13 @@ SamplerArguments{
 		{bendenv.isKindOf(Env)}{this.bendenv=bendenv.copy.duration_(1).asArray}
 		{true}{this.bendenv=#[1, 1, -99, -99, 1, 1, 1, 0]}; // default [0 1 1 1]
 
-
-
-		this.texture = texture ? this.texture;
-
-		if (expand.isNumber) {
-			this.expand = expand;
-			if (grainRate.isNumber) {
-				this.grainRate = grainRate;
+		if (expand.isNil.not) {
+			this.expand = expand.value.asArray.choose;
+			if (grainRate.isNil.not) {
+				this.grainRate = grainRate.value.asArray.choose;
 			};
-			if (grainDur.isNumber) {
-				this.grainDur = grainDur;
+			if (grainDur.isNil.not) {
+				this.grainDur = grainDur.value.asArray.choose;
 			};
 		};
 	}

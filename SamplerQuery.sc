@@ -68,9 +68,21 @@ SamplerQuery {
 				sampleList = sampleList.add(samplePrep)
 			};
 
+
 			//reduce samples by texture value, based on the distance of key Numbers.
 			//Sample pitch closer to the key number gets picked first.
 			sampleList = sampleList.sort({|a,b| (a.sample.keynum[a.section]-keyNum).abs < (b.sample.keynum[b.section]-keyNum).abs})[0..(texture !? {texture-1})];
+
+			//make textures with minor pitch diviation if the size of samples doesn't reach the texture value.
+			if(texture.isNumber){
+				if(sampleList.size < texture) {
+					var prepList = sampleList.wrapExtend(texture - sampleList.size);
+					prepList.do{|thisSamplePrep, index|
+						thisSamplePrep.setRate(2**((keyNum + rand2(0.3) - samplePrep.sample.keynum[samplePrep.section]) / 12) * keySign);
+						sampleList = sampleList.add(thisSamplePrep);
+					}
+				}
+			};
 
 			finalList = finalList ++ sampleList;
 		};

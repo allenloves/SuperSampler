@@ -5,6 +5,6 @@
 	author:		"Shu-Cheng Allen Wu",
 	version:		0.02,
 	helpdoc:		"HelpSource/Classes/Sampler.schelp",
-	dependencies: ["wslib"],
-	url:			"http://allenloves.github.io"
+	dependencies: ["wslib", "KDTree"],
+	url:			"https://github.com/allenloves/SuperSampler"
 )

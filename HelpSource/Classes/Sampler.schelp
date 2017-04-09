@@ -14,7 +14,7 @@ CLASSMETHODS::
 METHOD:: new
 Create a new Sampler.
 
-ARGUMENT:: name
+ARGUMENT:: samplerName
 Name of Sampler.
 
 ARGUMENT:: dbname
@@ -29,7 +29,7 @@ INSTANCEMETHODS::
 METHOD:: init
 Create a new Sampler and add it to SamplerDB.
 
-ARGUMENT:: name
+ARGUMENT:: samplerName
 Name of Sampler.
 
 ARGUMENT:: dbname
@@ -40,7 +40,7 @@ returns:: (describe returnvalue here)
 
 
 METHOD:: key
-Play samples by giving key numbers.
+Play samples by giving key numbers.  If no key number provided, it chooses a random MIDI key number.
 Defaults are also provided by SamplerArguments class.
 
 ARGUMENT:: keynums
@@ -73,7 +73,7 @@ Overall panning.  O is the center, -1 is left and 1 is right.
 ARGUMENT:: panenv
 An Envelop for panning, in normalized XY format.  Each node in the Envelope is describe as a pair of time and panning in the array.
 
-ARGUMENT:: bend
+ARGUMENT:: bendenv
 An Envelop for bending pitch in the sound in normalized XY format.  Each node in the Envelope is describe as a pair of time and pitch bending in the array.
 
 
@@ -92,12 +92,23 @@ The grain rate for stratching granular synthesizer.
 ARGUMENT:: grainDur
 The grain duration for stratching granular synthesizer.
 
+ARGUMENT:: out
+Output Bus
+
+ARGUMENT:: midiChannel
+A midiChannel for storing the playing UGens in SamplerQuery class, supporting live response.
+
+ARGUMENT:: play
+If true, play this sound.
+
+returns:: a instance of SamplerArguments class
+
 
 
 METHOD:: db
 Return an array of Samplers in the same SamplerDB database
 
-ARGUMENT:: name
+ARGUMENT:: samplerName
 The name of the Sampler to return.
 
 returns:: a Sampler with the name, or a list of Samplers if not specified.
@@ -129,18 +140,6 @@ Determine the method to arrange the responded MIDI key numbers for each sample:
 ARGUMENT:: infoArray
 Information array provided to respond to the strategy.
 
-
-METHOD:: getPlaySamples
-For internal use
-
-Determine which sample to be played based on the key number being played and texture value.
-
-ARGUMENT:: args
-Arguments stored in SamplerArguments class.
-
-ARGUMENT:: filterFunc
-
-
 METHOD:: keynums
 Anchor key numbers for each sample.
 
@@ -171,6 +170,9 @@ The server to load all samples into buffers.
 
 ARGUMENT:: filenameAsKeynum
 Use key numbers provided in the file names as anchored key number for each file.
+
+ARGUMENT:: action
+A function that triggers after the sampler is loaded.
 
 
 METHOD:: keyRanges
