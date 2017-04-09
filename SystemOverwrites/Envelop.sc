@@ -159,12 +159,13 @@
 	//segment an envelope to several envelopes
 	//the outcome is an array of two items:
 	//[[Array of Envelopes], [wait time on each envelope for a Routine]]
-	segment {arg numSegs = 1, strategy = \atpeak, crossfade = 1;
+	segment {arg numSegs = 1, crossfade = 1, strategy = \atpeak;
 		var segmentTime = [], envs =[], waittime;
 		var strat = strategy.asArray[0];
 
 		crossfade = min(crossfade.abs, this.duration / (numSegs + 3));
 		numSegs = (numSegs - 1).asInteger.thresh(0);
+
 
 		case
 		//strategy: geometric series, 2 would be default base
@@ -239,11 +240,22 @@
 			};
 		};
 
+
 		//gather envelopes from segment time
 		segmentTime = segmentTime.sort;
-		if(segmentTime.isEmpty)
-		{^[[this, 0]]}
-		{
+
+		case
+		{segmentTime.isEmpty}{^[[this, 0]]}
+
+		{segmentTime.size == 1}{
+			segmentTime = segmentTime[0];
+			envs = envs.add((this.subEnv(0, segmentTime) ++ if(crossfade > 0){Env.new([this.at(segmentTime), 0], [crossfade])}).removeDups);
+			envs = envs.add((if(crossfade>0){Env.new([0, this.at(segmentTime)],[crossfade])} ++ this.subEnv(segmentTime, this.duration - segmentTime)).removeDups);
+			waittime = [segmentTime, 0];
+			^[envs, waittime].flop;
+		}
+
+		{true}{
 			envs = envs.add((this.subEnv(0, segmentTime.first) ++ if(crossfade > 0){Env.new([this.at(segmentTime.first), 0], [crossfade])}).removeDups);
 
 			segmentTime.doAdjacentPairs{|thisTime, nextTime, index|
@@ -262,6 +274,7 @@
 			waittime = waittime.add(segmentTime.last - segmentTime[segmentTime.size - 2]).add(0);
 			^[envs, waittime].flop;
 		};
+
 
 	}
 

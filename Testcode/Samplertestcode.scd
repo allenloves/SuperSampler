@@ -1,7 +1,7 @@
 (
 s.waitForBoot{
 	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
-t = Sampler(\tublar).load(a);
+t = Sampler(\tublar).load(a, filenameAsKeynum: true);
 }
 )
 
@@ -21,6 +21,8 @@ t.key(-60, expand: 2);
 SamplerQuery.playing[0];
 
 t.key([-60, 60]);
+
+
 t.key([-60, 60], expand: 2);
 t.key([-60], bendenv: [0, 1, 0.2, 1, 1, 3]);
 t.key([-60, 60], bendenv: [0, 1, 0.2, 1, 1, 3], amp: 2);
@@ -142,7 +144,9 @@ g.key(60, expand: 7, bend: [0, 1, 0.3, 1, 1,  0.3]);
 g.key([70, 30, 50, 40, 60], \nosorting);
 
 g.key([70, 30, 50, 40, 60])
-g.key([70, 30, 50, 40, 60], [\peakat, 3])
+g.key([70, 30, 50, 40, 60], [\peakat, 1])
+
+
 g.key([70, 30, 50, 40, 60], \percussive, texture: 0)
 g.key([70, 30, 50, 40, 60], \stratchshort)
 g.key([70, 30, 50, 40, 60], \stratchshort, expand: 5, bend: [0, 1, 0.3, 1, 1,  0.3]);
@@ -171,17 +175,21 @@ s.waitForBoot{
 
 i.key;
 i.key(30, expand: 30);
+i.key({rrand(10, 20)});
 
 i.key([-40, 10]);
+
+
+
 i.key([10, 40]);
-i.key([10, 40], expand: 60, ampenv: ~alvaenv.normalize);
+i.key([10, 40], expand: 60, ampenv: ~cageenv.normalize);
 
 
 Env().plot;
-i.playEnv([10, 40], Env());
+i.playEnv(Env(), {rrand(1, 3)});
 
-~alvaenv.plot;
-i.playEnv([10, 40], ~alvaenv.normalize);
+~cageenv.plot;
+i.playEnv([10, 40], ~cageenv.normalize);
 
 
 
@@ -233,4 +241,4 @@ Env().plot;
 d.playEnv(env: Env.new(), pitch: [-60, 60, 90, 50]);
 
 ~cageenv.plot;
-d.playEnv(env: ~alvaenv.normalize, pitch: [60, 90, 50, 70, -60, -80, 30], morph: [3, \atpeak, 1]);
+d.playEnv(env: ~cageenv.normalize, pitch: [60, 90, 50, 70, -60, -80, 30], morph: [3, \atpeak, 1]);

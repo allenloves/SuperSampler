@@ -1,0 +1,9 @@
+INSTANCEMETHODS::
+
+method:: radiusSort
+Same as radious, but sort the outcome by the distance of the node in decending order.
+
+method:: distance
+Calculate the distance in between this node to anothoer node or point.
+argument:: other
+Can be a KDTree or an Array of numbers for the point.
