@@ -19,8 +19,9 @@ d.numChannels;
 d.keynum;
 d.mfcc;
 
+d.activeBuffer.size;
 
-
+d.activeEnv.size;
 
 SCMIR.hoptime;
 

@@ -15,6 +15,11 @@ Sampler {
 	//                            |--Section---|  |--Section---|      |--Section---|
 	var <keyRanges;// in format [[[upper, lower], [upper, lower]..], [[upper, lower], [upper, lower]...], ....]
 
+	//Sampler metadata
+	var <numActiveBuffer;
+	var <averageDuration;
+	var <averageTemporalCentroid;
+
 
 	*new{arg samplerName, dbname = \default;
 		^super.new.init(samplerName, dbname);
@@ -31,25 +36,7 @@ Sampler {
 				var synthID = UniqueID.next.asSymbol;
 
 				thisSample.wait.wait;
-				case
-				{thisSample.expand.isNumber}{
-					case
-					{buf.size == 2}{
-						SamplerQuery.playing[thisSample.midiChannel].put(synthID, Synth(\ssexpand2, [buf0: buf[0], buf1: buf[1], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[thisSample.midiChannel].removeAt(synthID)});
-					}
-					{true}{
-						SamplerQuery.playing[thisSample.midiChannel].put(synthID, Synth(\ssexpand1, [buf: buf[0], expand: thisSample.expand, dur: duration + 0.02, rate: thisSample.rate, startPos: thisSample.position, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[thisSample.midiChannel].removeAt(synthID)});
-					};
-				}
-				{true}{
-					case
-					{buf.size == 2}{
-						SamplerQuery.playing[thisSample.midiChannel].put(synthID, Synth(\ssplaybuf2, [buf0: buf[0], buf1: buf[1], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, out: args.out]).onFree{SamplerQuery.playing[thisSample.midiChannel].removeAt(synthID)});
-					}
-					{true}{
-						SamplerQuery.playing[thisSample.midiChannel].put(synthID, Synth(\ssplaybuf1, [buf: buf[0], rate: thisSample.rate, startPos: thisSample.position, dur: duration, amp: args.amp, ampenv: args.ampenv, pan: args.pan, panenv: args.panenv, bendenv: thisSample.bendenv, out: args.out]).onFree{SamplerQuery.playing[thisSample.midiChannel].removeAt(synthID)});
-					};
-				};
+				thisSample.play(args, synthID);
 
 			};
 		}
@@ -103,6 +90,9 @@ Sampler {
 		database.put(samplerName.asSymbol, this);
 		dbs.put(dbname.asSymbol, database);
 		name = samplerName.asSymbol;
+		numActiveBuffer = 0;
+		averageDuration = 0;
+		averageTemporalCentroid = 0;
 	}
 
 
@@ -123,18 +113,26 @@ Sampler {
 	//============================
 	//load and analyze sound files
 	load {arg soundfiles, server = Server.default, filenameAsKeynum = false, normalize = false, action = nil;
+		var averageDur, averageTmpCentroid;
+		if(soundfiles.isArray.not){Error("Sound files has to be an array").throw};
 		bufServer = server;
 		fork{
+			var sample;
 			var dict = Dictionary.newFrom([filenames, samples].flop.flat);
 			soundfiles.do{|filename, index|
-				var sample;
 				if(dict[filename.asSymbol].isNil.not)
 				{"This file is already loaded, reloading".postln;
 					dict[filename.asSymbol].free;
 				};
 				sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: action);
+				numActiveBuffer = numActiveBuffer + sample.activeDuration.size;
+				averageDuration = averageDuration + sample.activeDuration.sum;
+				averageTemporalCentroid = averageTemporalCentroid + sample.temporalCentroid.sum;
 				dict.put(filename.asSymbol, sample);
 			};
+
+			averageDuration = averageDuration / numActiveBuffer;
+			averageTemporalCentroid = averageTemporalCentroid / numActiveBuffer;
 			dict = dict.asSortedArray.flop;
 			filenames = dict[0];
 			samples = dict[1];
@@ -229,18 +227,38 @@ Sampler {
 	playEnv {arg env, keynums, morph = [0, 1, \atpeak], maxtexture = 5;
 		var playkey = keynums ? rrand(10.0, 100.0);
 
-		Routine.run{
-			var elapsed = 0;
-			while({elapsed < env.duration},
-				{
-					var delayTime = 0.02;
-					var texture = env.at(elapsed).linlin(0, env.levels.maxItem, 1, maxtexture).asInteger;
-					this.key(keynums.asArray.choose, \percussive, amp: env.at(elapsed), texture: texture);
-					elapsed = elapsed + delayTime;
-					delayTime.wait;
-				}
-			)
+		case
+		{this.averageDuration < 0.3}
+		{
+			Routine.run{
+				var elapsed = 0;
+				while({elapsed < env.duration},
+					{
+						var delayTime = 0.02;
+						var texture = env.at(elapsed).linlin(0, env.levels.maxItem, 1, maxtexture).asInteger;
+						//args.set(syncmode: \percussive, amp: env.at(elapsed), texture: texture);
+						//this.playArgs(args);
+						this.key(keynums.asArray.choose, \percussive, amp: env.at(elapsed), texture: texture);
+						elapsed = elapsed + delayTime;
+						delayTime.wait;
+					}
+				)
+			}
 		}
+		{true}
+		{
+
+			env.peakTime.do{|thisPeakTime|
+				var args = SamplerArguments.new;
+				var maxTexture, texture;
+				args.set(keynums: playkey.value.asArray);
+				args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
+				texture = env.range.at(thisPeakTime).linlin(0, 1, 1, maxtexture).asInteger;
+				args.set(syncmode: [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
+				this.playArgs(args);
+			}
+		};
+
 
 
 	}

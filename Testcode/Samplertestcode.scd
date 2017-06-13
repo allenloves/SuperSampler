@@ -18,6 +18,8 @@ t.key(60, expand: 2);
 t.key(-60);
 t.key(-60, expand: 2);
 
+t.playEnv(Env());
+
 SamplerQuery.playing[0];
 
 t.key([-60, 60]);
@@ -66,6 +68,8 @@ t.samples.do{|thisSample| thisSample.activeDuration.postln};
 t.samples[0].keynum;
 t.filenames;
 
+t.numActiveBuffer;
+
 t.samples[0].play;
 
 //If you lost your database, you can always find it back
@@ -97,6 +101,9 @@ f.setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
 f.samples[0].keynum;
 f.samples[0].play;
 f.setKeyRanges(infoArray: 3);
+f.numActiveBuffer;
+f.averageDuration;
+f.averageTemporalCentroid;
 
 f.key;
 f.key(60);
@@ -134,8 +141,8 @@ g.key(40);
 g.key;
 g.key(60, \percussive, dur: 0.01)
 g.key(60, dur: 0.2)
-g.key(60, expand: 10);
 g.key(60, expand: 2);
+g.key([60, 70], expand: 2);
 g.key(40, ampenv: [0,1, 1, 0]);
 
 
@@ -162,6 +169,10 @@ g.samples[0].play;
 
 
 g.getPlaySamples(SamplerArguments.new.set(keynums: [60, 80, 50]));
+g.playEnv(Env(), {rrand(70, 90)});
+
+g.playEnv(Env([0,1,0,1,0], [1,1,1,1]), {rrand(70, 90)});
+g.playEnv(~cageenv, {rrand(70, 90)});
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -179,36 +190,26 @@ i.key({rrand(10, 20)});
 
 i.key([-40, 10]);
 
+i.numActiveSample;
+i.averageDuration;
+i.samples[0].activeBuffer.size;
+i.averageDuration;
+i.averageTemporalCentroid;
 
 
-i.key([10, 40]);
+x = i.key({rrand(10, 30)});
+
+Sampler.playArgs(x);
+
 i.key([10, 40], expand: 60, ampenv: ~cageenv.normalize);
 
 
 Env().plot;
-i.playEnv(Env(), {rrand(1, 3)});
+i.playEnv(Env(), {rrand(10, 40)});
 
 ~cageenv.plot;
-i.playEnv([10, 40], ~cageenv.normalize);
+i.playEnv(~cageenv.normalize, {rrand(10, 40)});
 
-
-
-/////////////////////////////////////////////////////////////////////////////
-
-(
-s.waitForBoot{
-	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/onsettest.wav").pathMatch;
-	h = Sampler(\clicks).load(a);
-}
-)
-
-
-h.numChannels;
-h.key([ 76, 95, 29], expand: 20 );
-
-h.samples[0].temporalCentroid;
-h.key([60, 50]);
-h.playEnv([60, 90, 50], Env());
 
 
 //////////////////////////////////////////////////////////////////////////////
