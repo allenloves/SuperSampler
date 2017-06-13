@@ -155,9 +155,13 @@ SampleDescript{
 		this.getKeynum(filenameAsNote);
 		this.getMFCC;
 
-		if(loadToBuffer){
+		if(loadToBuffer)
+		{
 			server.waitForBoot{
 			this.loadToBuffer(bufferServer, action)};
+		}
+		{
+			action.value;
 		};
 
 
