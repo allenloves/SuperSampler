@@ -1,7 +1,7 @@
 SamplerPrepare {
 	var <> bufServer;
 	var <> samplerName;   //Sampler name as address in SamplerDB
-	var <> sample;    //SampleDescript realization
+	var <> sample;    //SampleDescript object
 	var <> buffer;    //buffer to be played = sample.activeBuffer[section]
 	var <> section;   //subset of active data choosen
 	var <> wait;      //Wait time for playback
@@ -12,6 +12,10 @@ SamplerPrepare {
 
 	var <> duration;  //play duration after pitch adjustment, before pitch bendenv
 	var <> bendenv;   //bend envelope
+	var <> ampenv;
+
+	var <> attackDur;
+	var <> releaseDur;
 
 	*new {
 		^super.new.init();
@@ -27,7 +31,20 @@ SamplerPrepare {
 
 	setRate {|r|
 		rate = r;
-		duration = (sample.activeBuffer[section][0].duration / rate).abs;
+
+		if(duration.isNil)
+		{
+			duration = (sample.activeBuffer[section][0].duration / rate).abs;
+			attackDur = sample.attackDur;
+			releaseDur = sample.releaseDur;
+		}
+		{
+			var hdur = duration / 2;
+			attackDur = min(hdur, sample.attackDur);
+			releaseDur = min(hdur, sample.releaseDur);
+
+		}
+
 	}
 
 	play {arg args, synthID = UniqueID.next.asSymbol;//a SamplerArgument object

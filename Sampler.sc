@@ -6,6 +6,10 @@
 
  //instance of Sampler is a database of multiple SampleDescript
 Sampler {
+
+	classvar <> defaultTexture;
+	classvar <> defaultOutputBus = 0;
+
 	var <dbs;  // an array of SamplerDB instances that this Sampler is registered to.
 	var <name;  //Name of this sampler
 	var <filenames;
@@ -19,6 +23,7 @@ Sampler {
 	var <numActiveBuffer;
 	var <averageDuration;
 	var <averageTemporalCentroid;
+	var <averageMFCC;
 
 
 	*new{arg samplerName, dbname = \default;
@@ -112,8 +117,8 @@ Sampler {
 
 	//============================
 	//load and analyze sound files
-	load {arg soundfiles, server = Server.default, filenameAsKeynum = false, normalize = false, action = nil;
-		var averageDur, averageTmpCentroid;
+	load {arg soundfiles, server = Server.default, filenameAsKeynum = false, normalize = false, startThresh=0.01, endThresh=0.01, action = nil;
+		averageMFCC = averageMFCC ? Array.fill(13, 0);
 		if(soundfiles.isArray.not){Error("Sound files has to be an array").throw};
 		bufServer = server;
 		fork{
@@ -128,11 +133,13 @@ Sampler {
 				numActiveBuffer = numActiveBuffer + sample.activeDuration.size;
 				averageDuration = averageDuration + sample.activeDuration.sum;
 				averageTemporalCentroid = averageTemporalCentroid + sample.temporalCentroid.sum;
+				averageMFCC = averageMFCC + sample.mfcc.sum;
 				dict.put(filename.asSymbol, sample);
 			};
 
 			averageDuration = averageDuration / numActiveBuffer;
 			averageTemporalCentroid = averageTemporalCentroid / numActiveBuffer;
+			averageMFCC = averageMFCC / numActiveBuffer;
 			dict = dict.asSortedArray.flop;
 			filenames = dict[0];
 			samples = dict[1];
@@ -198,6 +205,17 @@ Sampler {
 		)
 	}
 
+	setThresh{|startThresh=0.01, endThresh=0.01, loadToBuffer=true|
+		var cond = Condition.new;
+		Routine{
+			samples.do{|sample|
+				sample.freeBuffer;
+				sample.arEnv(startThresh, endThresh);
+				if(loadToBuffer){sample.loadToBuffer(action: {cond.unhang})};
+				cond.hang;
+			}
+		}.play;
+	}
 
 
 
@@ -205,14 +223,24 @@ Sampler {
 	//Play samples by giving key numbers
 	//Defaults are also provided by SamplerArguments
 	//Negative key numbers reverses the buffer to play.
-	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0, midiChannel = 0, play = true;
+	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
-		var playkey = keynums ? rrand(10.0, 100.0);
+		var playkey = keynums ? {rrand(10.0, 100.0)};
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 		args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));  //find play samples
 
 		if(play){this.playArgs(args)};
 		^args;
+	}
+
+
+	//play samples by giving an array of samples to play
+	//the members of samplesArray contains two members: a SampleDescript object, and section index
+	// etc. [[SampleDescript, 2], [SampleDescript, 0], ......]
+	playSample {arg samplesArray, syncmode = \keeplength, detune = 0, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
+		var args = SamplerArguments.new;
+		args.set(syncmode: syncmode, detune: detune, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
+
 	}
 
 
@@ -222,13 +250,14 @@ Sampler {
 
 
 
+
 	//==============================================================
 	//TODO: Play a sample with the influence of a global envelope
-	playEnv {arg env, keynums, morph = [0, 1, \atpeak], maxtexture = 5;
-		var playkey = keynums ? rrand(10.0, 100.0);
+	playEnv {arg env, keynums, dur, amp = 1, pan = 0, maxtexture = 5, out = this.class.defaultOutputBus, midiChannel = 0;
+		var playkey = keynums ? {rrand(10.0, 100.0)};
 
 		case
-		{this.averageDuration < 0.3}
+		{(this.averageDuration < 0.3) || ((dur ? 1) < 0.2)}
 		{
 			Routine.run{
 				var elapsed = 0;
@@ -238,7 +267,7 @@ Sampler {
 						var texture = env.at(elapsed).linlin(0, env.levels.maxItem, 1, maxtexture).asInteger;
 						//args.set(syncmode: \percussive, amp: env.at(elapsed), texture: texture);
 						//this.playArgs(args);
-						this.key(keynums.asArray.choose, \percussive, amp: env.at(elapsed), texture: texture);
+						this.key(keynums.asArray.choose, \percussive, dur: dur, amp: env.at(elapsed) * amp, pan: pan, texture: texture, out: out, midiChannel: midiChannel);
 						elapsed = elapsed + delayTime;
 						delayTime.wait;
 					}
@@ -247,14 +276,29 @@ Sampler {
 		}
 		{true}
 		{
-
-			env.peakTime.do{|thisPeakTime|
+			//For Each Peak time of the envelop, put a sound peaking at that moment
+			env.peakTime.do{|thisPeakTime, index|
+				var previousPeakTime = env.peakTime[index - 1] ? 0;
+				var nextPeakTime = env.peakTime[index + 1] ? env.duration;
+				var attackTime = (thisPeakTime - previousPeakTime).abs;
+				var releaseTime = (nextPeakTime - thisPeakTime).abs;
 				var args = SamplerArguments.new;
 				var maxTexture, texture;
-				args.set(keynums: playkey.value.asArray);
+
+				//put data into args
+				args.set(keynums: playkey.value.asArray, out: out, midiChannel: midiChannel);
+				args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
+
+
+				if(attackTime > args.globalAttackDur){
+					if(args.globalAttackDur < 0.1){var keys = args.keynums; args.set(keynums: keys ++ keys.neg)};
+				};
+				if(releaseTime > args.globalReleaseDur){
+					if(args.globalReleaseDur < 0.1){var keys = args.keynums; args.set(keynums: keys ++ keys.neg)};
+				};
 				args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
 				texture = env.range.at(thisPeakTime).linlin(0, 1, 1, maxtexture).asInteger;
-				args.set(syncmode: [\peakat, thisPeakTime], amp: env.at(thisPeakTime), texture: texture);
+				args.set(syncmode: [\peakat, thisPeakTime], amp: env.at(thisPeakTime) * amp, pan: pan, texture: texture);
 				this.playArgs(args);
 			}
 		};

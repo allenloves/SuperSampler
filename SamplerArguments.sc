@@ -1,6 +1,9 @@
 SamplerArguments{
 	classvar < dbs;
+	var <> samplerName;
 	var <> keynums = 60;
+	var <> keysign = 1;
+	var <> detune = 0;
 	var <> syncmode = \keeplength;
 	var <> expand = nil;
 	var <> dur = nil;
@@ -10,7 +13,7 @@ SamplerArguments{
 	var <> panenv;  //Default set in .init
 	var <> bend;
 	var <> bendenv = nil;
-	var <> texture = nil;
+	var <> texture;
 	var <> out = 0;
 	var <> grainRate = 20;
 	var <> grainDur = 0.15;
@@ -66,8 +69,9 @@ SamplerArguments{
 		env = Env();
 	}
 
-	set{|keynums, syncmode, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel, env, morph|
+	set{|keynums, syncmode, detune, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel, env, morph|
 		this.keynums = keynums.value.asArray.flat ? this.keynums.asArray.flat;
+		this.detune = detune.value ? this.detune;
 		this.syncmode = syncmode ? this.syncmode;
 		this.dur = dur.value ? this.dur;
 		this.amp = amp.value ? this.amp;
@@ -75,7 +79,7 @@ SamplerArguments{
 		this.out = out ? this.out;
 		this.midiChannel = midiChannel ? this.midiChannel;
 		// this.env = env.value ? this.env;
-		this.texture = texture.value ? this.texture;
+		this.texture = texture.value ? Sampler.defaultTexture;
 		// this.morphNum = morph.asArray[0] ? this.morphNum;
 		// this.morphCrossfade = morph.asArray[1] ? this.morphCrossfade;
 		// this.morphMode = morph.asArray[2] ? this.morphMode;
@@ -83,17 +87,17 @@ SamplerArguments{
 		// this.env = env.segment(this.morphNum, this.morphCrossfade, this.morphMode);
 
 		case //for ampenv
-		{ampenv.isArray} {this.ampenv= ampenv.pairsAsEnv.asArray}
-		{ampenv.isKindOf(Env)}{this.ampenv=ampenv.asArray}
+		{ampenv.isArray} {this.ampenv= ampenv.pairsAsEnv.stretch.asArray}
+		{ampenv.isKindOf(Env)}{this.ampenv=ampenv.stretch.asArray}
 		{true}{this.ampenv=#[1, 1, -99, -99, 1, 1, 1, 0]}; // default [0 1 1 1]
 
 		case  //for panenv
-		{panenv.isArray} {this.panenv= panenv.pairsAsEnv.asArray}
-		{panenv.isKindOf(Env)}{this.panenv=panenv.asArray}
+		{panenv.isArray} {this.panenv= panenv.pairsAsEnv.stretch.asArray}
+		{panenv.isKindOf(Env)}{this.panenv=panenv.stretch.asArray}
 		{true}{this.panenv=#[ 0, 1, -99, -99, 0, 1, 1, 0 ]}; // default [0 0 1 0]
 
 		case  //for bendenv
-		{bendenv.isArray} {this.bendenv= bendenv.pairsAsEnv.asArray}
+		{bendenv.isArray} {this.bendenv= bendenv.pairsAsEnv.stretch.asArray}
 		{bendenv.isKindOf(Env)}{this.bendenv=bendenv.copy.duration_(1).asArray}
 		{true}{this.bendenv=#[1, 1, -99, -99, 1, 1, 1, 0]}; // default [0 1 1 1]
 
@@ -131,6 +135,7 @@ SamplerArguments{
 		globalAttackDur = dursBeforePeak.maxItem * (expand ? 1);
 		globalReleaseDur = dursAfterPeak.maxItem * (expand ? 1);
 		globalDur = (dursBeforePeak.maxItem + dursAfterPeak.maxItem) * (expand ? 1);
+
 		^globalDur;
 	}
 

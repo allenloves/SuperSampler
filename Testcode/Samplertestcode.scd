@@ -1,7 +1,7 @@
 (
 s.waitForBoot{
 	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
-t = Sampler(\tublar).load(a, filenameAsKeynum: true);
+	t = Sampler(\tublar).load(a, filenameAsKeynum: true);
 }
 )
 
@@ -15,14 +15,17 @@ t.key([30, 40, 50, 60, 70, 80], [\peakat, 2]);
 
 t.key([60, 66], bendenv: [0, 1, 0.2, 1, 1, 3]);
 t.key(60, expand: 2);
+t.key(60, ampenv: [0, 0, 0.5, 5, 1, 0]);
+t.key(60, ampenv: Env());
+
 t.key(-60);
-t.key(-60, expand: 2);
+t.key(-60, dur: 0.1);
 
 t.playEnv(Env());
 
 SamplerQuery.playing[0];
 
-t.key([-60, 60]);
+t.key([-60, 60], dur: 1);
 
 
 t.key([-60, 60], expand: 2);
@@ -62,6 +65,10 @@ t.samples[0].numChannels;
 t.samples[0].buffer;
 t.samples[0].mfcc;
 
+t.averageDuration;
+t.averageTemporalCentroid;
+t.averageMFCC;
+
 t.samples.do{|thisSample| thisSample.peakTime.postln};
 t.samples.do{|thisSample| thisSample.activeDuration.postln};
 
@@ -81,6 +88,13 @@ t.db;
 t.keyRanges;
 t.setKeyRanges(\keynumRadious, 5)
 
+t.playEnv(Env(), [70, 80, 90]);
+t.playEnv(Env(), {rrand(70, 90)});
+t.playEnv(Env(), {rrand(70, 90)}, dur: 0.05);
+
+t.playEnv(Env([1,0,1], [1,1]), {rrand(70, 90)}, dur: 0.05);
+
+t.playEnv(~cageenv, {rrand(100, 127.0)});
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -89,6 +103,7 @@ s.waitForBoot{
 f = Sampler(\cage, \speak).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/cage.wav"]);
 };
 )
+
 f.keynums;
 f.setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
 
@@ -99,7 +114,7 @@ f.setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
 
 
 f.samples[0].keynum;
-f.samples[0].play;
+f.samples[0].play(3);
 f.setKeyRanges(infoArray: 3);
 f.numActiveBuffer;
 f.averageDuration;
@@ -111,7 +126,7 @@ f.key(60, expand: 10);
 f.key(60, [\peakat, 3]);
 
 f.key(34);
-f.key(34, expand: 10);
+f.key(34, expand: 2);
 f.key(34, expand: 10, bendenv: [0, 1, 0.3, 1, 1, 3]);
 f.key(1)
 f.key(-60);
@@ -124,15 +139,18 @@ f.key([70, 30, 60], \nosorting)
 f.samples[0].play(pan: 0);
 
 
-f.playEnv([70, 30, 60], Env());
+f.playEnv(~cageenv, {[20, 30, 40, 50, 60, 70, 80, 90, 100].choose});
 
 /////////////////////////////////////////////////////////////////////////////
 (
 s.waitForBoot{
 	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff").pathMatch;
-g = Sampler(\reel).load(a)
+	g = Sampler(\reel).load(a);
 }
 )
+
+
+
 
 g.dbs.at(\default).key([40, 80]);
 
@@ -140,7 +158,7 @@ g.key(g.samples[0].keynum) //original sound
 g.key(40);
 g.key;
 g.key(60, \percussive, dur: 0.01)
-g.key(60, dur: 0.2)
+g.key(60, dur: 1)
 g.key(60, expand: 2);
 g.key([60, 70], expand: 2);
 g.key(40, ampenv: [0,1, 1, 0]);
@@ -151,12 +169,14 @@ g.key(60, expand: 7, bend: [0, 1, 0.3, 1, 1,  0.3]);
 g.key([70, 30, 50, 40, 60], \nosorting);
 
 g.key([70, 30, 50, 40, 60])
-g.key([70, 30, 50, 40, 60], [\peakat, 1])
+
+
+g.key([70, 30, 50, 40, 60], [\peakat, 5])
 
 
 g.key([70, 30, 50, 40, 60], \percussive, texture: 0)
 g.key([70, 30, 50, 40, 60], \stratchshort)
-g.key([70, 30, 50, 40, 60], \stratchshort, expand: 5, bend: [0, 1, 0.3, 1, 1,  0.3]);
+g.key([70, 30, 50, 40, 60], \stratchshort, expand: 5, bendenv: [0, 1, 0.3, 1, 1,  0.3]);
 
 g.samples[0].startTime;
 g.samples[0].peakTime;
@@ -172,7 +192,7 @@ g.getPlaySamples(SamplerArguments.new.set(keynums: [60, 80, 50]));
 g.playEnv(Env(), {rrand(70, 90)});
 
 g.playEnv(Env([0,1,0,1,0], [1,1,1,1]), {rrand(70, 90)});
-g.playEnv(~cageenv, {rrand(70, 90)});
+g.playEnv(~cageenv);
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -198,6 +218,7 @@ i.averageTemporalCentroid;
 
 
 x = i.key({rrand(10, 30)});
+x.keynums;
 
 Sampler.playArgs(x);
 
@@ -229,17 +250,26 @@ g.dbs.do({|samplerDB, index| samplerDB.samplers.postln});
 
 d = SamplerDB.dbs[\default];
 d.samplers;
-d.makeTree;
+d.samplers.keys.asArray.scramble;
+d.remove(\tublar);
+d.add(\tublar, t);
+
+
+d.key([-60, 60], numSampler: 2);
 
 d.shapeTree.asArray(incLabels:true);
 d.mfccTree.asArray(incLabels:true);
 
-d.key(70);
-g.key(30);
 
+e = d.copy;
+e.samplers;
 
 Env().plot;
-d.playEnv(env: Env.new(), pitch: [-60, 60, 90, 50]);
+d.playEnv(env: Env(), pitch: [70,80,90]);
 
 ~cageenv.plot;
-d.playEnv(env: ~cageenv.normalize, pitch: [60, 90, 50, 70, -60, -80, 30], morph: [3, \atpeak, 1]);
+
+(
+d.playEnv(env: ~cageenv.normalize, morph: [3, \atpeak, 1]);
+f.samples[0].play;
+)
