@@ -1,7 +1,7 @@
+//By Halim Beere and Henrich Taube
 + Sampler {
 		*initClass{
 		StartUp.add({
-
 			SynthDef(\ssplaybuf1, {arg buf, rate = 1, dur = 1, amp = 1, pan = 0, bend=nil, out = 0, startPos = 0;
 				var ampctl = Control.names([\ampenv]).kr(Env.newClear(32).asArray);  //ampenv parameter
 				var antiClipEnv = Env.linen(0.005, dur, 0.005, amp, \sine);
@@ -30,7 +30,7 @@
 				var skwgen = EnvGen.kr(skwctl, 1, 1, 0, timeScale: dur * expand);
 				var ampgen = EnvGen.kr(ampctl, 1, amp, 0, timeScale: dur * expand , doneAction:2);
 				var trigger = Impulse.kr(grainRate + LFNoise0.kr(grainRate*2,2.0/grainDur));
-				var position = Line.kr(start: startPos/BufDur.ir(buf), end: 1, dur:  (dur * expand));  //dur:  ((BufDur.ir(buf) - startPos) * expand));
+				var position = Line.kr(start: startPos/BufDur.ir(buf), end: (rate.sign + 1)/2, dur:  (dur * expand));  //dur:  ((BufDur.ir(buf) - startPos) * expand));
 				var outsig = ampgen * GrainBuf.ar(numChannels: 2, trigger: trigger, dur: grainDur, sndbuf: buf, rate: rate * skwgen,
 				pos: position, interp: 2, pan: TRand.kr(panSpread * -1,panSpread,trigger) + pan );
 				Out.ar(bus: out, channelsArray: outsig);
@@ -42,7 +42,7 @@
 				var skwgen = EnvGen.kr(skwctl, 1, 1, 0, timeScale: dur * expand);
 				var ampgen = EnvGen.kr(ampctl, 1, amp, 0, timeScale: dur * expand , doneAction:2);
 				var trigger = Impulse.kr(grainRate + LFNoise0.kr(grainRate*2,2.0/grainDur));
-				var position = Line.kr(start: startPos/BufDur.ir(buf0), end: 1, dur:  (dur * expand));  //dur:  ((BufDur.ir(buf) - startPos) * expand));
+				var position = Line.kr(start: startPos/BufDur.ir(buf0), end: (rate.sign + 1)/2, dur:  (dur * expand));  //dur:  ((BufDur.ir(buf) - startPos) * expand));
 				var outsig0 = ampgen * GrainBuf.ar(numChannels: 1, trigger: trigger, dur: grainDur, sndbuf: buf0, rate: rate * skwgen * BufRateScale.kr(buf0),
 				pos: position, interp: 2);
 				var outsig1 = ampgen * GrainBuf.ar(numChannels: 1, trigger: trigger, dur: grainDur, sndbuf: buf1, rate: rate * skwgen * BufRateScale.kr(buf1),

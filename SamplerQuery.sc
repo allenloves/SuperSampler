@@ -33,10 +33,12 @@ SamplerQuery {
 					{
 						samplePrep.sample = sampler.samples[index];
 						samplePrep.samplerName = sampler.name;
+						samplePrep.duration = args.dur;
 						samplePrep.setRate(2**((keyNum - sampler.samples[index].keynum[idx])/12) * keySign);
 						samplePrep.section = idx;
 						samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 						samplePrep.midiChannel = args.midiChannel;
+						//samplePrep.duration = args.dur;
 						sampleList = sampleList.add(samplePrep)};
 				}
 			};
@@ -59,9 +61,11 @@ SamplerQuery {
 				//sortIndexes[1][sortIndexes[0].indexIn(keyNum)]
 				samplePrep.sample = sampler.samples[sortIndexes[1][sortIndexes[0].indexIn(keyNum)][0]];
 				samplePrep.samplerName = sampler.name;
+				samplePrep.duration = args.dur;
 				samplePrep.section = sortIndexes[1][sortIndexes[0].indexIn(keyNum)][1];
 				samplePrep.setRate(2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * keySign);
 				samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
+				//samplePrep.duration = args.dur;
 				samplePrep.midiChannel = args.midiChannel;
 
 
@@ -94,9 +98,22 @@ SamplerQuery {
 		^finalList;  //list of SamplePrepare class
 	}
 
+	//each item samplerArray should contain 2 members, the SampleDescript object, and section number to play
+	//about section number, see SampleDescript class
+	//e.g.  [[SampleDescript1, 1], [SampleDescript2, 0], [SampleDescript3, 1], .....]
+	// NO ERROR Proove here
+	*getSamplesByArray{|samplerArray, args|
+		var samplePrep = SamplerPrepare.new;
+		samplerArray.do{|sample, section, index|
+			var samplePrep = SamplerPrepare.new();
+			samplePrep.bufServer = sample.bufferServer;
+			samplePrep.sample = sample;
+			samplePrep.buffer = sample.activeBuffer(section);
+			samplePrep.section = section;
+			samplePrep.setRate(2**(args.detune / 12));
+		}
 
-
-
+	}
 
 
 
@@ -108,7 +125,6 @@ SamplerQuery {
 		var globalDur = args.globalDur;
 		var globalAttackDur = args.globalAttackDur;
 		var expand = args.expand ? 1;
-
 		switch(syncmode.asArray[0].asSymbol,
 
 			//keep the full length to samples, line up the peak time together
@@ -128,13 +144,20 @@ SamplerQuery {
 					var previousSample = playSamples[previousIndex];
 					var thisPeakTime, previousPeakTime;
 
+
 					thisPeakTime = if(thisSample.rate.isPositive)
-					{thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}
-					{thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs};
+					{thisSample.attackDur[thisSample.section] / thisSample.rate.abs}
+					{thisSample.releaseDur[thisSample.section] / thisSample.rate.abs};
+
+					if(args.dur.isNil.not){
+						startpos = if(thisSample.rate.isPositive)
+						{(thisSample.sample.attackDur[thisSample.section] - thisSample.attackDur[thisSample.section]).thresh(0)}
+						{(thisSample.sample.releaseDur[thisSample.section] - thisSample.releaseDur[thisSample.section]).thresh(0)};
+					};
 
 					previousPeakTime = if(previousSample.rate.isPositive)
-					{previousSample.sample.attackDur[previousSample.section] / previousSample.rate.abs}
-					{previousSample.sample.releaseDur[previousSample.section] / previousSample.rate.abs};
+					{previousSample.attackDur[previousSample.section] / previousSample.rate.abs}
+					{previousSample.releaseDur[previousSample.section] / previousSample.rate.abs};
 
 					waittime = (previousPeakTime - thisPeakTime).thresh(0);  //wait time before pitch bendenv.
 
@@ -201,7 +224,7 @@ SamplerQuery {
 			},
 
 
-			//
+			// peakat wiwth pitch bend support
 			// \peakat2,{
 			//
 			// 	var previousPeakTime = syncmode.asArray[1] ? globalAttackDur; //assigned peak time by the user

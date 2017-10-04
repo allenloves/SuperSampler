@@ -12,44 +12,51 @@
 
 		win = Window.new("Sound Descripter", Rect(140, 800, 1100, 200))
 		.front.alwaysOnTop_(true)
-		.background_(colorSet1[2])
+		//.background_(colorSet1[2])
 		.onClose_({soundfile.free; soundfile = nil; ~temp.free; ~temp = nil});
 
 		//*** Drop Area ***
 		drg = DragSink(win, Rect(15, 15, 700, 50))
 		.resize_(2)
-		.background_(colorSet1[1])
+		//.background_(colorSet1[1])
 		.align_(\center)
 		.string_("drop file here")
 		.action_({|obj|
 			//obj.string.postln;
 			if(obj.string.isSoundFile || triggerByInstance = true){  //using wslib
 				filename = filename ?? obj.string;
+
+
 				sfw = SoundFileView(win, Rect(15, 80, win.bounds.width-30, win.bounds.height-100))
-				.resize_(5).background_(colorSet1[0]).gridOn_(false)
-				.soundfile_(SoundFile.openRead(filename)).read(closeFile: true).refresh;
+				.resize_(5).gridOn_(false)
+				.soundfile_(SoundFile.openRead(filename)).read(closeFile: true).refresh
+				//.background_(Color(1,1,1))
+				//.background_(colorSet1[0])
+				;
 
 
 				soundfile = soundfile ?? SampleDescript(obj.string, loadToBuffer: false);
 				~temp = soundfile;
 
 				//*** Draw index lines ***
-				drw = UserView(win, sfw.bounds).resize_(5).background_(Color(0,0,0,0))
+				drw = UserView(win, sfw.bounds).resize_(5)
+				.background_(Color(0,0,0,0))
 				.drawFunc_({|uview|
 
-					//*** Draw SCMIR hoptime grid line***
-					block{|break|
-						var linelocation = 0;
-						while({linelocation < uview.bounds.width},
-							{
-								Pen.strokeColor_(Color.gray)
-								.moveTo(linelocation @ 0)
-								.lineTo(linelocation @ (uview.bounds.height))
-								.stroke;
-								linelocation = linelocation + (~temp.hoptime * uview.bounds.width / soundfile.duration);
-							};
-						)
-					};
+
+					// //*** Draw SCMIR hoptime grid line***
+					// block{|break|
+					// 	var linelocation = 0;
+					// 	while({linelocation < uview.bounds.width},
+					// 		{
+					// 			Pen.strokeColor_(Color.gray)
+					// 			.moveTo(linelocation @ 0)
+					// 			.lineTo(linelocation @ (uview.bounds.height))
+					// 			.stroke;
+					// 			linelocation = linelocation + (~temp.hoptime * uview.bounds.width / soundfile.duration);
+					// 		};
+					// 	)
+					// };
 
 					//** Reset Buttons **//
 					onsetButton.value_(0);
@@ -83,9 +90,10 @@
 						//***Draw onset***
 						soundfile.onsetTime.do({|otime|
 							var linelocation = onsetView.bounds.width * otime / soundfile.duration;
-							Pen.strokeColor_(Color.red)
+							Pen.strokeColor_(Color.white)
 							.moveTo(linelocation @ 0)
 							.lineTo(linelocation @ (onsetView.bounds.height))
+							.width_(4)
 							.stroke;
 						});
 					});

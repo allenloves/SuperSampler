@@ -22,6 +22,13 @@
 		^[timeline, amp].flop.flat.pairsAsEnv;
 	}
 
+	* {|num|
+		var level = this.levels;
+		var time = this.times;
+		^Env.new(level * num, time, this.curves, this.releaseNode, this.loopNode, this.offset);
+
+	}
+
 	//concatenate two envelopes
 	++ {|anotherEnv|
 		if(anotherEnv.isNil)
@@ -155,10 +162,23 @@
 		^this.range(0, max);
 	}
 
+	//setting duration of an envelope without changing the shape
+	stretch {|duration = 1|
+		var timeline = this.timeLine;
+		var levels = this.levels;
+		var normalizedTimeLine = [];
+
+		timeline.do{|thisTime, index|
+			normalizedTimeLine = normalizedTimeLine ++ linlin(thisTime, 0, this.duration, 0, duration);
+		};
+
+		^[normalizedTimeLine, levels].flop.flat.pairsAsEnv;
+	}
+
 
 	//segment an envelope to several envelopes
 	//the outcome is an array of two items:
-	//[[Array of Envelopes], [wait time on each envelope for a Routine]]
+	//[[Array of Envelopes], [wait time for next envelope for a Routine]]
 	segment {arg numSegs = 1, crossfade = 1, strategy = \atpeak;
 		var segmentTime = [], envs =[], waittime;
 		var strat = strategy.asArray[0];
@@ -221,6 +241,7 @@
 			};
 
 			extraSegs = (numSegs - peakAmp.size).thresh(0);
+			//order peakAmp so the biggest peak gets segmented first
 			ampOrder = peakAmp.order({|a,b| a>b});
 
 			(numSegs - extraSegs).do{|index|
@@ -267,11 +288,11 @@
 					//release.plot;
 				};
 				envs = envs.add((attack ++ this.subEnv(thisTime, nextTime-thisTime) ++ release).removeDups);
-				waittime = waittime.add(if(index == 0){thisTime - attack.duration}{thisTime - segmentTime[index - 1]});
+				waittime = waittime.add(if(index == 0){(thisTime - attack.duration - crossfade).thresh(0)}{(thisTime - segmentTime[index - 1] - crossfade).thresh(0)});
 			};
 
 			envs = envs.add((if(crossfade>0){Env.new([0, this.at(segmentTime.last)],[crossfade])} ++ this.subEnv(segmentTime.last, this.duration - segmentTime.last)).removeDups);
-			waittime = waittime.add(segmentTime.last - segmentTime[segmentTime.size - 2]).add(0);
+			waittime = waittime.add((segmentTime.last - segmentTime[segmentTime.size - 2]-crossfade).thresh(0)).add(0);
 			^[envs, waittime].flop;
 		};
 

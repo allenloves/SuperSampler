@@ -62,6 +62,7 @@ SampleDescript{
 	var <attackDur;  // Attack Time
 	var <releaseDur;  // Release Time
 	var <temporalCentroid; // Shorter value indicates percussive sounds, longer value indicates sustained sounds.
+	var <activeEnv;
 
 	// Frequency information
 
@@ -69,7 +70,7 @@ SampleDescript{
 
 	//parameters
 	//File Name, Normalize, Start Tine, Duration, Threshold for attack point, Threshold for end point, Threshold for onset, Time threshold for onset grouping.
-	*new {arg filename, normtype=0, start=0, dur=0, startThresh=0.01, endThresh=0.01, onsetThresh=0.5, groupingThresh = 0.32, filenameAsNote = false, loadToBuffer = false, normalize = false,server = Server.default, action;
+	*new {arg filename, normtype=0, start=0, dur=0, startThresh=0.01, endThresh=0.01, onsetThresh=0.5, groupingThresh = 0.32, filenameAsNote = false, loadToBuffer = false, normalize = false, server = Server.default, action;
 
 		^super.new.init(filename, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, normalize, server, action);
 	}
@@ -150,7 +151,7 @@ SampleDescript{
 		this.findBreakPointByOnsets;
 		this.findPeaksByOnsets;
 		this.sectionRmsDataByOnset;
-		this.arEnv(startThresh, endThresh);
+		this.getActiveEnv(startThresh, endThresh);
 		this.getActiveData;
 		this.getKeynum(filenameAsNote);
 		this.getMFCC;
@@ -158,7 +159,7 @@ SampleDescript{
 		if(loadToBuffer)
 		{
 			server.waitForBoot{
-			this.loadToBuffer(bufferServer, action)};
+			this.loadToBuffer(bufferServer, action: action)};
 		}
 		{
 			action.value;
@@ -218,6 +219,7 @@ SampleDescript{
 	}
 
 /*
+	//load sound file into buffers, and subsections into activeBuffer
 	loadToBuffer {arg server = Server.default, action;
 		var buf, startSample = 0, durSample;
 		var cond = Condition(false);
@@ -297,6 +299,22 @@ SampleDescript{
 	}
 
 
+	freeBuffer{
+		buffer.free;
+		Routine{
+			activeBuffer.do
+			{
+				|multipleChannelBuffer, index|
+				multipleChannelBuffer.do
+				{
+					|monoBuffer|
+					monoBuffer.free;
+				};
+				if(index == (activeBuffer.size - 1)){activeBuffer = []};
+			};
+		}.play;
+	}
+
 	getKeynum {arg filenameAsNote = false, pitchShift = 0;
 		var str=PathName(filename).fileNameWithoutExtension;
 		var l=str.size-1;
@@ -374,12 +392,18 @@ SampleDescript{
 
 			thisPeakIndex = thisPeakIndex.asInteger;
 
-
 			if(endTime[sectionIndex]-peakTime[sectionIndex] <= (hoptime * 20))
-			{pitch = pitchData[thisPeakIndex..endIndex[sectionIndex]].flop[0];
-				hasPitch = pitchData[thisPeakIndex..endIndex[sectionIndex]].flop[1]}
-			{pitch = pitchData[thisPeakIndex..thisPeakIndex + 20].flop[0];
-				hasPitch = pitchData[thisPeakIndex..thisPeakIndex + 20].flop[1];};
+			{
+				var pitchArray = pitchData[thisPeakIndex..endIndex[sectionIndex]].flop;
+				pitch = pitchArray[0];
+				hasPitch = pitchArray[1];
+			}
+			{
+				pitch = pitchData[thisPeakIndex..thisPeakIndex + 20].flop[0];
+				hasPitch = pitchData[thisPeakIndex..thisPeakIndex + 20].flop[1];
+			};
+
+
 			//find collections of data with pitch
 			pitch.do{|thisPitch, index|
 				if(hasPitch[index] >= 0.9)
@@ -393,10 +417,17 @@ SampleDescript{
 			if(pitchCollection.size == 0)
 			{
 				if(peakTime[sectionIndex]-startTime[sectionIndex] <= (hoptime * 20))
-				{pitch = pitchData[startIndex..thisPeakIndex[sectionIndex]].flop[0];
-					hasPitch = pitchData[startIndex..thisPeakIndex[sectionIndex]].flop[1]}
-				{pitch = pitchData[(thisPeakIndex - 20)..thisPeakIndex].flop[0];
-					hasPitch = pitchData[(thisPeakIndex - 20)..thisPeakIndex].flop[1];};
+				{
+					var pitchArray = pitchData[startIndex[sectionIndex]..thisPeakIndex[sectionIndex]].flop;
+					pitch = pitchArray[0];
+					hasPitch = pitchArray[1];
+				}
+				{
+					var pitchArray = pitchData[(thisPeakIndex - 20)..thisPeakIndex].flop;
+					pitch = pitchArray[0];
+					hasPitch = pitchArray[1];
+				};
+
 				pitch.do{|thisPitch, index|
 					if(hasPitch[index] >= 0.9)
 					{
@@ -405,10 +436,11 @@ SampleDescript{
 				};
 			};
 
+
 			//if no pitch data is collected, than use centroid data for pitch
 			//if there are pitch data collected, get the most occurred data for keynum
 			if(pitchCollection.size == 0 || pitchCollection.occurrencesArray(0.5).maxItem == 1)
-			{keynumFromPitchFound = keynumFromPitchFound.add(centroidData[thisPeakIndex].explin(20, 20000, 28, 103) - 12); // an octave lower to map to the range of my keyboard :p
+			{keynumFromPitchFound = keynumFromPitchFound.add((centroidData[thisPeakIndex] ? centroidData[centroidData.size-1]).explin(20, 20000, 28, 103) - 12); // an octave lower to map to the range of my keyboard :p
 			"no pitch detected, using centorid".postln;}
 			{keynumFromPitchFound = keynumFromPitchFound.add(pitchCollection.mostOccurredItems(0.5).mean)};
 		});
@@ -418,6 +450,7 @@ SampleDescript{
 		if(filenameAsNote && keynumFromFileName.isNil.not)
 		{keynum = Array.fill(peakIndex.size, keynumFromFileName) + pitchShift;}
 		{keynum = keynumFromPitchFound + pitchShift;}
+
 
 	}//end of getKeyNum
 
@@ -622,10 +655,11 @@ SampleDescript{
 
 
 	//play the sound file, using(at) to play each onset.  If (at) is larger than the last onset index, it plays a random onset.
-	play {arg at = nil, out = 0, server, rate = 1, pan = 0, level = 1;
-		var buf, cond = Condition.new(false);
+	play {arg at = nil, out = 0, server, detune = 0, pan = 0, level = 1;
+		var buf, rate, cond = Condition.new(false);
 		server = server ? Server.default;
-		if(buffer == nil)
+		rate = 2 ** (detune / 12);
+		if(buffer == [])
 		{server.waitForBoot{this.loadToBuffer(server, action: {cond.test = true; cond.signal;})}}
 		{cond.test = true; cond.signal;};
 
@@ -653,7 +687,7 @@ SampleDescript{
 
 
 	//return an array of envelopes to represent each onsets.
-	activeEnv {|startThresh=0.1, endThresh=0.01|
+	getActiveEnv {|startThresh=0.01, endThresh=0.01|
 		var envArray = [];
 		this.arEnv(startThresh, endThresh);
 		rmsDataBySection.do{|thisSection, sectionIndex|
@@ -663,7 +697,7 @@ SampleDescript{
 			activeRmsData = rmsData[startIndex[sectionIndex]..endIndex[sectionIndex]];
 			envArray = envArray.add(Env.pairs([activeFrameTimes, activeRmsData].flop, \lin));
 		};
-		^envArray;
+		activeEnv = envArray;
 	}
 
 	plot {

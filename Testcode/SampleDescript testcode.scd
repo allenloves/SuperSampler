@@ -38,6 +38,7 @@ a.filename;
 a.duration;
 a.play;
 a.play(0);
+a.free;
 
 a.numChannels; // This is a mono file
 a.buffer; // Buffer is stored in an array of each mono channels
@@ -71,6 +72,9 @@ a.endIndex * SCMIR.hoptime;
 a.endTime;
 
 a.env.plot;
+a.activeEnv[0].plot;
+a.activeBuffer[0][0].plot;
+a.buffer[0].plot;
 
 a.env.peakTime;
 a.peakTime;
