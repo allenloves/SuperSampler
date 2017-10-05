@@ -130,6 +130,7 @@ SamplerQuery {
 			//keep the full length to samples, line up the peak time together
 			\keeplength,{
 				var waittime = 0, startpos = 0, elapsed = 0;
+				var nElapsed, nWait, nDur;  //normalized statuses
 
 				//sort samples by the attack time of the section, longer first
 				playSamples = playSamples.sort({|a, b|
@@ -164,6 +165,14 @@ SamplerQuery {
 					thisSample.wait = waittime * expand;
 					thisSample.position = if(thisSample.rate.isNegative){(thisSample.sample.activeBuffer[thisSample.section][0].duration - startpos).thresh(0)}{startpos};
 					thisSample.expand = args.expand;
+
+					nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
+					nWait = waittime * expand / globalDur;
+					nDur = thisSample.duration * expand / globalDur;
+
+					thisSample.ampenv = args.ampenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
+					thisSample.panenv = args.panenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
+
 					thisSample.bendenv = args.bendenv;
 
 
@@ -171,11 +180,7 @@ SamplerQuery {
 					//variation with n in the front means "normalized"
 					if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
 					{
-						var nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
-						var nWait = waittime * expand / globalDur;
-						var nDur = thisSample.duration * expand / globalDur;
 						var rBendEnv = args.bendenv.asEnv.reciprocal;
-
 						//wait time equals to the integral of reciprocal bend envelope
 						thisSample.wait = (rBendEnv.integral(nElapsed + nWait) - rBendEnv.integral(nElapsed)) * rBendEnv.copy.duration_(globalDur).integral;
 						//local bend envelope for each sound
@@ -198,6 +203,7 @@ SamplerQuery {
 					var bAttack = if(b.rate.isPositive) {b.sample.attackDur[b.section]} {b.sample.releaseDur[b.section]};
 					(aAttack / a.rate.abs) > (bAttack / b.rate.abs)
 				});
+
 
 
 				playSamples.do{|thisSample, index|
@@ -313,6 +319,9 @@ SamplerQuery {
 					waittime = 0;
 					thisSample.expand = args.expand;
 					thisSample.bendenv = args.bendenv;
+					thisSample.ampenv = args.ampenv.asEnv.suvEnv(0, nDur).stretch.asArray;
+					thisSample.panenv = args.panenv.asEnv.suvEnv(0, nDur).stretch.asArray;
+
 
 					//adjust for pitchbendenv
 					if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0]){
@@ -330,6 +339,9 @@ SamplerQuery {
 					waittime = 0;
 					thisSample.expand = args.expand;
 					thisSample.bendenv = args.bendenv;
+					thisSample.ampenv = args.ampenv;
+					thisSample.panenv = args.panenv;
+
 				}
 			},
 
@@ -345,6 +357,8 @@ SamplerQuery {
 					thisSample.position = if(thisSample.rate.isNegative){(thisSample.sample.activeBuffer[thisSample.section][0].duration-startpos).thresh(0)}{startpos};
 					if(stratch != 1){thisSample.expand = stratch * (args.expand ? 1)}{thisSample.expand = args.expand;};
 					thisSample.bendenv = args.bendenv;
+					thisSample.ampenv = args.ampenv;
+					thisSample.panenv = args.panenv;
 				}
 			},
 
@@ -378,6 +392,8 @@ SamplerQuery {
 					thisSample.position = startpos;
 					thisSample.expand = args.expand;
 					thisSample.bendenv = args.bendenv;
+					thisSample.ampenv = args.ampenv;
+					thisSample.panenv = args.panenv;
 
 					previousPeakTime = thisPeakTime;
 
