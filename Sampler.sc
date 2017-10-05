@@ -25,6 +25,8 @@ Sampler {
 	var <averageTemporalCentroid;
 	var <averageMFCC;
 
+	var <kdTreeNode; // temporarily setting to be [averageDuration, averageTemporalCentroid, averageMFCC].flat
+
 
 	*new{arg samplerName, dbname = \default;
 		^super.new.init(samplerName, dbname);
@@ -144,6 +146,8 @@ Sampler {
 			filenames = dict[0];
 			samples = dict[1];
 
+			kdTreeNode = [averageDuration, averageTemporalCentroid, averageMFCC].flat;
+
 			dbs.do{|thisDB| thisDB.makeTree};
 
 			this.setKeyRanges;
@@ -257,6 +261,7 @@ Sampler {
 		var playkey = keynums ? {rrand(10.0, 100.0)};
 
 		case
+		// sound is short, repeat it to fill up the envelope
 		{(this.averageDuration < 0.3) || ((dur ? 1) < 0.2)}
 		{
 			Routine.run{
@@ -274,6 +279,8 @@ Sampler {
 				)
 			}
 		}
+		// for sound with longer duration, put it's peak to each peaks of the envelope
+		// reverse the sound to fit the envelope if the attack or release is too short
 		{true}
 		{
 			//For Each Peak time of the envelop, put a sound peaking at that moment
@@ -296,6 +303,8 @@ Sampler {
 				if(releaseTime > args.globalReleaseDur){
 					if(args.globalReleaseDur < 0.1){var keys = args.keynums; args.set(keynums: keys ++ keys.neg)};
 				};
+
+
 				args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
 				texture = env.range.at(thisPeakTime).linlin(0, 1, 1, maxtexture).asInteger;
 				args.set(syncmode: [\peakat, thisPeakTime], amp: env.at(thisPeakTime) * amp, pan: pan, texture: texture);

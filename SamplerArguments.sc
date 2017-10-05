@@ -98,7 +98,7 @@ SamplerArguments{
 
 		case  //for bendenv
 		{bendenv.isArray} {this.bendenv= bendenv.pairsAsEnv.stretch.asArray}
-		{bendenv.isKindOf(Env)}{this.bendenv=bendenv.copy.duration_(1).asArray}
+		{bendenv.isKindOf(Env)}{this.bendenv=bendenv.stretch.asArray}
 		{true}{this.bendenv=#[1, 1, -99, -99, 1, 1, 1, 0]}; // default [0 1 1 1]
 
 		if (expand.isNil.not) {

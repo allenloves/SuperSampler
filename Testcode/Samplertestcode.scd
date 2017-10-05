@@ -5,39 +5,49 @@ s.waitForBoot{
 }
 )
 
+// play a note by midi key number
 t.key(81);
-t.key;  // play random note
+// play random note
+t.key;
+
+// play a chord with an array
 t.key([30, 40, 50, 60, 70, 80]);
 t.key([30, 40, 50, 60, 70, 80], \nosorting);
 t.key([30, 40, 50, 60, 70, 80], \percussive);
 t.key([30, 40, 50, 60, 70, 80], \stratchshort);
 t.key([30, 40, 50, 60, 70, 80], [\peakat, 2]);
 
+// pitch bend with an x-y envelope array
 t.key([60, 66], bendenv: [0, 1, 0.2, 1, 1, 3]);
+
+// granular expand
 t.key(60, expand: 2);
+
+// amplitude envelope
 t.key(60, ampenv: [0, 0, 0.5, 5, 1, 0]);
 t.key(60, ampenv: Env());
 
+// negative key number plays hte sound backword.
 t.key(-60);
 t.key(-60, dur: 0.1);
 
+// fit the soudn into an envelope
 t.playEnv(Env());
 
+// show playing samplers
 SamplerQuery.playing[0];
 
+
+// Combining positive and negative key number for a gesture
+t.key([-60, 60]);
 t.key([-60, 60], dur: 1);
-
-
 t.key([-60, 60], expand: 2);
-t.key([-60], bendenv: [0, 1, 0.2, 1, 1, 3]);
 t.key([-60, 60], bendenv: [0, 1, 0.2, 1, 1, 3], amp: 2);
-t.key([-60, 60], [\peakat, 5], bendenv: [0, 1, 0.2, 1, 1, 3]);//incorrect
-
-t.key([-50, 50, -60, 60, -48, 48], bendenv: [0, 1, 0.2, 1, 0.2, 1.3, 0.4, 1.3, 0.4, 1.6, 0.6, 1.6, 0.6, 2, 1, 2]);
-
 t.key([-60, 60], expand: 2, bendenv: [0, 1, 0.2, 1, 1, 3])
 
-t.key([40, 30], ampenv: [0, 0, 0.5, 5, 1, 0]);
+
+t.key([-40, 30], ampenv: [0, 0, 0.5, 5, 1, 0]);
+t.key([-60, 60], ampenv: Env([5, 1, 5]));
 
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 1])
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\startats, 1])
@@ -92,7 +102,7 @@ t.playEnv(Env(), [70, 80, 90]);
 t.playEnv(Env(), {rrand(70, 90)});
 t.playEnv(Env(), {rrand(70, 90)}, dur: 0.05);
 
-t.playEnv(Env([1,0,1], [1,1]), {rrand(70, 90)}, dur: 0.05);
+t.playEnv(Env([1,0,1], [1,1]), {rrand(70, 90)});
 
 t.playEnv(~cageenv, {rrand(100, 127.0)});
 
@@ -257,15 +267,14 @@ d.add(\tublar, t);
 
 d.key([-60, 60], numSampler: 2);
 
-d.shapeTree.asArray(incLabels:true);
-d.mfccTree.asArray(incLabels:true);
+d.kdTree.asArray;
 
 
 e = d.copy;
 e.samplers;
 
 Env().plot;
-d.playEnv(env: Env(), pitch: [70,80,90]);
+d.playEnv(env: Env(), morph: [2, 0, \atpeak], diversity: 6);
 
 ~cageenv.plot;
 
