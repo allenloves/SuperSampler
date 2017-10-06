@@ -13,6 +13,7 @@ SamplerPrepare {
 	var <> duration;  //play duration after pitch adjustment, before pitch bendenv
 	var <> bendenv;   //bend envelope
 	var <> ampenv;    // Amplitude Envelope
+	var <> panenv;    // panning envelope
 
 	var <> attackDur;
 	var <> releaseDur;
@@ -48,7 +49,7 @@ SamplerPrepare {
 	}
 
 	play {arg args, synthID = UniqueID.next.asSymbol;//a SamplerArgument object
-
+		this.panenv.asArray.postln;
 		case
 		{this.expand.isNumber}{
 			case

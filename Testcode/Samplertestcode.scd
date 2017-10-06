@@ -27,6 +27,9 @@ t.key(60, expand: 2);
 t.key(60, ampenv: [0, 0, 0.5, 5, 1, 0]);
 t.key(60, ampenv: Env());
 
+
+t.key(60, panenv: [0,-1, 0.5, 1, 1, -1]);
+
 // negative key number plays hte sound backword.
 t.key(-60);
 t.key(-60, dur: 0.1);
@@ -42,14 +45,14 @@ SamplerQuery.playing[0];
 t.key([-60, 60]);
 t.key([-60, 60], dur: 1);
 t.key([-60, 60], expand: 2);
-t.key([-60, 60], bendenv: [0, 1, 0.2, 1, 1, 3], amp: 2);
+t.key([-60, 60], bendenv: [0, 1, 0.2, 1, 1, 3], ampenv: Env([3,1,3]), panenv: Env());
 t.key([-60, 60], expand: 2, bendenv: [0, 1, 0.2, 1, 1, 3])
 
 
 t.key([-40, 30], ampenv: [0, 0, 0.5, 5, 1, 0]);
-t.key([-60, 60], ampenv: Env([5, 1, 5]));
+t.key([-60, 60], panenv: Env([-1, 1, -1]));
 
-t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 1])
+t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 5], ampenv: Env([3,0,3]))
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\startats, 1])
 
 t.key([70, 81], \stratchshort);

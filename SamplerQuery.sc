@@ -125,12 +125,13 @@ SamplerQuery {
 		var globalDur = args.globalDur;
 		var globalAttackDur = args.globalAttackDur;
 		var expand = args.expand ? 1;
-		switch(syncmode.asArray[0].asSymbol,
+		var nElapsed, nWait, nDur, elapsed = 0;  //normalized statuses
 
+
+		switch(syncmode.asArray[0].asSymbol,
 			//keep the full length to samples, line up the peak time together
 			\keeplength,{
-				var waittime = 0, startpos = 0, elapsed = 0;
-				var nElapsed, nWait, nDur;  //normalized statuses
+				var waittime = 0, startpos = 0;
 
 				//sort samples by the attack time of the section, longer first
 				playSamples = playSamples.sort({|a, b|
@@ -208,15 +209,26 @@ SamplerQuery {
 
 				playSamples.do{|thisSample, index|
 					var thisPeakTime, adjust;
+					//find the peak time of playing sample
 					thisPeakTime = if(thisSample.rate.isPositive)
 					{thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}
 					{thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs};
 
+					// wait time is the difference between previous peak time and this peak time
 					adjust = previousPeakTime - thisPeakTime;
-
 					thisSample.wait = adjust.thresh(0) * expand;
+					elapsed = elapsed + thisSample.wait;
+
+					// assign
+					nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
+					nWait = thisSample.wait / globalDur;
+					nDur = thisSample.duration * expand / globalDur;
+
 					thisSample.expand = args.expand;
 					thisSample.bendenv = args.bendenv;
+					thisSample.ampenv = args.ampenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
+					thisSample.panenv = args.panenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
+
 
 
 					thisSample.position = if(thisSample.rate.isPositive)
