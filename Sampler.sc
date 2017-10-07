@@ -7,6 +7,7 @@
  //instance of Sampler is a database of multiple SampleDescript
 Sampler {
 
+	classvar < allSampler;
 	classvar <> defaultTexture;
 	classvar <> defaultOutputBus = 0;
 
@@ -27,10 +28,19 @@ Sampler {
 
 	var <kdTreeNode; // temporarily setting to be [averageDuration, averageTemporalCentroid, averageMFCC].flat
 
+	// Initialization in this class is in SamplerInstruments.sc
+	// *initClass {
+	// }
 
 	*new{arg samplerName, dbname = \default;
-		^super.new.init(samplerName, dbname);
+
+		if(allSampler.at(samplerName.asSymbol).isNil)
+		{^super.new.init(samplerName, dbname)}
+		{^allSampler.at(samplerName.asSymbol)};
 	}
+
+
+
 
 	*playArgs{|args|
 		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
@@ -85,7 +95,9 @@ Sampler {
 	init{arg samplerName, dbname;
 		var database;
 		dbs = Dictionary.new;
+
 		if(samplerName.isNil){Error("A sampler name is needed").throw;};
+
 		if(SamplerDB.isLoaded(dbname))
 		{
 			database = SamplerDB.dbs.at(dbname);
@@ -94,12 +106,14 @@ Sampler {
 			database = SamplerDB.new(dbname);
 
 		};
+
 		database.put(samplerName.asSymbol, this);
 		dbs.put(dbname.asSymbol, database);
 		name = samplerName.asSymbol;
 		numActiveBuffer = 0;
 		averageDuration = 0;
 		averageTemporalCentroid = 0;
+		allSampler.put(samplerName.asSymbol, this);
 	}
 
 
@@ -110,11 +124,8 @@ Sampler {
 		samples.do{|thisSample|
 			thisSample.free;
 		};
-		samples = [];
-		filenames = [];
-		bufServer = nil;
-		keyRanges = [];
-
+		allSampler[name] = nil;
+		^super.free;
 	}
 
 	//============================

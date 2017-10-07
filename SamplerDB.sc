@@ -16,7 +16,9 @@ SamplerDB{
 
 
 	*new{arg dbname = \default;
-		^super.new.init(dbname);
+		if(dbs.at(dbname.asSymbol).isNil)
+		{^super.new.init(dbname)}
+		{^dbs.at(dbname.asSymbol)};
 	}
 
 	*initClass {
@@ -140,8 +142,13 @@ SamplerDB{
 						var lastPlayingSamplers = playingSamplers;
 						playingSamplers = Dictionary.new;
 						lastPlayingSamplers.do{|thisSampler, index|
-							var samplerByRadious = kdTree.radiusSort(thisSampler.kdTreeNode, diversity).at(rrand(0,3)).label;
-							playingSamplers.put(samplerByRadious.name, samplerByRadious);
+							var samplerByRadious;
+
+							samplerByRadious = kdTree.radiusSort(thisSampler.kdTreeNode, diversity).at(rrand(0,3));
+
+							if(samplerByRadious.isNil)
+							{playingSamplers.put(thisSampler.name, thisSampler)}
+							{playingSamplers.put(samplerByRadious.label.name, samplerByRadious.label)};
 						};
 					}
 					{

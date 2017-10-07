@@ -1,6 +1,10 @@
-//from Halim Beere and Henrich Taube
+
 + Sampler {
 		*initClass{
+
+		allSampler = IdentityDictionary.new;
+
+		//from Halim Beere and Henrich Taube
 		StartUp.add({
 			SynthDef(\ssplaybuf1, {arg buf, rate = 1, dur = 1, amp = 1, pan = 0, bend=nil, out = 0, startPos = 0;
 				var ampctl = Control.names([\ampenv]).kr(Env.newClear(32).asArray);  //ampenv parameter

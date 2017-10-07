@@ -9,6 +9,8 @@ s.waitForBoot{
 t.key(81);
 // play random note
 t.key;
+Sampler(\tublar).key;
+
 
 // play a chord with an array
 t.key([30, 40, 50, 60, 70, 80]);
@@ -270,17 +272,12 @@ d.samplers.keys.asArray.scramble;
 d.remove(\tublar);
 d.add(\tublar, t);
 
-
 d.key([-60, 60], numSampler: 2);
-
 d.kdTree.asArray;
 
-
-e = d.copy;
-e.samplers;
-
-Env().plot;
 d.playEnv(env: Env(), morph: [2, 0, \atpeak], diversity: 6);
+
+SamplerDB(\default).playEnv(env: Env(), morph: [2, 0, \atpeak], diversity: 6);
 
 ~cageenv.plot;
 
