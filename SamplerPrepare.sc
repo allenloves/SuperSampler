@@ -36,20 +36,19 @@ SamplerPrepare {
 		if(duration.isNil)
 		{
 			duration = (sample.activeBuffer[section][0].duration / rate).abs;
-			attackDur = sample.attackDur;
-			releaseDur = sample.releaseDur;
+			attackDur = sample.attackDur[section];
+			releaseDur = sample.releaseDur[section];
 		}
 		{
 			var hdur = duration / 2;
-			attackDur = min(hdur, sample.attackDur);
-			releaseDur = min(hdur, sample.releaseDur);
+			attackDur = min(hdur, sample.attackDur[section]);
+			releaseDur = min(hdur, sample.releaseDur[section]);
 
 		}
 
 	}
 
 	play {arg args, synthID = UniqueID.next.asSymbol;//a SamplerArgument object
-		this.panenv.asArray.postln;
 		case
 		{this.expand.isNumber}{
 			case
