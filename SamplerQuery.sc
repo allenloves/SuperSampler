@@ -367,8 +367,8 @@ SamplerQuery {
 					waittime = 0;
 					thisSample.expand = args.expand;
 					thisSample.bendenv = args.bendenv;
-					thisSample.ampenv = args.ampenv.asEnv.suvEnv(0, nDur).stretch.asArray;
-					thisSample.panenv = args.panenv.asEnv.suvEnv(0, nDur).stretch.asArray;
+					thisSample.ampenv = args.ampenv.asEnv.subEnv(0, nDur).stretch.asArray;
+					thisSample.panenv = args.panenv.asEnv.subEnv(0, nDur).stretch.asArray;
 
 
 					//adjust for pitchbendenv

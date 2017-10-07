@@ -128,6 +128,9 @@ f.setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
 ~cageenv = f.samples[0].env.normalize(1);
 ~cageenv.plot;
 
+~cageenv.invert.test;
+~cageenv.reverse.test;
+
 ~cageenv.reciprocal.plot;
 
 
@@ -282,6 +285,6 @@ SamplerDB(\default).playEnv(env: Env(), morph: [2, 0, \atpeak], diversity: 6);
 ~cageenv.plot;
 
 (
-d.playEnv(env: ~cageenv.normalize, morph: [3, \atpeak, 1]);
-f.samples[0].play;
+SamplerDB(\default).playEnv(env: ~cageenv.normalize, morph: [4, 1, \atpeak]);
+Sampler(\cage).samples[0].play;
 )

@@ -22,6 +22,14 @@ Name of Sampler database.  Each database may contain different Sampler libraries
 
 returns:: this Sampler
 
+METHOD:: allSampler
+Returns a dictionary of all samplers created.
+
+METHOD:: playArgs
+Play a SamplerArguments instance. Use this method if you want to play an exactly the same sound you have created before.
+
+ARGUMENT:: args
+A SamplerArguments to play;
 
 INSTANCEMETHODS::
 
@@ -44,8 +52,8 @@ Play samples by giving key numbers.  If no key number provided, it chooses a ran
 Defaults are also provided by SamplerArguments class.
 
 ARGUMENT:: keynums
-The MIDI key numbers to play, can be a single number or an array of numbers.
-Negative key numbers reverses the buffer to play.
+The MIDI key numbers to play, can be a single number, an array of numbers, or a function that generate the number.
+Negative key numbers reverses the buffer to play.  It's default is a random number between 0-127.
 
 ARGUMENT:: syncmode
 The strategy to syncronize different samples:
@@ -171,6 +179,15 @@ The server to load all samples into buffers.
 ARGUMENT:: filenameAsKeynum
 Use key numbers provided in the file names as anchored key number for each file.
 
+ARGUMENT:: normalize
+This is a argument for SCMIR, making SCMIR to normalize it's data for analyzation.
+
+ARGUMENT:: startThresh
+Threshold for starting time detection, it's a multiplier to the peak amplitude of this sound sample.
+
+ARGUMENT:: endThresh
+Threshold for ending time detection, it's a multiplier to the peak amplitude of this sound sample.
+
 ARGUMENT:: action
 A function that triggers after the sampler is loaded.
 
@@ -187,26 +204,134 @@ returns:: An array of MIDI key numbers indicating the upper and lower key number
 [[[upper, lower], [upper, lower]..], [[upper, lower], [upper, lower]...], ....]
 
 
+METHOD:: playArgs
+Play a SamplerArguments instance. Use this method if you want to play an exactly the same sound you have created before.
+
+ARGUMENT:: args
+A SamplerArguments to play;
+
+METHOD:: playEnv
+The Sampler will fit it's sound into the provided Envelope automatically.
+
+ARGUMENT:: env
+The amplitude envelope to play. It can be an instance of Env class or an breakpoint envelope, such as [x1, y1, x2, y2, ..]
+
+ARGUMENT:: keynums
+The MIDI key numbers assigned to play.  It can also be an array of nubwers or a function generating the number.  It's defaulted a random number between 0-127.
+
+ARGUMENT:: dur
+Duration of the sound to play.  The sound will start from 1/2 of this value before the peak of the sample, not the beginning of the sound file.
+
+ARGUMENT:: amp
+Amplitude multiplier.
+
+ARGUMENT:: pan
+Panning, from -1 (left) to 1 (right).
+
+ARGUMENT:: maxtexture
+The maxinum number of sounds to be played simultaneously base on the amplitude value in the envelope.  More sounds would be played at the peak of the envelope.
+
+ARGUMENT:: out
+Output Bus
+
+ARGUMENT:: midiChannel
+A midiChannel for storing the playing UGens in SamplerQuery class, supporting live response.
+
 
 EXAMPLES::
 
 code::
+
+//The default database when loaded into SamplerDB is \default
+//Sound files to load has to be in an array.
 (
 s.waitForBoot{
-	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff").pathMatch;
-g = Sampler(\reel).load(a)
+	Sampler(\reel).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff"]);
 }
 )
 
-g.key;  //play a random keynote
-g.key(40);
+Sampler(\reel).key;  //play a random keynote
+Sampler(\reel).key(40);
+
+Sampler(\reel).key(40, dur: 0.3);
+
 
 //play chord with different strategies
-g.key([30, 40, 50, 60, 70]);
-g.key([70, 30, 50, 40, 60], [\peakat, 3]);
-g.key([30, 40, 50, 60, 70], \percussive);
-g.key([70, 30, 50, 40, 60], \stratchshort);
-g.key([30, 40, 50, 60, 70], \nosorting);
+Sampler(\reel).key([30, 40, 50, 60, 70]);
+Sampler(\reel).key([70, 30, 50, 40, 60], [\peakat, 3]);
+Sampler(\reel).key([30, 40, 50, 60, 70], \percussive);
+Sampler(\reel).key([70, 30, 50, 40, 60], \stratchshort);
+Sampler(\reel).key([30, 40, 50, 60, 70], \nosorting);
 
+
+// Loading multiple sounds into one Sampler
+(
+s.waitForBoot{
+	var tub = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
+	Sampler(\tublar).load(tub, filenameAsKeynum: true);  //using filename as anchored pitch
+}
+)
+
+Sampler(\tublar).key;
+
+Sampler(\tublar).key(30);
+Sampler(\tublar).key(-60); //negative number plays the sound backward.
+Sampler(\tublar).key([-60, 60]);
+Sampler(\tublar).key([-60, 60], [\peakat, 6]);
+Sampler(\tublar).key([-60, 60], [\peakat, 1]);
+
+Sampler(\tublar).key([-60, 60], panenv: Env([-1, 1, -1]));
+Sampler(\tublar).key([-60, 60], panenv: [0, -1, 0.5, 1, 1, -1]); //same as the env above
+
+Sampler(\tublar).key([-60, 60], ampenv: Env([3, 1, 3]));
+
+Sampler(\tublar).key([-60, 60, -50, 50], bendenv: [0, 1, 0.2, 1, 1, 3]);
+
+Sampler(\tublar).key(100, expand: 10); //granular expanding
+
+
+
+
+//load John cage speech in different database
+(
+s.waitForBoot{
+Sampler(\cage, \speak).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/cage.wav"]);
+};
+)
+
+Sampler(\cage).keynums;
+Sampler(\cage).setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
+
+Sampler(\cage).key;
+
+// retrive envelop from John Cage speaking
+~cageenv = Sampler(\cage).samples[0].env.normalize(1);
+~cageenv.plot;
+~cageenv.test;
+//invert and reverse envelop for composition purpose
+~cageenv.invert.plot;
+~cageenv.reverse.plot;
+
+
+(
+s.waitForBoot{
+	Sampler(\nickel).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Nickel 2.wav"]);
+}
+)
+
+Sampler(\nickel).playEnv(Env(), {rrand(10, 30)});
+Sampler(\nickel).playEnv(~cageenv, {rrand(10, 30)});
+
+
+// Using SamplerDB to play all sounds
+
+SamplerDB(\default).key;
+
+SamplerDB(\default).playEnv(Env());
+
+(
+SamplerDB(\default).playEnv(env: ~cageenv);
+Sampler(\cage).samples[0].play;
+)
 
 ::
