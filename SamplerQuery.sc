@@ -148,14 +148,12 @@ SamplerQuery {
 
 
 					thisPeakTime = if(thisSample.rate.isPositive)
-					{thisSample.attackDur[thisSample.section] / thisSample.rate.abs}
-					{thisSample.releaseDur[thisSample.section] / thisSample.rate.abs};
+					{thisSample.attackDur / thisSample.rate.abs}
+					{thisSample.releaseDur / thisSample.rate.abs};
 
-					if(args.dur.isNil.not){
-						startpos = if(thisSample.rate.isPositive)
-						{(thisSample.sample.attackDur[thisSample.section] - thisSample.attackDur[thisSample.section]).thresh(0)}
-						{(thisSample.sample.releaseDur[thisSample.section] - thisSample.releaseDur[thisSample.section]).thresh(0)};
-					};
+					startpos = if(thisSample.rate.isPositive)
+					{(thisSample.sample.attackDur[thisSample.section] - thisSample.attackDur[thisSample.section]).thresh(0)}
+					{(thisSample.sample.releaseDur[thisSample.section] - thisSample.releaseDur[thisSample.section]).thresh(0)};
 
 					previousPeakTime = if(previousSample.rate.isPositive)
 					{previousSample.attackDur[previousSample.section] / previousSample.rate.abs}
@@ -182,7 +180,7 @@ SamplerQuery {
 					if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
 					{
 						var rBendEnv = args.bendenv.asEnv.reciprocal;
-						//wait time equals to the integral of reciprocal bend envelope
+						//wait time equals to the integral of reciprocal bend envelope of the waiting time
 						thisSample.wait = (rBendEnv.integral(nElapsed + nWait) - rBendEnv.integral(nElapsed)) * rBendEnv.copy.duration_(globalDur).integral;
 						//local bend envelope for each sound
 						thisSample.bendenv = args.bendenv.asEnv.subEnv(nElapsed + nWait, nDur).asArray;
@@ -209,6 +207,7 @@ SamplerQuery {
 
 				playSamples.do{|thisSample, index|
 					var thisPeakTime, adjust;
+
 					//find the peak time of playing sample
 					thisPeakTime = if(thisSample.rate.isPositive)
 					{thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}
@@ -217,15 +216,52 @@ SamplerQuery {
 					// wait time is the difference between previous peak time and this peak time
 					adjust = previousPeakTime - thisPeakTime;
 					thisSample.wait = adjust.thresh(0) * expand;
-					elapsed = elapsed + thisSample.wait;
 
-					// assign
+					//calculate time for env adjustments
+					elapsed = if(index <= 1){0}{elapsed + thisSample.wait};
+
+					// normalized time for envelope adjustments
 					nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
-					nWait = thisSample.wait / globalDur;
+					nWait = if(index == 0){0}{thisSample.wait} / globalDur;
 					nDur = thisSample.duration * expand / globalDur;
 
+
+					// TODO: readjust for bendenv
+					if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
+					{
+						var nAttackTime, bendEnvForAttackTime, attackDur, bendedAttackDur;
+
+						//the time difference between original and bend sounds is the integral of reciprocal bend envelope
+						//attackDur = if(thisSample.rate.isPositive){thisSample.attackDur}{thisSample.releaseDur};
+						nAttackTime = thisPeakTime * expand / globalDur;
+						bendEnvForAttackTime = args.bendenv.asEnv.subEnv(nElapsed + nWait, nAttackTime).stretch.asArray;
+						bendedAttackDur = (thisPeakTime * bendEnvForAttackTime.asEnv.reciprocal.integral);
+
+
+						adjust = adjust + (thisPeakTime - bendedAttackDur);
+						thisPeakTime = bendedAttackDur;
+						thisSample.wait = adjust.thresh(0) * expand;
+
+						//now recalibrate normalized time for envelope adjustments
+						elapsed = if(index <= 1){0}{elapsed + thisSample.wait};
+						nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
+						nWait = if(index == 0){0}{thisSample.wait} / globalDur;
+						nDur = thisSample.duration * expand / globalDur;
+
+						thisSample.bendenv = args.bendenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
+
+						//thisSample.bendenv = args.bendenv;
+					}
+					{
+						thisSample.bendenv = args.bendenv;
+					};
+
+
+
 					thisSample.expand = args.expand;
-					thisSample.bendenv = args.bendenv;
+					thisSample.ampenv = args.ampenv;
+					thisSample.panenv = args.panenv;
+
 					thisSample.ampenv = args.ampenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
 					thisSample.panenv = args.panenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
 

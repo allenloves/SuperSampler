@@ -51,6 +51,9 @@ t.key([-60, 60], expand: 2, bendenv: [0, 1, 0.2, 1, 1, 3])
 
 t.key([-40, 30], ampenv: [0, 0, 0.5, 5, 1, 0]);
 t.key([-60, 60], panenv: Env([-1, 1, -1]));
+t.key([-60, 60], [\peakat, 2], panenv: Env([-1, 1, -1]));
+
+t.key([-60, 60], [\peakat, 5], bendenv: [0, 1, 0.2, 1, 1, 3], panenv: Env([-1, 1, -1]));
 
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 5], ampenv: Env([3,0,3]))
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\startats, 1])
@@ -171,7 +174,7 @@ g.key(g.samples[0].keynum) //original sound
 g.key(40);
 g.key;
 g.key(60, \percussive, dur: 0.01)
-g.key(60, dur: 1)
+g.key(60, dur: 1);
 g.key(60, expand: 2);
 g.key([60, 70], expand: 2);
 g.key(40, ampenv: [0,1, 1, 0]);
@@ -181,7 +184,7 @@ g.key(60, expand: 7, bend: [0, 1, 0.3, 1, 1,  0.3]);
 
 g.key([70, 30, 50, 40, 60], \nosorting);
 
-g.key([70, 30, 50, 40, 60])
+g.key([70, 30, 50, 40, 60], dur: 1);
 
 
 g.key([70, 30, 50, 40, 60], [\peakat, 5])
