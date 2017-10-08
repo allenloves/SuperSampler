@@ -9,6 +9,7 @@ s.waitForBoot{
 t.key(81);
 // play random note
 t.key;
+
 Sampler(\tublar).key;
 
 
@@ -24,6 +25,7 @@ t.key([60, 66], bendenv: [0, 1, 0.2, 1, 1, 3]);
 
 // granular expand
 t.key(60, expand: 2);
+t.key(60, pan: -1)
 
 // amplitude envelope
 t.key(60, ampenv: [0, 0, 0.5, 5, 1, 0]);

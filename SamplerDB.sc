@@ -51,18 +51,20 @@ SamplerDB{
 		if(sampler.isSymbol)
 		{samplers.removeAt(sampler)}
 		{samplers.removeAt(sampler.name)};
+		this.makeTree;
 		^samplers;
 	}
 
 
 	//Register a Sampler to SamplerDB
-	put {arg name, sampler;
-		samplers.put(name.asSymbol, sampler);
+	put {arg sampler;
+		samplers.put(sampler.name.asSymbol, sampler);
 		^samplers;
 	}
 
-	add {arg name, sampler;
-		samplers.put(name.asSymbol, sampler);
+	add {arg sampler;
+		samplers.put(sampler.name.asSymbol, sampler);
+		this.makeTree;
 		^samplers;
 	}
 
@@ -118,7 +120,7 @@ SamplerDB{
 	//morph is an array contains three elements: number of segments, crossfade, strategy.  See documentation of Env class.
 	//texture indicates the number of sampler instruments played in the same time if possible.
 	//samplerThickness is the number of sounds in a sampler instrument played in the same time.
-	playEnv {arg env, pitch, amp = 1, pan = 0, dur = nil, numSampler = 2, samplerThickness = 2, morph = [0, 0, \atpeak], diversity = nil, out = 0, midiChannel = 0;
+	playEnv {arg env, keynums, amp = 1, pan = 0, dur = nil, numSampler = 2, samplerThickness = 2, morph = [0, 0, \atpeak], diversity = nil, out = 0, midiChannel = 0;
 		var morphEnvs = env.segment(numSegs: morph.asArray[0] ? 0, crossfade: morph.asArray[1] ? 0, strategy: morph.asArray[2] ? \atpeak);
 		var playingSamplers;
 
@@ -160,20 +162,8 @@ SamplerDB{
 
 
 				playingSamplers.do{|thisSampler, samplerIndex|
-					thisSampler.playEnv(envelope, pitch, dur: dur, amp: amp, pan: pan, maxtexture: samplerThickness, out: out, midiChannel: midiChannel);
+					thisSampler.playEnv(envelope, keynums, dur: dur, amp: amp, pan: pan, maxtexture: samplerThickness, out: out, midiChannel: midiChannel);
 
-					/*
-					if(thisSampler.samples[0].temporalCentroid[0] < 0.15)
-					{thisSampler.playEnv(envelope, pitch)}
-					{
-						env.peakTime.do{|thisPeakTime|
-							var args = SamplerArguments.new.set(keynums: pitch.asArray.choose);
-							var maxTexture = SamplerQuery.getSamplesByKeynum(thisSampler, args).size;
-							var texture = envelope.range.at(thisPeakTime).linlin(0, 1, 1, maxTexture).asInteger;
-							thisSampler.key(pitch.asArray.choose, [\peakat, thisPeakTime], amp: envelope.at(thisPeakTime), texture: texture);
-						}
-					};
-					*/
 
 				};
 				waittime.yield;
@@ -182,16 +172,19 @@ SamplerDB{
 	}
 
 
-	key {arg keynums, syncmode = \keeplength, numSampler = 3, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0, midiChannel = 0;
+	key {arg keynums, syncmode = \keeplength, numSampler = 3, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? rrand(10.0, 100.0);
-		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
+		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bend: 0, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 
 		samplers.asArray.scramble[0..((numSampler-1).thresh(0))].do{|thisSampler, samplerIndex|
 			args.playSamples = args.playSamples.add(SamplerQuery.getSamplesByKeynum(thisSampler, args)).flat;
 		};
 		args.getGlobalDur;
-		Sampler.playArgs(args);
+
+		if(play){Sampler.playArgs(args)};
+
+		^args;
 	}
 
 

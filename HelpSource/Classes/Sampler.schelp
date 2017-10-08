@@ -1,7 +1,7 @@
 TITLE:: Sampler
 summary:: A sampler synthesizer that knows what it's doing.
 categories:: SuperSampler
-related:: Classes/SampleDescript
+related:: Classes/SampleDescript, Classes/SampleDB
 
 DESCRIPTION::
 Sampler is a sampling synthesizer that applies SampleDescript for sound quality detection, and using detected information to determine playback bahavier.  Most features of Sampler is done automatically for you.
@@ -129,8 +129,6 @@ returns:: An array of filenames.
 
 
 METHOD:: setKeyRanges
-For initial use.
-
 Reset range response to each key related to the anchor key number.
 
 In Sampler, every loaded sound files is anchored to a MIDI key number.

@@ -1,0 +1,207 @@
+TITLE:: SamplerDB
+summary:: A database of Sampler classes that can be treated as an ensemble.  It can be played just like a Sampler object.  When the .key or .playEnv is called, it chooses Samplers loaded in the database to play and organize sounds as a timbre unit.
+categories:: SuperSampler
+related:: Classes/SampleDescript, Classes/Sampler
+
+DESCRIPTION::
+SamplerDB is a database of multiple Sampler instances. he data structure of SamplerDB Instance is a Dictionary in this format:
+
+[ \Sampler_Name -> Sampler_Instance,  \Sampler_Name -> Sampler_Instance,  ...]
+
+SamplerDB is created while you are creating a Sampler object. If no SamplerDB name is provided, it will be loaded into SamplerDB(\default) object.
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Create a new SamplerDB instance.
+
+ARGUMENT:: dbname
+The name of the SamplerDB database.
+
+METHOD:: isLoaded
+Check if a SamplerDB is exist
+
+ARGUMENT:: dbname
+The name of the SamplerDB database.
+
+returns:: Boolean
+
+METHOD:: samplers
+Returns a system log of all loaded samplers.
+
+METHOD:: dbs
+Returns a system log of all SamplerDB created.
+
+
+INSTANCEMETHODS::
+
+METHOD:: put
+Register a Sampler to SamplerDB, WITHOUT calling makeTree after it's done.  It is for initializing SamplerDB when Sampler is loading.
+
+ARGUMENT:: sampler
+A Sampler class
+
+METHOD:: add
+Register a Sampler to SamplerDB, and call makeTree after it's done.  Use this method to add Samplers manually after you already have a SamplerDB from loading a Sampler.
+
+ARGUMENT:: sampler
+A Sampler class
+
+METHOD:: copy
+Make a copy of this SamplerDB
+
+returns:: a SamplerDB class
+
+METHOD:: remove
+Remove a Sampler from this SamplerDB
+
+ARGUMENT:: sampler
+It can be the name or the instance of a Sampler class.
+
+METHOD:: free
+Frees all Samplers in the database
+
+ARGUMENT:: freeSamplers
+A boolean, to indicate if you want to free all the Samplers within the SamplerDB database.
+
+
+METHOD:: samplers
+Returns a Library class contains all the sampler name and Sampler objects.
+
+METHOD:: label
+Returns the name of this SamplerDB object.
+
+METHOD:: kdTree
+Returns a KDTree objects that represents a kd-tree database of all the Sampler objects.  The kdTree stored average duration, temporal centroid, and average MFCC data around the peak of a sound.  You can use the .kdTreeNode method in the Sampler to locate the nearest sound quality of this Sampler in the database.
+
+METHOD:: makeTree
+A KDTree is a specific data type which can become unstable or unefficient when you add or remove a node from the tree. Therefore, this method is called whenever .add, or .remove is called in this class.  If you used .put to add a Sampler object into a SamplerDB, you will need to call makeTree after all your samples are reset.
+
+METHOD:: key
+Play this SamplerDB with a choice of Samplers in the database collection.
+
+ARGUMENT:: keynums
+The MIDI key numbers to play, can be a single number, an array of numbers, or a function that generate the number.
+Negative key numbers reverses the buffer to play.  It's default is a random number between 0-127.
+
+ARGUMENT:: syncmode
+The strategy to syncronize different samples:
+
+\keeplength: keep the length of all playing sound, align all at peak point of the sample with the longest attack time.  This is the default strategy.
+
+\percussive: make a percussive sound, starts all sounds from peak point.
+
+[\parkat, time]: the peak point of the sound will be set to the scheduled time.
+
+\nosorting:  just play every sample as it is, like conventional sampler synthesizer.
+
+ARGUMENT:: numSampler
+The number of different Samplers to be played in the same time, as long as you have more Samplers loaded.
+
+ARGUMENT:: dur
+Duration of the sound to play, around the peak point in the sound sample.
+
+ARGUMENT:: amp
+Overall amplitude, a multiplier.
+
+ARGUMENT:: ampenv
+An Envelop for amplitude, in normalized XY format.  Each node in the Envelope is describe as a pair of time and amplitude in the array.
+
+ARGUMENT:: pan
+Overall panning.  O is the center, -1 is left and 1 is right.
+
+ARGUMENT:: panenv
+An Envelop for panning, in normalized XY format.  Each node in the Envelope is describe as a pair of time and panning in the array.
+
+ARGUMENT:: bendenv
+An Envelop for bending pitch in the sound in normalized XY format.  Each node in the Envelope is describe as a pair of time and pitch bending in the array.
+
+
+ARGUMENT:: texture
+The number of sample sounds for each sample to be played in the same time.
+If nil, it will play every triggered sounds.
+
+ARGUMENT:: expand
+Stretch the played samples with insertion algorithm using granular synthesis.  The value will be the expected time to be stretched.
+
+Granulation runs only when this value is not nil.
+
+ARGUMENT:: grainRate
+The grain rate for stratching granular synthesizer.
+
+ARGUMENT:: grainDur
+The grain duration for stratching granular synthesizer.
+
+ARGUMENT:: out
+Output Bus
+
+ARGUMENT:: midiChannel
+A midiChannel for storing the playing UGens in SamplerQuery class, supporting live response.
+
+ARGUMENT:: play
+If true, play this sound.
+
+returns:: a instance of SamplerArguments class
+
+
+
+METHOD:: playEnv
+Group different sounds in the SamplerDB database to fit a provided envelope.
+
+
+ARGUMENT:: env
+The amplitude envelope to play. It can be an instance of Env class or an breakpoint envelope, such as [x1, y1, x2, y2, ..]
+
+ARGUMENT:: keynums
+The MIDI key numbers assigned to play.  It can also be an array of nubwers or a function generating the number.  It's defaulted a random number between 0-127.
+
+ARGUMENT:: dur
+Duration of the sound to play.  The sound will start from 1/2 of this value before the peak of the sample, not the beginning of the sound file.
+
+ARGUMENT:: amp
+Amplitude multiplier.
+
+ARGUMENT:: pan
+Panning, from -1 (left) to 1 (right).
+
+ARGUMENT:: numSmpler
+The number of Samplers to be used in the same time playing this envelope, as long as you have more Samplers loaded.
+
+ARGUMENT:: samplerThickness
+The maxinum number of sounds to be played simultaneously base on the amplitude value in the envelope.  More sounds would be played at the peak of the envelope.
+
+ARGUMENT:: morph
+To morph one set of sounds to another during the playing of this envelope. To make it mappen, the provided envelope will be segmented into different sub sections, and SamplerDB will fill each sections with different Sample sets;
+
+The value of morph is an array of three items, first one is how many sections to be, second one is the time for crossfade in between those sessions, the last one is the strategy to determine how the section was separated.
+
+
+[number of sections, crossfade, strategy]
+
+
+The strategy provided to segment the envelope are:
+
+
+\atpeak : segment envelope at the peak time.
+
+\geo : using geometric series
+
+\expo : exponantial distribution
+
+\random : random distribution
+
+
+ARGUMENT:: diversity
+When morph is activated, how different the next Sampler sets would be.  It is presented as a distance radious within the kdTree. The bigger number means the more difference of timbre changes.
+
+If diversity is Nil, Sampler sets will be randomly choosen.
+
+
+ARGUMENT:: out
+Output Bus
+
+ARGUMENT:: midiChannel
+A midiChannel for storing the playing UGens in SamplerQuery class, supporting live response.
+
+

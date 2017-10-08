@@ -107,9 +107,9 @@ Sampler {
 
 		};
 
-		database.put(samplerName.asSymbol, this);
-		dbs.put(dbname.asSymbol, database);
 		name = samplerName.asSymbol;
+		database.put(this);
+		dbs.put(dbname.asSymbol, database);
 		numActiveBuffer = 0;
 		averageDuration = 0;
 		averageTemporalCentroid = 0;
