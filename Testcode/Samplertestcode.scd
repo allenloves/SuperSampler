@@ -10,6 +10,8 @@ t.key(81);
 // play random note
 t.key;
 
+t.key(0, amp: 2.5);
+
 Sampler(\tublar).key;
 
 

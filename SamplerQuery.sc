@@ -23,6 +23,7 @@ SamplerQuery {
 			var sampleList = [];
 			var keySign = keyNum.sign;
 			var samplePrep = SamplerPrepare.new;
+
 			samplePrep.bufServer = sampler.bufServer;
 			keyNum = keyNum.abs;
 
@@ -31,10 +32,12 @@ SamplerQuery {
 				thisSample.do{|thisSection, idx|
 					if((keyNum <= thisSection[1]) && (keyNum >= thisSection[0]))
 					{
+
 						samplePrep.sample = sampler.samples[index];
 						samplePrep.samplerName = sampler.name;
 						samplePrep.duration = args.dur;
-						samplePrep.setRate(2**((keyNum - sampler.samples[index].keynum[idx])/12) * keySign);
+
+						samplePrep.setRate(2**((keyNum - sampler.samples[index].keynum[idx])/12) * if(keySign >= 0){1}{-1});
 						samplePrep.section = idx;
 						samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 						samplePrep.midiChannel = args.midiChannel;
@@ -47,6 +50,7 @@ SamplerQuery {
 			if(sampleList.isEmpty)
 			{
 				var sortIndexes = Dictionary.new;
+
 				sampler.samples.do{|thisSample, index|
 					thisSample.keynum.do{|thisKeynum, idx|
 						//address arrays in the form of [Which sample, Which section]
@@ -63,7 +67,7 @@ SamplerQuery {
 				samplePrep.samplerName = sampler.name;
 				samplePrep.duration = args.dur;
 				samplePrep.section = sortIndexes[1][sortIndexes[0].indexIn(keyNum)][1];
-				samplePrep.setRate(2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * keySign);
+				samplePrep.setRate(2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * if(keySign >= 0){1}{-1});
 				samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 				//samplePrep.duration = args.dur;
 				samplePrep.midiChannel = args.midiChannel;
@@ -82,7 +86,7 @@ SamplerQuery {
 				if(sampleList.size < texture) {
 					var prepList = sampleList.wrapExtend(texture - sampleList.size);
 					prepList.do{|thisSamplePrep, index|
-						thisSamplePrep.setRate(2**((keyNum + rand2(0.3) - samplePrep.sample.keynum[samplePrep.section]) / 12) * keySign);
+						thisSamplePrep.setRate(2**((keyNum + rand2(0.3) - samplePrep.sample.keynum[samplePrep.section]) / 12) * if(keySign >= 0){1}{-1});
 						sampleList = sampleList.add(thisSamplePrep);
 					}
 				}
@@ -168,6 +172,7 @@ SamplerQuery {
 					nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
 					nWait = waittime * expand / globalDur;
 					nDur = thisSample.duration * expand / globalDur;
+
 
 					thisSample.ampenv = args.ampenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
 					thisSample.panenv = args.panenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;

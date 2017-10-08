@@ -98,7 +98,7 @@
 		var end = timeline.indexInBetween(from + dur).floor.asInteger;
 
 		if(start.isNil)
-		{outcome = nil}
+		{outcome = nil; "No sub envelope found".warn;}
 		{
 			if(start > end) // no breakpoint in between the cutting point
 			{
