@@ -37,7 +37,7 @@ SamplerQuery {
 						samplePrep.samplerName = sampler.name;
 						samplePrep.duration = args.dur;
 
-						samplePrep.setRate(2**((keyNum - sampler.samples[index].keynum[idx])/12) * if(keySign >= 0){1}{-1});
+						samplePrep.setRate(2**((keyNum - sampler.samples[index].keynum[idx])/12) * (keySign + 1 - keySign.abs));
 						samplePrep.section = idx;
 						samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 						samplePrep.midiChannel = args.midiChannel;
@@ -67,7 +67,7 @@ SamplerQuery {
 				samplePrep.samplerName = sampler.name;
 				samplePrep.duration = args.dur;
 				samplePrep.section = sortIndexes[1][sortIndexes[0].indexIn(keyNum)][1];
-				samplePrep.setRate(2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * if(keySign >= 0){1}{-1});
+				samplePrep.setRate(2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * (keySign + 1 - keySign.abs));
 				samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 				//samplePrep.duration = args.dur;
 				samplePrep.midiChannel = args.midiChannel;
@@ -86,7 +86,7 @@ SamplerQuery {
 				if(sampleList.size < texture) {
 					var prepList = sampleList.wrapExtend(texture - sampleList.size);
 					prepList.do{|thisSamplePrep, index|
-						thisSamplePrep.setRate(2**((keyNum + rand2(0.3) - samplePrep.sample.keynum[samplePrep.section]) / 12) * if(keySign >= 0){1}{-1});
+						thisSamplePrep.setRate(2**((keyNum + rand2(0.3) - samplePrep.sample.keynum[samplePrep.section]) / 12) * (keySign + 1 - keySign.abs));
 						sampleList = sampleList.add(thisSamplePrep);
 					}
 				}
@@ -173,7 +173,6 @@ SamplerQuery {
 					nWait = waittime * expand / globalDur;
 					nDur = thisSample.duration * expand / globalDur;
 
-
 					thisSample.ampenv = args.ampenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
 					thisSample.panenv = args.panenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
 
@@ -230,8 +229,7 @@ SamplerQuery {
 					nWait = if(index == 0){0}{thisSample.wait} / globalDur;
 					nDur = thisSample.duration * expand / globalDur;
 
-
-					// TODO: readjust for bendenv
+					// adjust for bendenv
 					if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
 					{
 						var nAttackTime, bendEnvForAttackTime, attackDur, bendedAttackDur;

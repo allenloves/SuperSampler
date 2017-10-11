@@ -121,7 +121,7 @@ SamplerDB{
 	//texture indicates the number of sampler instruments played in the same time if possible.
 	//samplerThickness is the number of sounds in a sampler instrument played in the same time.
 	playEnv {arg env, keynums, amp = 1, pan = 0, dur = nil, numSampler = 2, samplerThickness = 2, morph = [0, 0, \atpeak], diversity = nil, out = 0, midiChannel = 0;
-		var morphEnvs = env.segment(numSegs: morph.asArray[0] ? 0, crossfade: morph.asArray[1] ? 0, strategy: morph.asArray[2] ? \atpeak);
+		var morphEnvs = env.segment(numSegs: morph.asArray[0] ? 1, crossfade: morph.asArray[1] ? 0, strategy: morph.asArray[2] ? \atpeak);
 		var playingSamplers;
 
 		Routine.run({

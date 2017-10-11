@@ -20,6 +20,8 @@ t.key([30, 40, 50, 60, 70, 80]);
 t.key([30, 40, 50, 60, 70, 80], \nosorting);
 t.key([30, 40, 50, 60, 70, 80], \percussive);
 t.key([30, 40, 50, 60, 70, 80], \stratchshort);
+
+
 t.key([30, 40, 50, 60, 70, 80], [\peakat, 2]);
 
 // pitch bend with an x-y envelope array
@@ -57,9 +59,10 @@ t.key([-60, 60], expand: 2, bendenv: [0, 1, 0.2, 1, 1, 3])
 
 t.key([-40, 30], ampenv: [0, 0, 0.5, 5, 1, 0]);
 t.key([-60, 60], panenv: Env([-1, 1, -1]));
-t.key([-60, 60], [\peakat, 2], panenv: Env([-1, 1, -1]));
 
-t.key([-60, 60], [\peakat, 5], bendenv: [0, 1, 0.2, 1, 1, 3], panenv: Env([-1, 1, -1]));
+t.key([-60, 60], [\peakat, 1], panenv: Env([-1, 1, -1]));
+
+t.key([-60, 60], [\peakat, 5], bendenv: [0, 1, 0.2, 1, 0.5, 3, 1, 0.5], panenv: Env([-1, 1, -1]));
 
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 5], ampenv: Env([3,0,3]))
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\startats, 1])
@@ -138,8 +141,18 @@ f.setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
 ~cageenv.reciprocal.plot;
 
 
+(
+~cageenv.test;
+f.samples[0].play;
+)
+
+
+~cageenv.duration;
+f.samples[0].duration;
+
+
 f.samples[0].keynum;
-f.samples[0].play(3);
+f.samples[0].play();
 f.setKeyRanges(infoArray: 3);
 f.numActiveBuffer;
 f.averageDuration;
@@ -217,8 +230,11 @@ g.getPlaySamples(SamplerArguments.new.set(keynums: [60, 80, 50]));
 g.playEnv(Env(), {rrand(70, 90)});
 
 g.playEnv(Env([0,1,0,1,0], [1,1,1,1]), {rrand(70, 90)});
-g.playEnv(~cageenv);
 
+(
+g.playEnv(~cageenv, {rrand(70,90)});
+f.samples[0].play;
+)
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -254,8 +270,10 @@ Env().plot;
 i.playEnv(Env(), {rrand(10, 40)});
 
 ~cageenv.plot;
+(
 i.playEnv(~cageenv.normalize, {rrand(10, 40)});
-
+Sampler(\cage).samples[0].play;
+)
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -284,11 +302,13 @@ d.kdTree.asArray;
 
 d.playEnv(env: Env(), morph: [2, 0, \atpeak], diversity: 6);
 
-SamplerDB(\default).playEnv(env: Env(), morph: [2, 0, \atpeak], diversity: 6);
+SamplerDB(\default).playEnv(env: Env([0,1,0,1,0]), morph: [2, 0, \atpeak], diversity: 6);
+SamplerDB(\default).playEnv(Env());
 
-~cageenv.plot;
 
 (
-SamplerDB(\default).playEnv(env: ~cageenv.normalize, morph: [4, 1, \atpeak]);
+SamplerDB(\default).playEnv(env: ~cageenv, samplerThickness: 7, morph: [2, 0]);
 Sampler(\cage).samples[0].play;
 )
+
+~cageenv.peakTime;

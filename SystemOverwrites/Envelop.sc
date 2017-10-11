@@ -4,16 +4,16 @@
 
 	//Create an window envelope for cross fading
 	*xfade {|dur = 3, fadeDur = 1, curve = \lin, releaseNode = nil, loopNode = nil, offset = 0|
-		^this.new([0, 1, 1, 0], [(fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0), (dur - (fadeDur * 2)).thresh(0), (fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0)], curve: curve, releaseNode: releaseNode, loopNode: loopNode, offset: offset);
+		^Env.new([0, 1, 1, 0], [(fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0), (dur - (fadeDur * 2)).thresh(0), (fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0)], curve: curve, releaseNode: releaseNode, loopNode: loopNode, offset: offset);
 	}
 
 	//same as xfade, different name, default with Welch window.
 	*window {|dur = 3, fadeDur = 1, curve = \welch, releaseNode = nil, loopNode = nil, offset = 0|
-		^this.new([0, 1, 1, 0], [(fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0), (dur - (fadeDur * 2)).thresh(0), (fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0)], curve: curve, releaseNode: releaseNode, loopNode: loopNode, offset: offset);
+		^Env.new([0, 1, 1, 0], [(fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0), (dur - (fadeDur * 2)).thresh(0), (fadeDur - ((dur - (fadeDur * 2).neg.thresh(0)) * 0.5)).thresh(0)], curve: curve, releaseNode: releaseNode, loopNode: loopNode, offset: offset);
 	}
 
 	//Multiply the amplitude of two FLAT Envs
-	* {|anotherEnv|
+	** {|anotherEnv|
 		var timeline = (this.timeLine.asArray ++ anotherEnv.timeLine.asArray).removeDups.sort;
 		var amp = [];
 		timeline.do{|time, index|
@@ -98,7 +98,7 @@
 		var end = timeline.indexInBetween(from + dur).floor.asInteger;
 
 		if(start.isNil)
-		{outcome = nil; "No sub envelope found".warn;}
+		{outcome = this; /*"No sub envelope found".warn;*/}
 		{
 			if(start > end) // no breakpoint in between the cutting point
 			{
@@ -179,15 +179,18 @@
 	//segment an envelope to several envelopes
 	//the outcome is an array of two items:
 	//[[Array of Envelopes], [wait time for next envelope for a Routine]]
-	segment {arg numSegs = 1, crossfade = 1, strategy = \atpeak;
-		var segmentTime = [], envs =[], waittime;
+	segment {arg numSegs = 1, crossfade = 0, strategy = \atpeak;
+		var segmentTime = [], segmentDur = [], envs =[], waittime;
 		var strat = strategy.asArray[0];
+		var attack, release;
 
 		crossfade = min(crossfade.abs, this.duration / (numSegs + 3));
 		numSegs = (numSegs - 1).asInteger.thresh(0);
 
 
 		case
+		{numSegs <= 0}{^[[this, 0]]}
+
 		//strategy: geometric series, 2 would be default base
 		////put e.g. [\geo, 2]
 		{strat == \geo}
@@ -264,39 +267,69 @@
 
 		//gather envelopes from segment time
 		segmentTime = segmentTime.sort;
+		//duration of each segment is differenciate of each segment time
+		segmentDur = segmentTime.differentiate ++ (this.duration - segmentTime.last);
 
+		// Now, Generate segment envelops
 		case
+
+		//one segment, return original envelope
 		{segmentTime.isEmpty}{^[[this, 0]]}
 
+
+		// two segments
 		{segmentTime.size == 1}{
 			segmentTime = segmentTime[0];
-			envs = envs.add((this.subEnv(0, segmentTime) ++ if(crossfade > 0){Env.new([this.at(segmentTime), 0], [crossfade])}).removeDups);
-			envs = envs.add((if(crossfade>0){Env.new([0, this.at(segmentTime)],[crossfade])} ++ this.subEnv(segmentTime, this.duration - segmentTime)).removeDups);
-			waittime = [segmentTime, 0];
+
+			attack = if(crossfade>0){Env.new([0, this.at(segmentTime)],[min(crossfade, segmentDur[0] * 0.6)])};
+			release = if(crossfade > 0){Env.new([this.at(segmentTime), 0], [min(crossfade, segmentDur[1] * 0.6)])};
+
+			//first env =  env ++ crossfade
+			envs = envs.add((this.subEnv(0, segmentTime) ++ release).removeDups);
+
+			//second env = crossfade ++ env
+			envs = envs.add(( attack ++ this.subEnv(segmentTime, this.duration - segmentTime)).removeDups);
+
+			// wait time = segment time - crossfade
+			waittime = [(segmentTime - if(attack.isNil){0}{attack.duration}), 0];
 			^[envs, waittime].flop;
 		}
 
-		{true}{
-			envs = envs.add((this.subEnv(0, segmentTime.first) ++ if(crossfade > 0){Env.new([this.at(segmentTime.first), 0], [crossfade])}).removeDups);
 
-			segmentTime.doAdjacentPairs{|thisTime, nextTime, index|
-				var attack, release;
+		// three segments and above
+		{true}{
+			// first env = env ++ crossfade
+			var crossfadeArray;
+
+			crossfadeArray = segmentDur.collect({|item, index| min(crossfade, item * 0.6)});
+
+			release = if(crossfade > 0){Env.new([this.at(segmentTime.first), 0], [crossfadeArray[1]])};
+			envs = envs.add((this.subEnv(0, segmentTime.first) ++ release).removeDups);
+
+			// middle envs = crossfade ++ env ++ corssfade
+			// start from section 2
+			segmentTime[0..segmentTime.size-2].do{|thisTime, index|
+				var nextTime = segmentTime[index + 1];
 				if(crossfade > 0)
 				{
-					attack = Env.new([0, this.at(thisTime)], [min(crossfade, thisTime)]);
-					release = Env.new([this.at(nextTime), 0], [min(crossfade, (this.duration - nextTime))]);
-					//release.plot;
+					attack = Env.new([0, this.at(thisTime)], [crossfadeArray[index]]);
+					release = Env.new([this.at(nextTime), 0], [crossfadeArray[index + 2]]);
 				};
-				envs = envs.add((attack ++ this.subEnv(thisTime, nextTime-thisTime) ++ release).removeDups);
-				waittime = waittime.add(if(index == 0){(thisTime - attack.duration - crossfade).thresh(0)}{(thisTime - segmentTime[index - 1] - crossfade).thresh(0)});
+
+				envs = envs.add((attack ++ this.subEnv(thisTime, segmentDur[index+1]) ++ release).removeDups);
+
+				//adding wait time to previous pair
+				waittime = waittime.add((segmentDur[index] + (crossfadeArray[index - 1] ? 0)  - crossfadeArray[index]).thresh(0));
 			};
 
-			envs = envs.add((if(crossfade>0){Env.new([0, this.at(segmentTime.last)],[crossfade])} ++ this.subEnv(segmentTime.last, this.duration - segmentTime.last)).removeDups);
-			waittime = waittime.add((segmentTime.last - segmentTime[segmentTime.size - 2]-crossfade).thresh(0)).add(0);
+			//last env = crossfade ++ env
+
+			attack = if(crossfade>0){Env.new([0, this.at(segmentTime.last)],[crossfadeArray[crossfadeArray.size - 2]])};
+			envs = envs.add((attack ++ this.subEnv(segmentTime.last, this.duration - segmentTime.last)).removeDups);
+
+			waittime = waittime.add((segmentDur[segmentDur.size - 2] + crossfadeArray[crossfadeArray.size-2] - crossfadeArray[crossfadeArray.size - 1])).add(0);
 			^[envs, waittime].flop;
 		};
-
-
 	}
 
 }

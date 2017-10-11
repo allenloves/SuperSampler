@@ -674,15 +674,18 @@ SampleDescript{
 			};
 
 			if(buf.size == 1)
-			{{Pan2.ar(PlayBuf.ar(1, buf[0], doneAction: 2, rate: BufRateScale.kr(buf[0]) * rate), pan, level)}.play(outbus: out)}
-			{{Balance2.ar(PlayBuf.ar(1, buf[0], doneAction: 2, rate: BufRateScale.kr(buf[0]) * rate), PlayBuf.ar(1, buf[1], doneAction: 2, rate: BufRateScale.kr(buf[1]) * rate), pan, level)}.play(outbus: out)};
+			{{Pan2.ar(PlayBuf.ar(1, buf[0], doneAction: 2, rate: BufRateScale.ir(buf[0]) * rate), pan, level)}.play(outbus: out)}
+			{{Balance2.ar(PlayBuf.ar(1, buf[0], doneAction: 2, rate: BufRateScale.ir(buf[0]) * rate), PlayBuf.ar(1, buf[1], doneAction: 2, rate: BufRateScale.kr(buf[1]) * rate), pan, level)}.play(outbus: out)};
 		}
 	}
 
 
 		//return an envelope to represent the whole sound file
 	env {
-		^Env.pairs([frameTimes, rmsData].flop, \lin);
+		var frametimes;
+		frametimes = Array.series(rmsData.size, 0, SCMIR.framehop / sampleRate);
+		^Env.pairs([frametimes, rmsData].flop, \lin).duration_(duration);  // Why is duration adjustment necessary?
+		//^Env.pairs([frameTimes, rmsData].flop, \lin);
 	}
 
 
