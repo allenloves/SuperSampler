@@ -1,10 +1,17 @@
 TITLE:: SamplerDB
-summary:: A database of Sampler classes that can be treated as an ensemble.  It can be played just like a Sampler object.  When the .key or .playEnv is called, it chooses Samplers loaded in the database to play and organize sounds as a timbre unit.
+summary:: Database or ensemble of Sampler class, available to play
 categories:: SuperSampler
 related:: Classes/SampleDescript, Classes/Sampler
 
 DESCRIPTION::
-SamplerDB is a database of multiple Sampler instances. he data structure of SamplerDB Instance is a Dictionary in this format:
+
+Make sure you have installed SC3 plugins and SCMIR before using SuperSampler.
+
+link:: http://composerprogrammer.com/code.html ::
+
+SamplerDB is a database of Sampler classes that can be treated as an ensemble.  It can be played just like a Sampler object.  When the .key or .playEnv is called, it chooses Samplers loaded in the database to play and organize sounds as a timbre unit.
+
+The data structure of SamplerDB Instance is a Dictionary in this format:
 
 [ \Sampler_Name -> Sampler_Instance,  \Sampler_Name -> Sampler_Instance,  ...]
 
@@ -156,14 +163,14 @@ The amplitude envelope to play. It can be an instance of Env class or an breakpo
 ARGUMENT:: keynums
 The MIDI key numbers assigned to play.  It can also be an array of nubwers or a function generating the number.  It's defaulted a random number between 0-127.
 
-ARGUMENT:: dur
-Duration of the sound to play.  The sound will start from 1/2 of this value before the peak of the sample, not the beginning of the sound file.
-
 ARGUMENT:: amp
 Amplitude multiplier.
 
 ARGUMENT:: pan
 Panning, from -1 (left) to 1 (right).
+
+ARGUMENT:: dur
+Duration of the sound to play.  The sound will start from 1/2 of this value before the peak of the sample, not the beginning of the sound file.
 
 ARGUMENT:: numSmpler
 The number of Samplers to be used in the same time playing this envelope, as long as you have more Samplers loaded.

@@ -4,6 +4,10 @@ categories:: SuperSampler
 related:: Classes/SampleDescript, Classes/SampleDB
 
 DESCRIPTION::
+Make sure you have installed SC3 plugins and SCMIR before using SuperSampler.
+
+link:: http://composerprogrammer.com/code.html ::
+
 Sampler is a sampling synthesizer that applies SampleDescript for sound quality detection, and using detected information to determine playback bahavier.  Most features of Sampler is done automatically for you.
 
 For example, it detects the beginning of your sound samples, if there are more than one onset, it separates each onsets as different samples.  There are lots of other figures you may want to experiment.
