@@ -40,7 +40,7 @@
 				var ampgen = EnvGen.kr(ampctl, 1, amp, 0, timeScale: dur * expand , doneAction:2);
 				var pangen = EnvGen.kr(panctl, 1, 1, pan, timeScale: dur * expand);
 				var trigger = Impulse.kr(grainRate + LFNoise0.kr(grainRate*2,2.0/grainDur));
-				var position = Line.kr(start: startPos/BufDur.ir(buf), end: (rate.sign + 1)/2, dur:  (dur * expand));  //dur:  ((BufDur.ir(buf) - startPos) * expand));
+				var position = Line.kr(start: startPos/BufDur.ir(buf), end: (rate.sign + 1)/2 * 0.95, dur:  (dur * expand));  //dur:  ((BufDur.ir(buf) - startPos) * expand));
 				var outsig = ampgen * GrainBuf.ar(numChannels: 2, trigger: trigger, dur: grainDur, sndbuf: buf, rate: rate * skwgen,
 				pos: position, interp: 2, pan: TRand.kr(panSpread * -1,panSpread,trigger) + pangen );
 				Out.ar(bus: out, channelsArray: outsig);
@@ -54,7 +54,7 @@
 				var ampgen = EnvGen.kr(ampctl, 1, amp, 0, timeScale: dur * expand , doneAction:2);
 				var pangen = EnvGen.kr(panctl, 1, 1, pan, timeScale: dur * expand);
 				var trigger = Impulse.kr(grainRate + LFNoise0.kr(grainRate*2,2.0/grainDur));
-				var position = Line.kr(start: startPos/BufDur.ir(buf0), end: (rate.sign + 1)/2, dur:  (dur * expand));  //dur:  ((BufDur.ir(buf) - startPos) * expand));
+				var position = Line.kr(start: startPos/BufDur.ir(buf0), end: (rate.sign + 1)/2 * 0.95, dur:  (dur * expand));  //dur:  ((BufDur.ir(buf) - startPos) * expand));
 				var outsig0 = ampgen * GrainBuf.ar(numChannels: 1, trigger: trigger, dur: grainDur, sndbuf: buf0, rate: rate * skwgen * BufRateScale.kr(buf0),
 				pos: position, interp: 2, pan: -1);
 				var outsig1 = ampgen * GrainBuf.ar(numChannels: 1, trigger: trigger, dur: grainDur, sndbuf: buf1, rate: rate * skwgen * BufRateScale.kr(buf1),

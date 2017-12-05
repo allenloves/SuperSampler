@@ -1,7 +1,7 @@
 TITLE:: Sampler
 summary:: A sampler synthesizer that knows what it's doing.
 categories:: SuperSampler
-related:: Classes/SampleDescript, Classes/SampleDB
+related:: Classes/SampleDescript, Classes/SamplerDB
 
 DESCRIPTION::
 Make sure you have installed SC3 plugins and SCMIR before using SuperSampler.

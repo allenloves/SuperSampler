@@ -145,8 +145,10 @@
 
 
 	//output a copy of inverted Env
-	invert {
-		var level = (this.levels.flat.maxItem + this.levels.flat.minItem) - this.levels;
+	invert {|baseOne = false|
+		var level, thisEnv = this;
+		if(baseOne){thisEnv.levels = thisEnv.levels + (1 - thisEnv.levels.flat.minItem)};
+		level = (thisEnv.levels.flat.maxItem + thisEnv.levels.flat.minItem) - thisEnv.levels;
 		^Env.new(level, this.times, this.curves, this.releaseNode, this.loopNode, this.offset);
 	}
 

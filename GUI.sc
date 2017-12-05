@@ -12,13 +12,13 @@
 
 		win = Window.new("Sound Descripter", Rect(140, 800, 1100, 200))
 		.front.alwaysOnTop_(true)
-		//.background_(colorSet1[2])
+		.background_(colorSet1[2])
 		.onClose_({soundfile.free; soundfile = nil; ~temp.free; ~temp = nil});
 
 		//*** Drop Area ***
 		drg = DragSink(win, Rect(15, 15, 700, 50))
 		.resize_(2)
-		//.background_(colorSet1[1])
+		.background_(colorSet1[1])
 		.align_(\center)
 		.string_("drop file here")
 		.action_({|obj|
@@ -30,8 +30,8 @@
 				sfw = SoundFileView(win, Rect(15, 80, win.bounds.width-30, win.bounds.height-100))
 				.resize_(5).gridOn_(false)
 				.soundfile_(SoundFile.openRead(filename)).read(closeFile: true).refresh
-				//.background_(Color(1,1,1))
-				//.background_(colorSet1[0])
+				.background_(Color(1,1,1))
+				.background_(colorSet1[0])
 				;
 
 
@@ -245,5 +245,29 @@
 	gui {
 		this.class.gui(this, this.filename, true);
 	}
+
+}
+
+
+
+
++ Sampler {
+
+	gui {
+		var win;
+		var colorSet1 = [Color(0.639,0.537,0.463), Color(0.953,0.894,0.847),Color(0.78,0.694,0.627),Color(0.498,0.4,0.325),Color(0.38,0.267,0.184)];
+		var colorSet2 = [Color(0.639,0.576,0.463), Color(0.953,0.918,0.847),Color(0.78,0.725,0.627),Color(0.498,0.435,0.325),Color(0.38,0.31,0.184)];
+		var colorSet3 = [Color(0.627,0.455,0.463), Color(0.937,0.831,0.835),Color(0.765,0.616,0.624),Color(0.49,0.318,0.325),Color(0.373,0.18,0.188)];
+
+		win = Window.new("Sound Descripter", Rect(140, 800, 1100, 200))
+		.front.alwaysOnTop_(true)
+		.background_(colorSet1[2]);
+
+
+
+
+	}
+
+
 
 }

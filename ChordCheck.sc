@@ -21,7 +21,7 @@ ChordCheck {
 				classlock = true;
 				classchord = [num];
 				waittime.yield;
-				func.value(classchord.sort);
+				func.value(classchord.sort.removeDups);
 				classlock = false;
 			}).play;
 		};
@@ -39,7 +39,7 @@ ChordCheck {
 				lock = true;
 				chord = [num];
 				waittime.yield;
-				func.value(chord.sort);
+				func.value(chord.sort.removeDups);
 				lock = false;
 			}).play
 		};

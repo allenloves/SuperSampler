@@ -300,8 +300,9 @@ Sampler {
 				var nextPeakTime = env.peakTime[index + 1] ? env.duration;
 				var attackTime = (thisPeakTime - previousPeakTime).abs;
 				var releaseTime = (nextPeakTime - thisPeakTime).abs;
+				var thisDur = attackTime + releaseTime;
 				var args = SamplerArguments.new;
-				var maxTexture, texture;
+				var ampenv, envStartTime, maxTexture, texture, expand;
 
 				//put data into args
 				args.set(keynums: playkey.value.asArray, out: out, midiChannel: midiChannel);
@@ -315,10 +316,15 @@ Sampler {
 					if(args.globalReleaseDur < 0.1){var keys = args.keynums; args.set(keynums: keys ++ keys.neg)};
 				};
 
+				//if(thisDur > (args.globalDur * 1.6)){expand = thisDur / args.globalDur};
 
 				args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
 				texture = env.range.at(thisPeakTime).linlin(0, 1, 1, maxtexture).asInteger;
-				args.set(syncmode: [\peakat, thisPeakTime], amp: env.at(thisPeakTime) * amp, pan: pan, texture: texture);
+				envStartTime = (thisPeakTime-args.globalAttackDur).thresh(0);
+				ampenv = env.subEnv(envStartTime, min(args.globalDur, env.duration - thisPeakTime + envStartTime));
+				//args.set(syncmode: [\peakat, thisPeakTime], amp: amp, ampenv: ampenv, pan: pan, texture: texture);
+				args.set(syncmode: [\peakat, thisPeakTime], amp: env.at(thisPeakTime) * amp, pan: pan, texture: texture, expand: expand);
+
 				this.playArgs(args);
 			}
 		};

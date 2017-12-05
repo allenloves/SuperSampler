@@ -197,9 +197,11 @@ g.key(40);
 g.key;
 g.key(60, \percussive, dur: 0.01)
 g.key(60, dur: 1);
-g.key(60, expand: 2);
+g.key(60, [\peakat, 1], expand: 2);
 g.key([60, 70], expand: 2);
 g.key(40, ampenv: [0,1, 1, 0]);
+
+
 
 
 g.key(60, expand: 7, bend: [0, 1, 0.3, 1, 1,  0.3]);
@@ -227,9 +229,15 @@ g.samples[0].play;
 
 
 g.getPlaySamples(SamplerArguments.new.set(keynums: [60, 80, 50]));
-g.playEnv(Env(), {rrand(70, 90)});
 
-g.playEnv(Env([0,1,0,1,0], [1,1,1,1]), {rrand(70, 90)});
+(
+g.playEnv(Env(), {rrand(70, 90)});
+g.playEnv(Env(), {rrand(30, 40)});
+)
+
+g.playEnv(Env([0,1,0,1,0], [1,1,1,1]), {rrand(30, 50)});
+g.playEnv(Env([1,0,1,0,1]), {rrand(30, 50)});
+
 
 (
 g.playEnv(~cageenv, {rrand(70,90)});
@@ -302,7 +310,7 @@ d.kdTree.asArray;
 
 d.playEnv(env: Env(), morph: [2, 0, \atpeak], diversity: 6);
 
-SamplerDB(\default).playEnv(env: Env([0,1,0,1,0]), morph: [2, 0, \atpeak], diversity: 6);
+SamplerDB(\default).playEnv(env: Env([0,1,0,1,0]), morph: 2, diversity: 6);
 SamplerDB(\default).playEnv(Env());
 
 
