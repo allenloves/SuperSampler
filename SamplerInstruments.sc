@@ -3,6 +3,7 @@
 		*initClass{
 
 		allSampler = IdentityDictionary.new;
+		defaultLoadingServer = Server.default;
 
 		//from Halim Beere and Henrich Taube
 		StartUp.add({

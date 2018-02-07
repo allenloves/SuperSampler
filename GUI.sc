@@ -251,23 +251,127 @@
 
 
 
+//********************
+// GUI for Sampler
+// Provides loading and assinging pitches to samples
+//********************
 + Sampler {
 
 	gui {
-		var win;
+		var win, column;
+		var sampleItem = [];
 		var colorSet1 = [Color(0.639,0.537,0.463), Color(0.953,0.894,0.847),Color(0.78,0.694,0.627),Color(0.498,0.4,0.325),Color(0.38,0.267,0.184)];
 		var colorSet2 = [Color(0.639,0.576,0.463), Color(0.953,0.918,0.847),Color(0.78,0.725,0.627),Color(0.498,0.435,0.325),Color(0.38,0.31,0.184)];
 		var colorSet3 = [Color(0.627,0.455,0.463), Color(0.937,0.831,0.835),Color(0.765,0.616,0.624),Color(0.49,0.318,0.325),Color(0.373,0.18,0.188)];
+		var dragHandler = {this.load(View.currentDrag.value.pathMatch); win.refresh; this.gui; win.close;};
 
-		win = Window.new("Sound Descripter", Rect(140, 800, 1100, 200))
+
+
+		win = Window.new(("Sampler__" ++ this.name).asString, Rect(140, 800, 1100, 900), scroll: true)
 		.front.alwaysOnTop_(true)
-		.background_(colorSet1[2]);
+		.background_(colorSet1[4])
+		;
 
 
+		DragSink(win, win.view.bounds)
+		.background_(Color(alpha: 0))
+		.resize_(5)
+		.receiveDragHandler_(dragHandler)
+		;
 
+		win.view.decorator = FlowLayout( win.view.bounds, 10@10, 5@5 );
+
+
+		// For Column Texts
+		column = FlowView.new(win.view, (win.view.bounds.width - 20)@50);
+		StaticText(column.view, 750@50).string_("Sound Sample ___ Section").align_(\center).font_(Font(size: 20, bold: true)).stringColor_(colorSet1[1]);
+		StaticText(column.view, 100@50).string_("Sample Pitch").align_(\center).font_(Font(size: 20, bold: true)).stringColor_(colorSet1[1]);
+		StaticText(column.view, 100@50).string_("Respond Low").align_(\center).font_(Font(size: 20, bold: true)).stringColor_(colorSet1[1]);
+		StaticText(column.view, 100@50).string_("Respond High").align_(\center).font_(Font(size: 20, bold: true)).stringColor_(colorSet1[1]);
+
+
+		//For each samples, there is a button indicating filename,
+		//followed by anchored picth and responsing key ranges.
+		samples.do{|thisSample, index| // index is the index of samples
+			thisSample.keynum.do{|thisKeynum, idx| //idx is the sections in a sample
+				var thisLine;
+				var rangeBox = [];
+				var file = PathName(thisSample.filename);
+				var fileText = file.folderName ++ "/" ++ file.fileName ++ "___" ++ (idx+1).asString;
+
+				thisLine = FlowView.new(win.view, (win.view.bounds.width - 20)@50).background_(Color.rand);
+
+				//for filename
+				Button(thisLine.view, 750@50)
+				.states_([[fileText, colorSet1[4], colorSet1[1]]])
+				.action_({thisSample.play(idx)})
+				.receiveDragHandler_(dragHandler)
+				.font_(Font(size: 14, bold: true))
+				;
+
+				//for anchored keynumber
+				NumberBox(thisLine.view, 100@50)
+				.value_(thisKeynum)
+				.align_(\center)
+				.background_(colorSet1[1])
+				.font_(Font(size: 14, bold: true))
+				.stringColor_(colorSet1[4])
+				.receiveDragHandler_(dragHandler)
+				.maxDecimals_(2)
+				.action_({|input|
+					var key = input.value;
+					if(key.isNumber){
+						thisSample.keynum.put(idx, key);
+					}
+				}
+				;
+				);
+
+				//for key ganges
+				2.do{|ix|
+					NumberBox(thisLine.view, 100@50)
+					.value_(keyRanges.at(thisSample)[idx][ix])
+					.align_(\center)
+					.background_(colorSet1[1])
+					.font_(Font(size: 14, bold: true))
+					.stringColor_(colorSet1[4])
+					.receiveDragHandler_(dragHandler)
+					.maxDecimals_(2)
+					.action_({|input|
+						var key = input.value;
+						if(key.isNumber)
+						{
+							keyRanges.at(thisSample)[idx].put(ix, key);
+						}
+					});
+				}
+
+			}//End of thisSample.keynum.do
+		};//End of samples.do
 
 	}
-
-
-
 }
+
+
+
+
+/*
+
++ SamplerDB {
+	gui {
+		var win, column;
+		var sampleItem = [];
+		var colorSet1 = [Color(0.639,0.537,0.463), Color(0.953,0.894,0.847),Color(0.78,0.694,0.627),Color(0.498,0.4,0.325),Color(0.38,0.267,0.184)];
+		var colorSet2 = [Color(0.639,0.576,0.463), Color(0.953,0.918,0.847),Color(0.78,0.725,0.627),Color(0.498,0.435,0.325),Color(0.38,0.31,0.184)];
+		var colorSet3 = [Color(0.627,0.455,0.463), Color(0.937,0.831,0.835),Color(0.765,0.616,0.624),Color(0.49,0.318,0.325),Color(0.373,0.18,0.188)];
+		var dragHandler = {this.load(View.currentDrag.value.pathMatch); win.refresh; this.gui; win.close;};
+
+
+		win = Window.new(("Sampler__" ++ name).asString, Rect(140, 800, 900, 1200), scroll: true)
+		.front.alwaysOnTop_(true)
+		.background_(colorSet1[4])
+		;
+	}
+}
+
+*/

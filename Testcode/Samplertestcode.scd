@@ -8,7 +8,10 @@ s.waitForBoot{
 // play a note by midi key number
 t.key(81);
 // play random note
-t.key;
+t.key(60);
+t.gui;
+t.samples[1].keynum;
+t.keyRanges;
 
 t.key(0, amp: 2.5);
 
@@ -131,6 +134,7 @@ f = Sampler(\cage, \speak).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds
 
 f.keynums;
 f.setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
+f.gui;
 
 ~cageenv = f.samples[0].env.normalize(1);
 ~cageenv.plot;

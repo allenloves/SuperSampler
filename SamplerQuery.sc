@@ -28,16 +28,17 @@ SamplerQuery {
 			keyNum = keyNum.abs;
 
 			//find keyNums in the keyRanges of each sample sections, send the sample section information
-			sampler.keyRanges.do{|thisSample, index|
-				thisSample.do{|thisSection, idx|
+			sampler.keyRanges.keysValuesDo{|thisSample, thisKeyRange|
+				// for each section in the sample
+				thisKeyRange.do{|thisSection, idx| //idx is the section indes within the sample
 					if((keyNum <= thisSection[1]) && (keyNum >= thisSection[0]))
 					{
 
-						samplePrep.sample = sampler.samples[index];
+						samplePrep.sample = thisSample;
 						samplePrep.samplerName = sampler.name;
 						samplePrep.duration = args.dur;
 
-						samplePrep.setRate(2**((keyNum - sampler.samples[index].keynum[idx])/12) * (keySign + 1 - keySign.abs));
+						samplePrep.setRate(2**((keyNum - thisSample.keynum[idx])/12) * (keySign + 1 - keySign.abs));
 						samplePrep.section = idx;
 						samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 						samplePrep.midiChannel = args.midiChannel;

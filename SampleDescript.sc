@@ -47,7 +47,7 @@ SampleDescript{
 
 	// **** local information by Onsets *****
 	// Temporal information
-	var <>keynum;
+	var <> keynum;
 	var <activeDuration;
 	var <mfcc;
 	var <onsetTime;
@@ -333,7 +333,7 @@ SampleDescript{
 		while ({i>=0 && "0123456789".includes(str.at(i))},{i=i-1});
 		if (i<l) { // had digit at end, i now before all digits
 			if (l - i >= 2){// had more than 2 digits at end
-				if(l = i <=3){//had no more than 3 digits, make it key number;
+				if(l - i <=3){//had no more than 3 digits, make it key number;
 					keynumFromFileName = str.copyRange(i+1,l).asInteger;
 				}
 				{// if there are more than 3 digits at the end of file

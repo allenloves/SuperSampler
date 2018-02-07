@@ -10,15 +10,15 @@ Sampler {
 	classvar < allSampler;
 	classvar <> defaultTexture;
 	classvar <> defaultOutputBus = 0;
+	classvar <> defaultLoadingServer;
 
 	var <dbs;  // an array of SamplerDB instances that this Sampler is registered to.
 	var <name;  //Name of this sampler
 	var <filenames;
 	var <samples;  // samples are SampleDescript instances
 	var <bufServer;
-	//                           |------ Each Sample -------------|	 |-----Each Sample---
-	//                            |--Section---|  |--Section---|      |--Section---|
-	var <keyRanges;// in format [[[upper, lower], [upper, lower]..], [[upper, lower], [upper, lower]...], ....]
+	//                                                                |- section -|   |- section -|
+	var <keyRanges;// Is a dictionary in format  (SampleDescrtipt -> [[lower, upper], [lower, upper],..], ..)
 
 	//Sampler metadata
 	var <numActiveBuffer;
@@ -29,8 +29,8 @@ Sampler {
 	var <kdTreeNode; // temporarily setting to be [averageDuration, averageTemporalCentroid, averageMFCC].flat
 
 	// Initialization in this class is in SamplerInstruments.sc
-	// *initClass {
-	// }
+	*initClass {
+	}
 
 	*new{arg samplerName, dbname = \default;
 
@@ -55,8 +55,8 @@ Sampler {
 				thisSample.wait.wait;
 				thisSample.play(args, synthID);
 
-			};
-		}
+				};
+			}
 	}
 
 
@@ -130,7 +130,7 @@ Sampler {
 
 	//============================
 	//load and analyze sound files
-	load {arg soundfiles, server = Server.default, filenameAsKeynum = false, normalize = false, startThresh=0.01, endThresh=0.01, action = nil;
+	load {arg soundfiles, server = this.class.defaultLoadingServer, filenameAsKeynum = false, normalize = false, startThresh=0.01, endThresh=0.01, action = nil;
 		averageMFCC = averageMFCC ? Array.fill(13, 0);
 		if(soundfiles.isArray.not){Error("Sound files has to be an array").throw};
 		bufServer = server;
@@ -162,6 +162,7 @@ Sampler {
 			dbs.do{|thisDB| thisDB.makeTree};
 
 			this.setKeyRanges;
+			//finalAction.value;
 		}
 	}
 
@@ -194,29 +195,29 @@ Sampler {
 	//=================================================================
 	//
 	setKeyRanges{arg strategy = \keynumRadious, infoArray = [5];
-		keyRanges = [];
+		keyRanges = keyRanges ? Dictionary.new;
 		switch(strategy.asSymbol,
 			\keynumRadious,{//given a range radious from the keynum of each sample sections.
 				samples.do{|thisSample, index|
 					var radious = infoArray.asArray.wrapAt(index);
-					keyRanges = keyRanges.add([(thisSample.keynum - radious).thresh(0), thisSample.keynum + radious].flop)
+					keyRanges = keyRanges.add(thisSample ->  [(thisSample.keynum - radious).thresh(0), thisSample.keynum + radious].flop)
 				};
 			},
 			\fullRange,{//every sample is responded in full range of midi key number.
 				samples.do{|thisSample, index|
-					var sectionRanges = [];
-					thisSample.keynum.do{|thisSection, idx|
-						sectionRanges = sectionRanges.add([0, 127]);
+					var rangeArray = [];
+					thisSample.keynum.size.do{
+						rangeArray.add([0, 127]);
 					};
-					keyRanges = keyRanges.add(sectionRanges);
-				}
+					keyRanges = keyRanges.add(thisSample -> rangeArray);
+				};
 			},
 			\keynumOnly,{//only respond to the keynum
 				samples.do{|thisSample, index|
 					var thisKeynum = thisSample.keynum;
-					keyRanges = keyRanges.add([thisKeynum, thisKeynum].flop)
-				}
-			}
+					keyRanges = keyRanges.add(thisSample ->  [thisKeynum, thisKeynum].flop)
+				};
+			};
 		)
 	}
 
@@ -283,7 +284,7 @@ Sampler {
 						var texture = env.at(elapsed).linlin(0, env.levels.maxItem, 1, maxtexture).asInteger;
 						//args.set(syncmode: \percussive, amp: env.at(elapsed), texture: texture);
 						//this.playArgs(args);
-						this.key(keynums.asArray.choose, \percussive, dur: dur, amp: env.at(elapsed) * amp, pan: pan, texture: texture, out: out, midiChannel: midiChannel);
+						this.key(keynums.asArray.choose, \percussive, dur: min((dur ? 1), 0.2), amp: env.at(elapsed) * amp, pan: pan, texture: texture, out: out, midiChannel: midiChannel);
 						elapsed = elapsed + delayTime;
 						delayTime.wait;
 					}
