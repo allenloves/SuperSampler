@@ -8,7 +8,7 @@ s.waitForBoot{
 // play a note by midi key number
 t.key(81);
 // play random note
-t.key(60);
+t.key;
 t.gui;
 t.samples[1].keynum;
 t.keyRanges;

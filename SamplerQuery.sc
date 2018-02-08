@@ -13,6 +13,8 @@ SamplerQuery {
 	}
 
 
+
+
 	//gather samples by using midi key numbers
 	*getSamplesByKeynum {|sampler, args, filterFunc = true|
 		var keyNums = args.keynums.asArray.flat;
@@ -33,17 +35,15 @@ SamplerQuery {
 				thisKeyRange.do{|thisSection, idx| //idx is the section indes within the sample
 					if((keyNum <= thisSection[1]) && (keyNum >= thisSection[0]))
 					{
-
 						samplePrep.sample = thisSample;
 						samplePrep.samplerName = sampler.name;
 						samplePrep.duration = args.dur;
-
-						samplePrep.setRate(2**((keyNum - thisSample.keynum[idx])/12) * (keySign + 1 - keySign.abs));
 						samplePrep.section = idx;
+						samplePrep.setRate(2**((keyNum - thisSample.keynum[idx])/12) * (keySign + 1 - keySign.abs));
 						samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 						samplePrep.midiChannel = args.midiChannel;
-						//samplePrep.duration = args.dur;
-						sampleList = sampleList.add(samplePrep)};
+						sampleList = sampleList.add(samplePrep)
+					};
 				}
 			};
 
@@ -60,9 +60,10 @@ SamplerQuery {
 				};
 
 				sortIndexes = sortIndexes.asSortedArray.flop;
+
 				// sortIndexes[0]==keynums in sorted order
 				// sortIndexes[1]==Index arrays in sorted order
-				// address for the clost keynum will be:
+				// address for the closest keynum will be:
 				//sortIndexes[1][sortIndexes[0].indexIn(keyNum)]
 				samplePrep.sample = sampler.samples[sortIndexes[1][sortIndexes[0].indexIn(keyNum)][0]];
 				samplePrep.samplerName = sampler.name;
@@ -98,10 +99,17 @@ SamplerQuery {
 
 		finalList = finalList.scramble[0..(texture !? {texture-1})];
 
-		//args.setSamples(finalList); //send the list to SamplerArguments class and get global duration
+		args.setSamples(finalList); //send the list to SamplerArguments class and get global duration
 
 		^finalList;  //list of SamplePrepare class
+
+
 	}
+
+
+
+
+
 
 	//each item samplerArray should contain 2 members, the SampleDescript object, and section number to play
 	//about section number, see SampleDescript class
