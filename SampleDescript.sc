@@ -472,6 +472,7 @@ SampleDescript{
 			//filter onsets too close
 			if((nextOnset - thisOnset) > groupingThresh, {onsets = onsets.add(nextOnset)});
 		});
+		if(onsets[0].isNil){onsets[0] = 0};
 		onsetTime = onsets;
 	}
 

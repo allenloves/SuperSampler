@@ -165,7 +165,7 @@ SamplerQuery {
 					{thisSample.releaseDur / thisSample.rate.abs};
 
 					startpos = if(thisSample.rate.isPositive)
-					{(thisSample.sample.attackDur[thisSample.section] - thisSample.attackDur[thisSample.section]).thresh(0)}
+					{(thisSample.sample.attackDur.[thisSample.section] - thisSample.attackDur[thisSample.section]).thresh(0)}
 					{(thisSample.sample.releaseDur[thisSample.section] - thisSample.releaseDur[thisSample.section]).thresh(0)};
 
 					previousPeakTime = if(previousSample.rate.isPositive)
