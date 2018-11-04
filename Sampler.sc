@@ -136,18 +136,22 @@ Sampler {
 		bufServer = server;
 		fork{
 			var sample;
-			var dict = Dictionary.newFrom([filenames, samples].flop.flat);
+			var dict = Dictionary.newFrom([this.filenames, this.samples].flop.flat);
 			soundfiles.do{|filename, index|
 				if(dict[filename.asSymbol].isNil.not)
-				{"This file is already loaded, reloading".postln;
-					dict[filename.asSymbol].free;
+				{
+					//"This file is already loaded, reloading".warn;
+					//dict[filename.asSymbol].free;
+					"This file is already loaded".warn;
+				}
+				{
+					sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: action);
+					numActiveBuffer = numActiveBuffer + sample.activeDuration.size;
+					averageDuration = averageDuration + sample.activeDuration.sum;
+					averageTemporalCentroid = averageTemporalCentroid + sample.temporalCentroid.sum;
+					averageMFCC = averageMFCC + sample.mfcc.sum;
+					dict.put(filename.asSymbol, sample);
 				};
-				sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: action);
-				numActiveBuffer = numActiveBuffer + sample.activeDuration.size;
-				averageDuration = averageDuration + sample.activeDuration.sum;
-				averageTemporalCentroid = averageTemporalCentroid + sample.temporalCentroid.sum;
-				averageMFCC = averageMFCC + sample.mfcc.sum;
-				dict.put(filename.asSymbol, sample);
 			};
 
 			averageDuration = averageDuration / numActiveBuffer;
@@ -241,7 +245,7 @@ Sampler {
 	//Negative key numbers reverses the buffer to play.
 	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
-		var playkey = keynums ? {rrand(10.0, 100.0).postln};
+		var playkey = keynums ? {rrand(10.0, 100.0)};
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 		args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));  //find play samples
 
@@ -280,6 +284,7 @@ Sampler {
 	//TODO: Play a sample with the influence of a global envelope
 	playEnv {arg env, keynums, dur, amp = 1, pan = 0, maxtexture = 5, out = this.class.defaultOutputBus, midiChannel = 0;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
+		var argslist= [];
 
 		case
 		// sound is short, repeat it to fill up the envelope

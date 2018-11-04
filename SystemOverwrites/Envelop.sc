@@ -144,6 +144,26 @@
 	}
 
 
+	// Intergral of reciprocal of an envelope.
+	// This is brute force reciprocal algorithm, might take time to finish calculation if the resolution is too small
+	// Also, this only approximate the real intergral value
+	reciprocalIntegral {|time, resolution = 0.0001|
+		var duration = time ?? this.duration;
+		var index = 0;
+		var outcome = 0;
+
+		while(
+			{index < duration},
+			{
+				outcome = outcome + (this.at(index).reciprocal * resolution);
+				index = index + resolution;
+			}
+		);
+
+		^outcome
+	}
+
+
 	//output a copy of inverted Env
 	invert {|baseOne = false|
 		var level, thisEnv = this;

@@ -61,10 +61,10 @@ SamplerQuery {
 
 				sortIndexes = sortIndexes.asSortedArray.flop;
 
-				// sortIndexes[0]==keynums in sorted order
-				// sortIndexes[1]==Index arrays in sorted order
+				// sortIndexes[0] == keynums in sorted order
+				// sortIndexes[1] == Index arrays in sorted order
 				// address for the closest keynum will be:
-				//sortIndexes[1][sortIndexes[0].indexIn(keyNum)]
+				// sortIndexes[1][sortIndexes[0].indexIn(keyNum)]
 				samplePrep.sample = sampler.samples[sortIndexes[1][sortIndexes[0].indexIn(keyNum)][0]];
 				samplePrep.samplerName = sampler.name;
 				samplePrep.duration = args.dur;
@@ -75,7 +75,7 @@ SamplerQuery {
 				samplePrep.midiChannel = args.midiChannel;
 
 
-				sampleList = sampleList.add(samplePrep)
+				sampleList = sampleList.add(samplePrep);
 			};
 
 
@@ -189,12 +189,18 @@ SamplerQuery {
 
 
 					//pitch bendenv adjustments
+					//the math is not correct in this version, need to be fixed
 					//variation with n in the front means "normalized"
 					if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
 					{
 						var rBendEnv = args.bendenv.asEnv.reciprocal;
+						var bend = args.bendenv.asEnv;
 						//wait time equals to the integral of reciprocal bend envelope of the waiting time
 						thisSample.wait = (rBendEnv.integral(nElapsed + nWait) - rBendEnv.integral(nElapsed)) * rBendEnv.copy.duration_(globalDur).integral;
+
+						//brute force intergal, still not working
+						//thisSample.wait = (bend.reciprocalIntegral(nElapsed + nWait) - bend.reciprocalIntegral(nElapsed)) * bend.copy.duration_(globalDur).reciprocalIntegral;
+
 						//local bend envelope for each sound
 						thisSample.bendenv = args.bendenv.asEnv.subEnv(nElapsed + nWait, nDur).asArray;
 
@@ -406,7 +412,7 @@ SamplerQuery {
 			},
 
 			//expand shorter sample to fit the largest sample
-			\stratchshort,{
+			\stretchshort,{
 				var globalAttackDur = playSamples.collect({|thisSample, index| thisSample.sample.attackDur[thisSample.section]}).maxItem;
 				var waittime = syncmode.asArray[1] ? 0;
 				var startpos = 0;
