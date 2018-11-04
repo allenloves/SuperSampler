@@ -43,6 +43,7 @@ Quarks.install("https://github.com/allenloves/SuperSampler");
 ```
 
 **Fix the UnitTesting Bug**
+
 UnitTesting is installed along with KDTree Quark while SuperSampler is installed. However it has not updated with new version of SuperCollider for a while which caused a compatibility issue.  To solve this, go to your downloaded-quarks/UnitTesting folder and delete everything inside.  You will be good to go. 
 
 
