@@ -9,9 +9,6 @@ SuperSampler is a sampler synthesizer project on SuperCollider.  The sampler is 
 * First, make sure you have installed SC3 plugins:  
 https://github.com/supercollider/sc3-plugins
 
-* SuperSampler is using SCMIR to extract data form sampled sounds.  Download SCMIR at:  
-http://composerprogrammer.com/code.html  
-unzip, and put it under ~/Library/Application Supprt/SuperCollider/Extensions/
 
 <!---
 * **Fix SCMIR Bug:** 
@@ -29,9 +26,11 @@ cmd = program + "-V -2 -N" + oscFilePath.quote  // Change the lower-case v to ca
 ```
 -->
 
-* Also, SuperSampler is depended on wslib Quark, it should be automatically installed when you install the SuperSampler Quark.  If somehow it doesn't happen, type:  
+* Also, SuperSampler is depended on wslib, KDTree, and SCMIRExtensions Quarks, it should be automatically installed when you install the SuperSampler Quark.  If somehow it doesn't happen, type:  
 ```supercollider
 Quarks.install("https://github.com/supercollider-quarks/wslib");
+Quarks.install("https://github.com/supercollider-quarks/KDTree");
+Quarks.install("https://github.com/allenloves/SCMIRExtensions");
 ```
 
 ### Install SuperSampler
@@ -46,4 +45,8 @@ Quarks.install("https://github.com/allenloves/SuperSampler");
 
 UnitTesting is installed along with KDTree Quark while SuperSampler is installed. However it has not updated with new version of SuperCollider for a while which caused a compatibility issue.  To solve this, go to your downloaded-quarks/UnitTesting folder and delete everything inside.  You will be good to go. 
 
+
+**SCMIR**
+
+If you have already installed SCMIR in your extension folder, please remove the SCMIRExtensions quark.
 
