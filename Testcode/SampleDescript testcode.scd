@@ -23,11 +23,11 @@ d.activeBuffer.size;
 
 d.activeEnv.size;
 
-SCMIR.hoptime;
+SS_SCMIR.hoptime;
 
 d.sectionBreakPoint;
 d.rmsData.maxIndex;
-d.rmsData.maxIndex * SCMIR.hoptime;
+d.rmsData.maxIndex * SS_SCMIR.hoptime;
 d.rmsData.plot;
 
 ////////////////////////////////////////////////////////////////////
@@ -38,7 +38,7 @@ a.filename;
 a.duration;
 a.play;
 a.play(0);
-a.free;
+//a.free;
 
 a.numChannels; // This is a mono file
 a.buffer; // Buffer is stored in an array of each mono channels
@@ -56,19 +56,19 @@ a.peakIndex;
 a.peakAmp;
 
 a.startIndex
-a.startIndex * SCMIR.framehop / a.sampleRate;
-a.startIndex *SCMIR.hoptime;
+a.startIndex * SS_SCMIR.framehop / a.sampleRate;
+a.startIndex *SS_SCMIR.hoptime;
 a.startTime;
 
 //values below are supposed to be all equal
-(a.activeRMSData[0].size - 1) * SCMIR.hoptime;
+(a.activeRMSData[0].size - 1) * SS_SCMIR.hoptime;
 a.activeBuffer[0].duration;
 a.activeDuration;
 a.endTime-a.startTime;
 a.attackDur+a.releaseDur;
 
 
-a.endIndex * SCMIR.hoptime;
+a.endIndex * SS_SCMIR.hoptime;
 a.endTime;
 
 a.env.plot;
@@ -129,7 +129,7 @@ g = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/3-04 Impacts-
 g.arEnv(startThresh: 0.05, endThresh: 0.05);
 g.keynum;
 g.play;
-g.play(0);
+g.play(7);
 g.rmsData.plot;
 g.numChannels;
 g.mfcc.size;
@@ -146,7 +146,6 @@ g.centroidData;
 g.temporalCentroid;
 g.activeCentroidData.plot;
 g.activeDissonanceData.plot;
-g.getKeyNum;
 g.keynumFromPitchFound;
 g.keynumFromFileName;
 g.keynum;

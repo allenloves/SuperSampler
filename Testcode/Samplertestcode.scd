@@ -18,6 +18,8 @@ t.key(0, amp: 2.5);
 Sampler(\tublar).key;
 
 
+SS_SCMIR.framehop;
+
 // play a chord with an array
 t.key([30, 40, 50, 60, 70, 80]);
 t.key([30, 40, 50, 60, 70, 80], \nosorting);

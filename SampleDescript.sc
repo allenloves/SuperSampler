@@ -113,11 +113,11 @@ SampleDescript{
 		soundFile.readData(soundFileArray);
 		sampleRate = soundFile.sampleRate;
 		numChannels = soundFile.numChannels;
-		hoptime = SCMIR.framehop/sampleRate;
+		hoptime = SS_SCMIR.framehop/sampleRate;
 
 
 		//file = SCMIRAudioFile(filename, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
-		file = SCMIRAudioFile(filename, [[\Tartini, 0], \SpecCentroid, \SpecFlatness, [\MFCC, 13]], normtype, start, dur);
+		file = SS_SCMIRAudioFile(filename, [[\Tartini, 0], \SpecCentroid, \SpecFlatness, [\MFCC, 13]], normtype, start, dur);
 
 		file.extractFeatures(normalize);
 		file.extractOnsets();
@@ -136,14 +136,14 @@ SampleDescript{
 		dissonanceData = mirDataByFeatures[4];
 		*/
 
-		rmsData = soundFileArray.rms(SCMIR.framehop * soundFile.numChannels); //average multiple channel sounds
+		rmsData = soundFileArray.rms(SS_SCMIR.framehop * soundFile.numChannels); //average multiple channel sounds
 		pitchData = [mirDataByFeatures[0], mirDataByFeatures[1]].flop;
 		centroidData = mirDataByFeatures[2];
 		noiseData = mirDataByFeatures[3];
 		mfccData = mirDataByFeatures[4..17].flop;
 
 
-		frameTimes = file.frameTimes * SCMIR.samplingrate / sampleRate;
+		frameTimes = file.frameTimes * SS_SCMIR.samplingrate / sampleRate;
 
 
 		this.getOnsetTime(groupingThresh);
@@ -280,8 +280,8 @@ SampleDescript{
 				//load each sections into sub buffers
 				startIndex.do{|thisSectionStartIndex, sectionIndex|
 					var monoBufArray = [];
-					startSample = thisSectionStartIndex * SCMIR.framehop;
-					durSample = (activeRMSData[sectionIndex].size - 1) * SCMIR.framehop;
+					startSample = thisSectionStartIndex * SS_SCMIR.framehop;
+					durSample = (activeRMSData[sectionIndex].size - 1) * SS_SCMIR.framehop;
 
 					numChannels.do{|channel|
 						var monoBuf;
@@ -524,8 +524,8 @@ SampleDescript{
 			var thisPeakLevel;
 			var peaksInTheHop = [];
 			soundFileArray.numChannels.do{|channel|
-				var channelPeakPoint = (soundFileArray[channel].abs[peakhop*SCMIR.framehop..(peakhop+1)*SCMIR.framehop].maxIndex)/SCMIR.framehop;
-				var channelPeakLevel = soundFileArray[channel].abs[peakhop*SCMIR.framehop..(peakhop+1)*SCMIR.framehop].maxItem;
+				var channelPeakPoint = (soundFileArray[channel].abs[peakhop*SS_SCMIR.framehop..(peakhop+1)*SS_SCMIR.framehop].maxIndex)/SS_SCMIR.framehop;
+				var channelPeakLevel = soundFileArray[channel].abs[peakhop*SS_SCMIR.framehop..(peakhop+1)*SS_SCMIR.framehop].maxItem;
 				peaksInTheHop = peaksInTheHop.add([channelPeakPoint, channelPeakLevel]);
 			};
 			peaksInTheHop = peaksInTheHop.flop; //[peakPoints, peakLevels]
@@ -684,7 +684,7 @@ SampleDescript{
 		//return an envelope to represent the whole sound file
 	env {
 		var frametimes;
-		frametimes = Array.series(rmsData.size, 0, SCMIR.framehop / sampleRate);
+		frametimes = Array.series(rmsData.size, 0, SS_SCMIR.framehop / sampleRate);
 		^Env.pairs([frametimes, rmsData].flop, \lin).duration_(duration);  // Why is duration adjustment necessary?
 		//^Env.pairs([frameTimes, rmsData].flop, \lin);
 	}
