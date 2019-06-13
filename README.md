@@ -14,7 +14,7 @@ https://github.com/supercollider/sc3-plugins
 https://composerprogrammer.com/code.html
 
 Copy the SCMIRExtentions folder in the .zip file to your SuperCollider extension folder.  Don't copy other folders.
--->
+
 
 <!---
 * **Fix SCMIR Bug:** 
@@ -46,6 +46,5 @@ SuperSampler is now a Quark.  However it not yet published to supercollider-quar
 ```supercollider
 Quarks.install("https://github.com/allenloves/SuperSampler");
 ```
-
 
 
