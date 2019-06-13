@@ -3,7 +3,7 @@
 	path:			"SuperSampler",
 	summary:		"Polyphonic concatenative sampler synthesizer that combineing differnet sounds automatically",
 	author:		"Shu-Cheng Allen Wu",
-	version:		"0.1.2",
+	version:		"0.2.0",
 	helpdoc:		"HelpSource/Classes/Sampler.schelp",
 	dependencies: ["wslib", "KDTree"],
 	url:			"https://github.com/allenloves/SuperSampler"
