@@ -32,11 +32,10 @@ cmd = program + "-V -2 -N" + oscFilePath.quote  // Change the lower-case v to ca
 ```
 -->
 
-* Also, SuperSampler is depended on wslib, KDTree, and SCMIRExtensions Quarks, it should be automatically installed when you install the SuperSampler Quark.  If somehow it doesn't happen, type:  
+* Also, SuperSampler is depended on wslib and KDTree Quarks, it should be automatically installed when you install the SuperSampler Quark.  If somehow it doesn't happen, type:  
 ```supercollider
 Quarks.install("https://github.com/supercollider-quarks/wslib");
 Quarks.install("https://github.com/supercollider-quarks/KDTree");
-Quarks.install("https://github.com/allenloves/SCMIRExtensions");
 ```
 
 ### Install SuperSampler
