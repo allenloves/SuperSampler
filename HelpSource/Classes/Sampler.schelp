@@ -190,6 +190,9 @@ Threshold for starting time detection, it's a multiplier to the peak amplitude o
 ARGUMENT:: endThresh
 Threshold for ending time detection, it's a multiplier to the peak amplitude of this sound sample.
 
+ARGUMENT:: override
+A boolean that determines whether to override samples that has loaded before with the same filename.
+
 ARGUMENT:: action
 A function that triggers after the sampler is loaded.
 
