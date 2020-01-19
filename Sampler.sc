@@ -130,7 +130,7 @@ Sampler {
 
 	//============================
 	//load and analyze sound files
-	load {arg soundfiles, server = this.class.defaultLoadingServer, filenameAsKeynum = false, normalize = false, startThresh=0.01, endThresh=0.01, action = nil;
+	load {arg soundfiles, server = this.class.defaultLoadingServer, filenameAsKeynum = false, normalize = false, startThresh=0.01, endThresh=0.01, override = false, action = nil;
 		averageMFCC = averageMFCC ? Array.fill(13, 0);
 		if(soundfiles.isArray.not){Error("Sound files has to be an array").throw};
 		bufServer = server;
@@ -138,13 +138,21 @@ Sampler {
 			var sample;
 			var dict = Dictionary.newFrom([this.filenames, this.samples].flop.flat);
 			soundfiles.do{|filename, index|
-				if(dict[filename.asSymbol].isNil.not)
+				if(dict[filename.asSymbol].isNil.not && override.not)
 				{
 					//"This file is already loaded, reloading".warn;
 					//dict[filename.asSymbol].free;
-					"This file is already loaded".warn;
+					dict[filename.asSymbol].buffer[0].updateInfo;
+					if(dict[filename.asSymbol].buffer[0].numFrames == 0){
+						"Can't find Buffer data, reloading....".warn;
+						sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: action);
+						dict.put(filename.asSymbol, sample);
+					}
+					{
+						"This file has already loaded.".warn;
+					}
 				}
-				{
+				{//load file
 					sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: action);
 					numActiveBuffer = numActiveBuffer + sample.activeDuration.size;
 					averageDuration = averageDuration + sample.activeDuration.sum;
