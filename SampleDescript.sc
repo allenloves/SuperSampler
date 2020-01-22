@@ -7,6 +7,7 @@
 SampleDescript{
 
 	classvar guiTempFile;
+	classvar <> pitchThresh;
 
 	//raw data
 	var <mirDataByFeatures; //[[RMS], [Pitch], [hasPitch], [centroid], [SensoryDissonance], [SpecFlatness]]
@@ -66,6 +67,14 @@ SampleDescript{
 
 	// Frequency information
 
+
+	*initClass {
+		Platform.case(
+			\osx,       { pitchThresh = 0.9 },
+			\linux,     { pitchThresh = 0.5 },
+			\windows,   { pitchThresh = 0.9 }
+		);
+	}
 
 
 	//parameters
@@ -406,7 +415,7 @@ SampleDescript{
 
 			//find collections of data with pitch
 			pitch.do{|thisPitch, index|
-				if(hasPitch[index] >= 0.9)
+				if(hasPitch[index] >= pitchThresh)
 				{
 				pitchCollection = pitchCollection.add(thisPitch)
 				};
@@ -429,7 +438,7 @@ SampleDescript{
 				};
 
 				pitch.do{|thisPitch, index|
-					if(hasPitch[index] >= 0.9)
+					if(hasPitch[index] >= pitchThresh)
 					{
 						pitchCollection = pitchCollection.add(thisPitch)
 					};
@@ -439,7 +448,7 @@ SampleDescript{
 
 			//if no pitch data is collected, than use centroid data for pitch
 			//if there are pitch data collected, get the most occurred data for keynum
-			if(pitchCollection.size == 0 || pitchCollection.occurrencesArray(0.5).maxItem == 1)
+			if((pitchCollection.size == 0) || (pitchCollection.occurrencesArray(0.5).maxItem == 1))
 			{keynumFromPitchFound = keynumFromPitchFound.add((centroidData[thisPeakIndex] ? centroidData[centroidData.size-1]).explin(20, 20000, 28, 103) - 12); // an octave lower to map to the range of my keyboard :p
 			"no pitch detected, using centorid".postln;}
 			{keynumFromPitchFound = keynumFromPitchFound.add(pitchCollection.mostOccurredItems(0.5).mean)};
