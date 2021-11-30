@@ -131,8 +131,8 @@ Sampler {
 	//============================
 	//load and analyze sound files
 	load {arg soundfiles, server = this.class.defaultLoadingServer, filenameAsKeynum = false, normalize = false, startThresh=0.01, endThresh=0.01, override = false, action = nil;
-		averageMFCC = averageMFCC ? Array.fill(13, 0);
 		if(soundfiles.isArray.not){Error("Sound files has to be an array").throw};
+		averageMFCC = averageMFCC ? Array.fill(13, 0);
 		bufServer = server;
 		fork{
 			var sample;

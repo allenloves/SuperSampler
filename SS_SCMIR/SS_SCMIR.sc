@@ -25,7 +25,7 @@ SS_SCMIR {
 		hoptime = framerate.reciprocal;
 
 		//		if (( Main.scVersionMajor == 3) && (Main.scVersionMinor<5)) {
-		//			executabledirectory = SCMIR.filenameSymbol.asString.dirname.escapeChar($ )++"/scmirexec/";
+		//			executabledirectory = SS_SCMIR.filenameSymbol.asString.dirname.escapeChar($ )++"/scmirexec/";
 		//
 		//		}
 
@@ -34,9 +34,9 @@ SS_SCMIR {
 
 
 
-		//tempdir = SCMIR.filenameSymbol.asString.dirname++"/scmirtemp/";
+		//tempdir = SS_SCMIR.filenameSymbol.asString.dirname++"/scmirtemp/";
 
-		tempdir = "/tmp/";	//user should always have write permission here?
+		tempdir = Platform.defaultTempDir;	//user should always have write permission here?
 
 		SS_SCMIR.initGlobalFeatureNorms;
 
