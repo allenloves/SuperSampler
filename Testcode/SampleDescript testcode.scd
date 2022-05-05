@@ -7,6 +7,7 @@ w = SampleDescript.gui;
 
 ///////////////////////////////////////////////////////
 d = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Nickel 2.wav");
+d.gui;
 d.peakAmp;
 d.globalPeakAmp;
 d.rmsData.maxIndex;

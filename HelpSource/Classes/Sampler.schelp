@@ -68,6 +68,8 @@ The strategy to syncronize different samples:
 
 [\parkat, time]: the peak point of the sound will be set to the scheduled time.
 
+\stretchshort: stretch each shorter samples to fit the longest sample duration.
+
 \nosorting:  just play every sample as it is, like conventional sampler synthesizer.
 
 ARGUMENT:: dur
@@ -265,7 +267,7 @@ Sampler(\reel).key(40, dur: 0.3);
 Sampler(\reel).key([30, 40, 50, 60, 70]);
 Sampler(\reel).key([70, 30, 50, 40, 60], [\peakat, 3]);
 Sampler(\reel).key([30, 40, 50, 60, 70], \percussive);
-Sampler(\reel).key([70, 30, 50, 40, 60], \stratchshort);
+Sampler(\reel).key([70, 30, 50, 40, 60], \stretchshort);
 Sampler(\reel).key([30, 40, 50, 60, 70], \nosorting);
 
 

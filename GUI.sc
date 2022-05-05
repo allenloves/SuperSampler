@@ -243,7 +243,7 @@
 	}//*gui
 
 	gui {
-		this.class.gui(this, this.filename, true);
+		this.class.gui(this, this.filename, false);
 	}
 
 }
