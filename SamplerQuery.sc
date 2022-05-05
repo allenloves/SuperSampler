@@ -373,26 +373,27 @@ SamplerQuery {
 				var waittime = syncmode.asArray[1] ? 0;
 				args.globalAttackDur = 0;
 				args.globalDur = args.globalReleaseDur;
+				Routine.run{
+					playSamples.do{|thisSample, index|
+						var thisPeakTime;
+						var nDur = thisSample.duration / globalDur;
 
-				playSamples.do{|thisSample, index|
-					var thisPeakTime;
-					var nDur = thisSample.duration / globalDur;
+						thisPeakTime = thisSample.sample.attackDur[thisSample.section];
 
-					thisPeakTime = thisSample.sample.attackDur[thisSample.section];
-
-					thisSample.position = (thisPeakTime-0.01).thresh(0);
-					thisSample.wait = waittime;
-					waittime = 0;
-					thisSample.expand = args.expand;
-					thisSample.bendenv = args.bendenv;
-					thisSample.ampenv = args.ampenv.asEnv.subEnv(0, nDur).stretch.asArray;
-					thisSample.panenv = args.panenv.asEnv.subEnv(0, nDur).stretch.asArray;
+						thisSample.position = (thisPeakTime-0.01).thresh(0);
+						thisSample.wait = waittime;
+						thisSample.expand = args.expand;
+						thisSample.bendenv = args.bendenv;
+						thisSample.ampenv = args.ampenv.asEnv.subEnv(0, nDur).stretch.asArray;
+						thisSample.panenv = args.panenv.asEnv.subEnv(0, nDur).stretch.asArray;
 
 
-					//adjust for pitchbendenv
-					if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0]){
-						thisSample.bendenv = args.bendenv.asEnv.subEnv(0, nDur).asArray;
-					};
+						//adjust for pitchbendenv
+						if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0]){
+							thisSample.bendenv = args.bendenv.asEnv.subEnv(0, nDur).asArray;
+						};
+						waittime = 0;
+					}
 				}
 			},
 
