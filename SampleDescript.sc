@@ -1,6 +1,5 @@
-//Sample Descripter By Allen Wu
+//Sample Descripter By Allen SC Wu
 //Extra classes requirements: wslib Quark.
-//SampleAnalyse is using SCMIR.  Make sure you have SCMIR installed in your SuperCollider extensions.  http://composerprogrammer.com/code.html
 
 
 
@@ -27,6 +26,7 @@ SampleDescript{
 	var <file;  //An SCMIRAudioFile.
 	var <filename;
 	var <sampleRate;
+	var <numSamples;
 	var <numChannels;
 	var <bufferServer;
 	var <buffer;
@@ -40,7 +40,8 @@ SampleDescript{
 	//****** global description *****
 	// time domain
 	var <duration;  //Total duration of sound file.
-	var <sectionBreakPoint;  //Trough (lowest) point in between onsets.
+	var <numFrames;
+	var <sectionBreakPoint;  //nadir (lowest) point in between onsets.
 	var <globalPeakIndex;
 	var <globalPeakAmp;  //Amplitude at RMS peak point.
 	var <globalPeakTime;  //Time on the peak point.
@@ -65,7 +66,10 @@ SampleDescript{
 	var <temporalCentroid; // Shorter value indicates percussive sounds, longer value indicates sustained sounds.
 	var <activeEnv;
 
-	// Frequency information
+	// Information for Debugging
+	var <soundFile;
+	var <soundFileArray;
+
 
 
 	*initClass {
@@ -86,7 +90,7 @@ SampleDescript{
 
 	init {|fileName, normtype, start, dur, startThresh, endThresh, onsetThresh, groupingThresh, filenameAsNote, loadToBuffer, normalize, server, action|
 		var cond = Condition.new(false);
-		var soundFile, soundFileArray;
+		//var soundFile, soundFileArray;
 
 		buffer = [];
 		server.postln;
@@ -117,20 +121,20 @@ SampleDescript{
 		{Error("File % could not be found".format(fileName)).throw}
 		{filename = fileName;};
 
-		soundFile = SoundFile.openRead(filename);
-		soundFileArray = FloatArray.newClear(soundFile.numFrames*soundFile.numChannels);
-		soundFile.readData(soundFileArray);
-		sampleRate = soundFile.sampleRate;
-		numChannels = soundFile.numChannels;
-		hoptime = SS_SCMIR.framehop/sampleRate;
-
-
-		//file = SCMIRAudioFile(filename, [\RMS, [\Tartini, 0], \SpecCentroid, \SensoryDissonance, \SpecFlatness], normtype, start, dur);
-		file = SS_SCMIRAudioFile(filename, [[\Tartini, 0], \SpecCentroid, \SpecFlatness, [\MFCC, 13]], normtype, start, dur);
+		file = SS_SCMIRAudioFile(filename, [[\Tartini, 0], \SpecCentroid, \SpecFlatness, [\MFCC, 13], \RMS], normtype, start, dur);
 
 		file.extractFeatures(normalize);
 		file.extractOnsets();
 
+		soundFile = SoundFile.openRead(filename);
+		//soundFile = SS_SCMIR.soundfile;
+		soundFileArray = FloatArray.newClear(soundFile.numFrames * soundFile.numChannels);
+		soundFile.readData(soundFileArray);
+		sampleRate = soundFile.sampleRate;
+		numChannels = soundFile.numChannels;
+		numSamples = soundFile.numFrames;
+		hoptime = SS_SCMIR.hoptime;
+		globalPeakAmp = soundFileArray.abs.maxItem;
 
 
 		//get data from SCMIR
@@ -145,21 +149,25 @@ SampleDescript{
 		dissonanceData = mirDataByFeatures[4];
 		*/
 
-		rmsData = soundFileArray.rms(SS_SCMIR.framehop * soundFile.numChannels); //average multiple channel sounds
+		//rmsData = soundFileArray.rms(hoptime * soundFile.numChannels); //average multiple channel sounds
 		pitchData = [mirDataByFeatures[0], mirDataByFeatures[1]].flop;
 		centroidData = mirDataByFeatures[2];
 		noiseData = mirDataByFeatures[3];
-		mfccData = mirDataByFeatures[4..17].flop;
+		mfccData = mirDataByFeatures[4..16].flop;
+		rmsData = mirDataByFeatures[17];
 
-
-		frameTimes = file.frameTimes * SS_SCMIR.samplingrate / sampleRate;
+		frameTimes = file.frameTimes;// (* SS_SCMIR.samplingrate / sampleRate);
+		numFrames = frameTimes.size;
 
 
 		this.getOnsetTime(groupingThresh);
 		this.getOnsetIndex;
 		this.findBreakPointByOnsets;
+		this.cleanBreakPointByOnsets(0.2); // clear unnecessary breakpoints
+		this.sectionRmsDataByBreakPoint;
 		this.findPeaksByOnsets;
-		this.sectionRmsDataByOnset;
+
+		this.arEnv(startThresh, endThresh);
 		this.getActiveEnv(startThresh, endThresh);
 		this.getActiveData;
 		this.getKeynum(filenameAsNote);
@@ -168,14 +176,12 @@ SampleDescript{
 		if(loadToBuffer)
 		{
 			server.waitForBoot{
-			this.loadToBuffer(bufferServer, action: action)};
+				this.loadToBuffer(bufferServer, action: action)};
 		}
 		{
 			action.value;
 		};
 
-
-		// }
 	}
 
 	free {
@@ -469,7 +475,7 @@ SampleDescript{
 	//Separate sound file into recognizable sound sections if exist.
 	//Here is how it works:
 	//1. Find out onsets in this sound file using SCMIR onset data.
-	//2. Find section breaking point based on the RMS trough point inbetween each onsets.
+	//2. Find section breaking point based on the RMS nadir point inbetween each onsets.
 	//3. Find peak point inbetween each sections.
 	//4. Find attact and ending point from the peak point using fixed threshold method.
 
@@ -478,7 +484,7 @@ SampleDescript{
 	getOnsetTime {|groupingThresh = 0.32|
 		var onsets = [file.onsetdata[0]];
 		file.onsetdata.doAdjacentPairs({|thisOnset, nextOnset|
-			//filter onsets too close
+			//filter onsets if they are too close
 			if((nextOnset - thisOnset) > groupingThresh, {onsets = onsets.add(nextOnset)});
 		});
 		if(onsets[0].isNil){onsets[0] = 0};
@@ -493,20 +499,32 @@ SampleDescript{
 
 
 
-	//Find breakpoint of a sample file by onsets.
-	//using lowest point in between onsets to be section breakpoints.
+	// Find breakpoint of a sample file by onsets.
+	// using lowest point in between onsets to be section breakpoints.
 	findBreakPointByOnsets {
-		var troughArray = [];
+		var nadirArray = [];
 		sectionBreakPoint = [];
 		onsetIndex.do{|thisOnset, index|
 			var previousOnset = onsetIndex[index - 1];
-			troughArray = troughArray.add(rmsData[previousOnset..thisOnset].lastMinIndex + (previousOnset ?? 0));
+			nadirArray = nadirArray.add(rmsData[previousOnset..thisOnset].lastMinIndex + (previousOnset ?? 0));
 		};
-		sectionBreakPoint = troughArray;
+		sectionBreakPoint = nadirArray;
 	}
 
+	// Remove breakpoints if the peak amplitude inside the section does not reach the threshold
+	// preset to 0.2 of global peak amplitude
+	cleanBreakPointByOnsets{|thresh = 0.2|
+		var sectionSampleIndex = (sectionBreakPoint * hoptime * sampleRate * numChannels).asInteger;
+		sectionBreakPoint = sectionBreakPoint.select({|thisSection, index|
+			var thisSectionSampleIndex = sectionSampleIndex[index];
+			var nextSectionSampleIndex = sectionSampleIndex[index+1];
+			soundFileArray[thisSectionSampleIndex..nextSectionSampleIndex].abs.maxItem > (globalPeakAmp * thresh);
+		})
+	}
+
+
 	//Separate rmsData into subsections by breakpoints.
-	sectionRmsDataByOnset {
+	sectionRmsDataByBreakPoint {
 		var output = [];
 		rmsDataBySection = [];
 		sectionBreakPoint.do{|thisSection, index|
@@ -520,41 +538,42 @@ SampleDescript{
 	//find local peaks in the section breakpoint
 	findPeaksByOnsets {
 		var peakArray = [], peakAmpArray = [];
-		var soundFile = SoundFile.openRead(filename);
-		var soundFileArray = FloatArray.newClear(soundFile.numFrames*soundFile.numChannels);
+		var soundArrayByChannels;
 		peakIndex = [];
 		peakTime = [];
 		peakAmp = [];
-		soundFile.readData(soundFileArray);
-		soundFileArray = soundFileArray.clump(soundFile.numChannels).flop; //[[channel 1], [channel 2],....]
+		soundArrayByChannels = soundFileArray.clump(numChannels).flop; //[[channel 1], [channel 2],....]
 		sectionBreakPoint.do{|thisSection, index|
 			var nextSection = sectionBreakPoint[index + 1];
-			var peakhop = rmsData[thisSection..nextSection].maxIndex + thisSection; //find the biggest rms session
-			var thisPeakLevel;
+			var peakhop = rmsDataBySection[index].maxIndex + thisSection; //find the biggest rms session
 			var peaksInTheHop = [];
-			soundFileArray.numChannels.do{|channel|
-				var channelPeakPoint = (soundFileArray[channel].abs[peakhop*SS_SCMIR.framehop..(peakhop+1)*SS_SCMIR.framehop].maxIndex)/SS_SCMIR.framehop;
-				var channelPeakLevel = soundFileArray[channel].abs[peakhop*SS_SCMIR.framehop..(peakhop+1)*SS_SCMIR.framehop].maxItem;
+			//find detailed peak time and level
+			numChannels.do{|channel|
+				var channelPeakPoint = (soundArrayByChannels[channel].abs[peakhop*SS_SCMIR.framehop..(peakhop+1)*SS_SCMIR.framehop].maxIndex)/SS_SCMIR.framehop;
+				var channelPeakLevel = soundArrayByChannels[channel].abs[peakhop*SS_SCMIR.framehop..(peakhop+1)*SS_SCMIR.framehop].maxItem;
 				peaksInTheHop = peaksInTheHop.add([channelPeakPoint, channelPeakLevel]);
 			};
 			peaksInTheHop = peaksInTheHop.flop; //[peakPoints, peakLevels]
 			peakAmpArray = peakAmpArray.add(peaksInTheHop[1].maxItem);
 			peaksInTheHop = peaksInTheHop[0][peaksInTheHop[1].maxIndex];
 			peakArray = peakArray.add(peakhop + peaksInTheHop);
-
 		};
 
-		globalPeakAmp = peakAmpArray.maxItem;
+
+		//globalPeakAmp = peakAmpArray.maxItem;
+/*
+		// remove sections if the section peak amplitude is below 10% to the global peak
 		peakIndex = peakArray.select({|item, i| peakAmpArray[i] > (globalPeakAmp * 0.1)});
 		sectionBreakPoint = sectionBreakPoint.select({|item, i| peakAmpArray[i] > (globalPeakAmp * 0.1)});
 		peakAmp = peakAmpArray.select({|item, i| item > (globalPeakAmp * 0.1)});
+*/
 
+		peakIndex = peakArray;
+		peakAmp = peakAmpArray;
 		globalPeakIndex = peakIndex[peakAmpArray.maxIndex];
 		globalPeakTime = peakTime[peakAmpArray.maxIndex];
 
-
 		peakTime = peakIndex * hoptime;
-
 
 	}
 
@@ -702,13 +721,12 @@ SampleDescript{
 	//return an array of envelopes to represent each onsets.
 	getActiveEnv {|startThresh=0.01, endThresh=0.01|
 		var envArray = [];
-		this.arEnv(startThresh, endThresh);
 		rmsDataBySection.do{|thisSection, sectionIndex|
 			var activeFrameTimes;
 			var activeRmsData;
-			activeFrameTimes = frameTimes[startIndex[sectionIndex]..endIndex[sectionIndex]] - frameTimes[startIndex[sectionIndex]];
-			activeRmsData = rmsData[startIndex[sectionIndex]..endIndex[sectionIndex]];
-			envArray = envArray.add(Env.pairs([activeFrameTimes, activeRmsData].flop, \lin));
+			// activeFrameTimes = frameTimes[startIndex[sectionIndex]..endIndex[sectionIndex]] - frameTimes[startIndex[sectionIndex]];
+			// activeRmsData = rmsData[startIndex[sectionIndex]..endIndex[sectionIndex]];
+			// envArray = envArray.add(Env.pairs([activeFrameTimes, activeRmsData].flop, \lin));
 		};
 		activeEnv = envArray;
 	}

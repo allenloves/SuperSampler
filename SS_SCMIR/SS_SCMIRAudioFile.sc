@@ -139,7 +139,7 @@ SS_SCMIRAudioFile {
 
 			basename= basename.copyRange(0,basename.findBackwards(".")-1);
 
-			},{
+			},{// File Path not valid
 
 				["SCMIRAudioFile: soundfile failed to load, wrong path?",filename].postln;
 		});
