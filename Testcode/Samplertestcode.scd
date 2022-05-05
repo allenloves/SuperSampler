@@ -128,7 +128,7 @@ t.playEnv(~cageenv, {rrand(100, 127.0)});
 /////////////////////////////////////////////////////////////////////////////
 (
 s.waitForBoot{
-f = Sampler(\cage, \speak).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/cage.wav"]);
+f = SSampler(\cage, \speak).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/cage.wav"]);
 };
 )
 
@@ -187,7 +187,7 @@ f.playEnv(~cageenv, {[20, 30, 40, 50, 60, 70, 80, 90, 100].choose});
 (
 s.waitForBoot{
 	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff").pathMatch;
-	g = Sampler(\reel).load(a);
+	g = SSampler(\reel).load(a);
 }
 )
 
@@ -253,7 +253,7 @@ f.samples[0].play;
 (
 s.waitForBoot{
 	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Nickel 2.wav").pathMatch;
-	i = Sampler(\nickel).load(a);
+	i = SSampler(\nickel).load(a);
 }
 )
 
@@ -273,7 +273,7 @@ i.averageTemporalCentroid;
 x = i.key({rrand(10, 30)});
 x.keynums;
 
-Sampler.playArgs(x);
+SSampler.playArgs(x);
 
 i.key([10, 40], expand: 60, ampenv: ~cageenv.normalize);
 
@@ -320,7 +320,7 @@ SamplerDB(\default).playEnv(Env());
 
 (
 SamplerDB(\default).playEnv(env: ~cageenv, samplerThickness: 7, morph: [2, 0]);
-Sampler(\cage).samples[0].play;
+SSampler(\cage).samples[0].play;
 )
 
 ~cageenv.peakTime;
