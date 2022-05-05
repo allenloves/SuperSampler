@@ -5,7 +5,7 @@
 
 
  //instance of Sampler is a database of multiple SampleDescript
-Sampler {
+SSampler {
 
 	classvar < allSampler;
 	classvar <> defaultTexture;

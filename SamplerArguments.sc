@@ -79,7 +79,7 @@ SamplerArguments{
 		this.out = out ? this.out;
 		this.midiChannel = midiChannel ? this.midiChannel;
 		// this.env = env.value ? this.env;
-		this.texture = texture.value ? Sampler.defaultTexture;
+		this.texture = texture.value ? SSampler.defaultTexture;
 		// this.morphNum = morph.asArray[0] ? this.morphNum;
 		// this.morphCrossfade = morph.asArray[1] ? this.morphCrossfade;
 		// this.morphMode = morph.asArray[2] ? this.morphMode;

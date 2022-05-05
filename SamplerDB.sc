@@ -182,7 +182,7 @@ SamplerDB{
 		};
 		args.getGlobalDur;
 
-		if(play){Sampler.playArgs(args)};
+		if(play){SSampler.playArgs(args)};
 
 		^args;
 	}

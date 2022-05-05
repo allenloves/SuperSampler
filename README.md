@@ -2,6 +2,10 @@
 SuperSampler is a sampler synthesizer project on SuperCollider.  The sampler is applying audio content analysis techniques to make decisions on sample processing.
 
 
+## IMPORTNAT!!! Changing name space.
+The Sampler class is now named SSampler in order to free the namespace for others who wish to write their own sampler synthesizer.
+Please search and replace all in your code.  Sorry for the inconvenience.
+
 ## Install
 
 ### Install Dependences

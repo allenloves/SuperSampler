@@ -1,7 +1,7 @@
 (
 s.waitForBoot{
 	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
-	t = Sampler(\tublar).load(a, filenameAsKeynum: true);
+	t = SSampler(\tublar).load(a, filenameAsKeynum: true);
 }
 )
 

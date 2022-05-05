@@ -255,7 +255,7 @@
 // GUI for Sampler
 // Provides loading and assinging pitches to samples
 //********************
-+ Sampler {
++ SSampler {
 
 	gui {
 		var win, column;
@@ -267,7 +267,7 @@
 
 
 
-		win = Window.new(("Sampler__" ++ this.name).asString, Rect(140, 800, 1100, 900), scroll: true)
+		win = Window.new(("SSampler__" ++ this.name).asString, Rect(140, 800, 1100, 900), scroll: true)
 		.front.alwaysOnTop_(true)
 		.background_(colorSet1[4])
 		;
