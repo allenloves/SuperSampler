@@ -1,4 +1,4 @@
-TITLE:: Sampler
+TITLE:: SSampler
 summary:: A sampler synthesizer that knows what it's doing.
 categories:: SuperSampler
 related:: Classes/SampleDescript, Classes/SamplerDB
@@ -16,7 +16,7 @@ For example, it detects the beginning of your sound samples, if there are more t
 CLASSMETHODS::
 
 METHOD:: new
-Create a new Sampler.
+Create a new SSampler.
 
 ARGUMENT:: samplerName
 Name of Sampler.
@@ -24,7 +24,7 @@ Name of Sampler.
 ARGUMENT:: dbname
 Name of Sampler database.  Each database may contain different Sampler libraries.
 
-returns:: this Sampler
+returns:: this SSampler
 
 METHOD:: allSampler
 Returns a dictionary of all samplers created.
@@ -39,13 +39,13 @@ INSTANCEMETHODS::
 
 
 METHOD:: init
-Create a new Sampler and add it to SamplerDB.
+Create a new SSampler and add it to SamplerDB.
 
 ARGUMENT:: samplerName
-Name of Sampler.
+Name of SSampler.
 
 ARGUMENT:: dbname
-Name of SamplerDB this Sampler belongs to.  If the name of SamplerDB is not created, it will create a new SamplerDB class.
+Name of SamplerDB this SSampler belongs to.  If the name of SamplerDB is not created, it will create a new SamplerDB class.
 
 returns:: (describe returnvalue here)
 
@@ -120,16 +120,16 @@ returns:: a instance of SamplerArguments class
 
 
 METHOD:: db
-Return an array of Samplers in the same SamplerDB database
+Return an array of SSamplers in the same SamplerDB database
 
 ARGUMENT:: samplerName
-The name of the Sampler to return.
+The name of the SSampler to return.
 
-returns:: a Sampler with the name, or a list of Samplers if not specified.
+returns:: a SSampler with the name, or a list of SSamplers if not specified.
 
 
 METHOD:: filenames
-Get filenames loaded to this Sampler.
+Get filenames loaded to this SSampler.
 returns:: An array of filenames.
 
 
@@ -137,7 +137,7 @@ returns:: An array of filenames.
 METHOD:: setKeyRanges
 Reset range response to each key related to the anchor key number.
 
-In Sampler, every loaded sound files is anchored to a MIDI key number.
+In SSampler, every loaded sound files is anchored to a MIDI key number.
 When the method .key is used, a range of MIDI key numbers are determined for each sampler to respond to the key number played.
 
 ARGUMENT:: strategy
@@ -157,6 +157,9 @@ Anchor key numbers for each sample.
 
 returns:: An array of key numbers setted as anchor for each sample in the list.
 
+METHOD:: gui
+Opens a gui window, for now you can listen to each sample in the sampler independently, set the anchor key number and response range of each sample.
+
 
 METHOD:: samples
 All samples are stored here.  Samples in SuperSampler is stored as classs of SampleDescript.
@@ -166,7 +169,7 @@ returns:: An array of SampleDescript classes.
 
 
 METHOD:: dbs
-The database storing this Sampler.  The name \default is assigned if not specified.
+The database storing this SSampler.  The name \default is assigned if not specified.
 
 returns:: A SamplerDB class.
 
@@ -218,7 +221,7 @@ ARGUMENT:: args
 A SamplerArguments to play;
 
 METHOD:: playEnv
-The Sampler will fit it's sound into the provided Envelope automatically.
+The SSampler will fit it's sound into the provided Envelope automatically.
 
 ARGUMENT:: env
 The amplitude envelope to play. It can be an instance of Env class or an breakpoint envelope, such as [x1, y1, x2, y2, ..]
@@ -253,48 +256,48 @@ code::
 //Sound files to load has to be in an array.
 (
 s.waitForBoot{
-	Sampler(\reel).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff"]);
+	SSampler(\reel).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff"]);
 }
 )
 
-Sampler(\reel).key;  //play a random keynote
-Sampler(\reel).key(40);
+SSampler(\reel).key;  //play a random keynote
+SSampler(\reel).key(40);
 
-Sampler(\reel).key(40, dur: 0.3);
+SSampler(\reel).key(40, dur: 0.3);
 
 
 //play chord with different strategies
-Sampler(\reel).key([30, 40, 50, 60, 70]);
-Sampler(\reel).key([70, 30, 50, 40, 60], [\peakat, 3]);
-Sampler(\reel).key([30, 40, 50, 60, 70], \percussive);
-Sampler(\reel).key([70, 30, 50, 40, 60], \stretchshort);
-Sampler(\reel).key([30, 40, 50, 60, 70], \nosorting);
+SSampler(\reel).key([30, 40, 50, 60, 70]);
+SSampler(\reel).key([70, 30, 50, 40, 60], [\peakat, 3]);
+SSampler(\reel).key([30, 40, 50, 60, 70], \percussive);
+SSampler(\reel).key([70, 30, 50, 40, 60], \stretchshort);
+SSampler(\reel).key([30, 40, 50, 60, 70], \nosorting);
 
 
 // Loading multiple sounds into one Sampler
 (
 s.waitForBoot{
 	var tub = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
-	Sampler(\tublar).load(tub, filenameAsKeynum: true);  //using filename as anchored pitch
+	SSampler(\tublar).load(tub, filenameAsKeynum: true);  //using filename as anchored pitch
 }
 )
 
-Sampler(\tublar).key;
+SSampler(\tublar).key;
 
-Sampler(\tublar).key(30);
-Sampler(\tublar).key(-60); //negative number plays the sound backward.
-Sampler(\tublar).key([-60, 60]);
-Sampler(\tublar).key([-60, 60], [\peakat, 6]);
-Sampler(\tublar).key([-60, 60], [\peakat, 1]);
+SSampler(\tublar).key(30);
+SSampler(\tublar).key(-60); //negative number plays the sound backward.
+SSampler(\tublar).key([-60, 60]);
+SSampler(\tublar).key([-60, 60], [\peakat, 6]);
+SSampler(\tublar).key([-60, 60], [\peakat, 1]);
 
-Sampler(\tublar).key([-60, 60], panenv: Env([-1, 1, -1]));
-Sampler(\tublar).key([-60, 60], panenv: [0, -1, 0.5, 1, 1, -1]); //same as the env above
+SSampler(\tublar).key([-60, 60], panenv: Env([-1, 1, -1]));
+SSampler(\tublar).key([-60, 60], panenv: [0, -1, 0.5, 1, 1, -1]); //same as the env above
 
-Sampler(\tublar).key([-60, 60], ampenv: Env([3, 1, 3]));
+SSampler(\tublar).key([-60, 60], ampenv: Env([3, 1, 3]));
 
-Sampler(\tublar).key([-60, 60, -50, 50], bendenv: [0, 1, 0.2, 1, 1, 3]);
+SSampler(\tublar).key([-60, 60, -50, 50], bendenv: [0, 1, 0.2, 1, 1, 3]);
 
-Sampler(\tublar).key(100, expand: 10); //granular expanding
+SSampler(\tublar).key(100, expand: 10); //granular expanding
 
 
 
@@ -302,14 +305,14 @@ Sampler(\tublar).key(100, expand: 10); //granular expanding
 //load John cage speech in different database
 (
 s.waitForBoot{
-Sampler(\cage, \speak).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/cage.wav"]);
+SSampler(\cage, \speak).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/cage.wav"]);
 };
 )
 
-Sampler(\cage).keynums;
-Sampler(\cage).setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
+SSampler(\cage).keynums;
+SSampler(\cage).setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
 
-Sampler(\cage).key;
+SSampler(\cage).key;
 
 // retrive envelop from John Cage speaking
 ~cageenv = Sampler(\cage).samples[0].env.normalize(1);
@@ -326,8 +329,8 @@ s.waitForBoot{
 }
 )
 
-Sampler(\nickel).playEnv(Env(), {rrand(10, 30)});
-Sampler(\nickel).playEnv(~cageenv, {rrand(10, 30)});
+SSampler(\nickel).playEnv(Env(), {rrand(10, 30)});
+SSampler(\nickel).playEnv(~cageenv, {rrand(10, 30)});
 
 
 // Using SamplerDB to play all sounds
@@ -338,7 +341,7 @@ SamplerDB(\default).playEnv(Env());
 
 (
 SamplerDB(\default).playEnv(env: ~cageenv);
-Sampler(\cage).samples[0].play;
+SSampler(\cage).samples[0].play;
 )
 
 ::

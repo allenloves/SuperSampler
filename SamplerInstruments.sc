@@ -1,5 +1,5 @@
 
-+ Sampler {
++ SSampler {
 		*initClass{
 
 		allSampler = IdentityDictionary.new;
