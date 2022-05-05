@@ -11,20 +11,18 @@ t.key(81);
 t.key;
 t.gui;
 t.samples[1].keynum;
+t.keynums;
 t.keyRanges;
 
 t.key(0, amp: 2.5);
 
 Sampler(\tublar).key;
 
-
-SS_SCMIR.framehop;
-
 // play a chord with an array
 t.key([30, 40, 50, 60, 70, 80]);
 t.key([30, 40, 50, 60, 70, 80], \nosorting);
 t.key([30, 40, 50, 60, 70, 80], \percussive);
-t.key([30, 40, 50, 60, 70, 80], \stratchshort);
+t.key([30, 40, 50, 60, 70, 80], \stretchshort);
 
 
 t.key([30, 40, 50, 60, 70, 80], [\peakat, 2]);
@@ -72,11 +70,11 @@ t.key([-60, 60], [\peakat, 5], bendenv: [0, 1, 0.2, 1, 0.5, 3, 1, 0.5], panenv: 
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 5], ampenv: Env([3,0,3]))
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\startats, 1])
 
-t.key([70, 81], \stratchshort);
+t.key([70, 81], \stretchshort);
 t.key([70, 81], \percussive);
 t.key([-81], \percussive);  //Should be no sound.
 t.key([30, 81], [\percussive, 1]);
-t.key([30, 81], \stratchshort);
+t.key([30, 81], \stretchshort);
 t.key([30, 81], [\nosorting, 1]);
 
 t.setKeyRanges(\keyNumOnly);
@@ -221,8 +219,8 @@ g.key([70, 30, 50, 40, 60], [\peakat, 5])
 
 
 g.key([70, 30, 50, 40, 60], \percussive, texture: 0)
-g.key([70, 30, 50, 40, 60], \stratchshort)
-g.key([70, 30, 50, 40, 60], \stratchshort, expand: 5, bendenv: [0, 1, 0.3, 1, 1,  0.3]);
+g.key([70, 30, 50, 40, 60], \stretchshort)
+g.key([70, 30, 50, 40, 60], \stretchshort, expand: 5, bendenv: [0, 1, 0.3, 1, 1,  0.3]);
 
 g.samples[0].startTime;
 g.samples[0].peakTime;
