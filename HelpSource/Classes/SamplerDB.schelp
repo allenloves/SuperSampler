@@ -5,9 +5,7 @@ related:: Classes/SampleDescript, Classes/Sampler
 
 DESCRIPTION::
 
-Make sure you have installed SC3 plugins and SCMIR before using SuperSampler.
-
-link:: http://composerprogrammer.com/code.html ::
+Make sure you have installed SC3 plugins before using SuperSampler.
 
 SamplerDB is a database of Sampler classes that can be treated as an ensemble.  It can be played just like a Sampler object.  When the .key or .playEnv is called, it chooses Samplers loaded in the database to play and organize sounds as a timbre unit.
 
