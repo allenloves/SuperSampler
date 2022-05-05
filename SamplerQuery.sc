@@ -428,6 +428,7 @@ SamplerQuery {
 				}
 			},
 
+
 			//start playing samples at the designated time.  e.g. [\startat, 3]
 			\startat,{
 				var startPoint = syncmode.asArray[1] ? 0;
