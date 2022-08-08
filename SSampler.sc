@@ -54,7 +54,6 @@ SSampler {
 
 				thisSample.wait.wait;
 				thisSample.play(args, synthID);
-
 				};
 			}
 	}
@@ -264,7 +263,7 @@ SSampler {
 
 	setArgs {arg keynums = keynums ? {rrand(10.0, 100.0)}, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
-		var playkey = keynums ? {rrand(10.0, 100.0).postln};
+		var playkey = keynums ? {rrand(10.0, 100.0)};
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 
 		^args;
@@ -281,6 +280,7 @@ SSampler {
 	}
 
 
+	// play a SampleArgument object
 	playArgs {|args|
 		this.class.playArgs(args);
 	}
@@ -292,7 +292,7 @@ SSampler {
 	//TODO: Play a sample with the influence of a global envelope
 	playEnv {arg env, keynums, dur, amp = 1, pan = 0, maxtexture = 5, out = this.class.defaultOutputBus, midiChannel = 0;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
-		var argslist= [];
+		var argslist= SamplerScore.new;
 
 		case
 		// sound is short, repeat it to fill up the envelope
@@ -304,10 +304,9 @@ SSampler {
 					{
 						var delayTime = 0.02;
 						var texture = env.at(elapsed).linlin(0, env.levels.maxItem, 1, maxtexture).asInteger;
-						//args.set(syncmode: \percussive, amp: env.at(elapsed), texture: texture);
-						//this.playArgs(args);
-						this.key(keynums.asArray.choose, \percussive, dur: min((dur ? 1), 0.2), amp: env.at(elapsed) * amp, pan: pan, texture: texture, out: out, midiChannel: midiChannel);
+						var args = this.key(keynums.asArray.choose, \percussive, dur: min((dur ? 1), 0.1), amp: env.at(elapsed) * amp, pan: pan, texture: texture, out: out, midiChannel: midiChannel);
 						elapsed = elapsed + delayTime;
+						argslist.add([args, delayTime]);
 						delayTime.wait;
 					}
 				)
@@ -347,13 +346,11 @@ SSampler {
 				ampenv = env.subEnv(envStartTime, min(args.globalDur, env.duration - thisPeakTime + envStartTime));
 				//args.set(syncmode: [\peakat, thisPeakTime], amp: amp, ampenv: ampenv, pan: pan, texture: texture);
 				args.set(syncmode: [\peakat, thisPeakTime], amp: env.at(thisPeakTime) * amp, pan: pan, texture: texture, expand: expand);
-
 				this.playArgs(args);
+				argslist.add([args, 0])
 			}
 		};
-
-
-
+		^argslist;
 	}
 }//end of Sampler class
 

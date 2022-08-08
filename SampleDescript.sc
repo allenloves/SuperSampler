@@ -168,7 +168,7 @@ SampleDescript{
 		this.findPeaksByOnsets;
 
 		this.arEnv(startThresh, endThresh);
-		this.getActiveEnv(startThresh, endThresh);
+		this.getActiveEnv;
 		this.getActiveData;
 		this.getKeynum(filenameAsNote);
 		this.getMFCC;
@@ -600,6 +600,7 @@ SampleDescript{
 			var startAmp = startThresh * peakAmp[sectionIndex];
 			var endAmp = endThresh * peakAmp[sectionIndex];
 
+
 			//startTime:
 			//search for the first point pass above threshold.
 			//MAYBE: Use adaptative threshold method (weakest effort method) for start time detection.
@@ -719,14 +720,14 @@ SampleDescript{
 
 
 	//return an array of envelopes to represent each onsets.
-	getActiveEnv {|startThresh=0.01, endThresh=0.01|
+	getActiveEnv {
 		var envArray = [];
 		rmsDataBySection.do{|thisSection, sectionIndex|
 			var activeFrameTimes;
 			var activeRmsData;
-			// activeFrameTimes = frameTimes[startIndex[sectionIndex]..endIndex[sectionIndex]] - frameTimes[startIndex[sectionIndex]];
-			// activeRmsData = rmsData[startIndex[sectionIndex]..endIndex[sectionIndex]];
-			// envArray = envArray.add(Env.pairs([activeFrameTimes, activeRmsData].flop, \lin));
+			activeFrameTimes = frameTimes[startIndex[sectionIndex]..endIndex[sectionIndex]] - frameTimes[startIndex[sectionIndex]];
+			activeRmsData = rmsData[startIndex[sectionIndex]..endIndex[sectionIndex]];
+			envArray = envArray.add(Env.pairs([activeFrameTimes, activeRmsData].flop, \lin));
 		};
 		activeEnv = envArray;
 	}

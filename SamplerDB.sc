@@ -123,6 +123,8 @@ SamplerDB{
 	playEnv {arg env, keynums, amp = 1, pan = 0, dur = nil, numSampler = 2, samplerThickness = 2, morph = [0, 0, \atpeak], diversity = nil, out = 0, midiChannel = 0;
 		var morphEnvs = env.segment(numSegs: morph.asArray[0] ? 1, crossfade: morph.asArray[1] ? 0, strategy: morph.asArray[2] ? \atpeak);
 		var playingSamplers;
+		var argsArray = [];
+		var scoreArray = SamplerDBScore.new;
 
 		Routine.run({
 			//for each segmented envelope, assign different sampler to play
@@ -162,13 +164,15 @@ SamplerDB{
 
 
 				playingSamplers.do{|thisSampler, samplerIndex|
-					thisSampler.playEnv(envelope, keynums, dur: dur, amp: amp, pan: pan, maxtexture: samplerThickness, out: out, midiChannel: midiChannel);
-
-
+					var score = thisSampler.playEnv(envelope, keynums, dur: dur, amp: amp, pan: pan, maxtexture: samplerThickness, out: out, midiChannel: midiChannel);
+					thisSampler.name.postln;
+					argsArray.add(score);
 				};
+				scoreArray.add([argsArray, waittime]);
 				waittime.yield;
 			}
 		});
+		^scoreArray;
 	}
 
 

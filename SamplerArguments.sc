@@ -139,4 +139,8 @@ SamplerArguments{
 		^globalDur;
 	}
 
+	play {
+		SSampler.playArgs(this);
+	}
+
 }

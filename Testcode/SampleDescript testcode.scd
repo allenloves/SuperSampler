@@ -9,6 +9,7 @@ w = SampleDescript.gui;
 d = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Nickel 2.wav");
 d.gui;
 d.peakAmp;
+d.env.plot;
 d.globalPeakAmp;
 d.rmsData.maxIndex;
 d.rmsData.plot;
@@ -22,7 +23,7 @@ d.mfcc;
 
 d.activeBuffer.size;
 
-d.activeEnv.size;
+d.activeEnv.plot;
 
 SS_SCMIR.hoptime;
 

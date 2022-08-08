@@ -8,7 +8,9 @@ s.waitForBoot{
 // play a note by midi key number
 t.key(81);
 // play random note
-t.key;
+x = t.key;
+x.play;
+
 t.gui;
 t.samples[1].keynum;
 t.keynums;
@@ -116,13 +118,21 @@ t.db;
 t.keyRanges;
 t.setKeyRanges(\keynumRadious, 5)
 
-t.playEnv(Env(), [70, 80, 90]);
+~test = t.playEnv(Env(), [70, 80, 90], dur: 0.1);
+~test.play;
+
+~test.postln;
+
+
 t.playEnv(Env(), {rrand(70, 90)});
 t.playEnv(Env(), {rrand(70, 90)}, dur: 0.05);
 
 t.playEnv(Env([1,0,1], [1,1]), {rrand(70, 90)});
 
 t.playEnv(~cageenv, {rrand(100, 127.0)});
+
+~test = SamplerDB(\default).playEnv(Env());
+~test.play;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -263,6 +273,7 @@ i.key({rrand(10, 20)});
 
 i.key([-40, 10]);
 
+i.keynums;
 i.numActiveSample;
 i.averageDuration;
 i.samples[0].activeBuffer.size;
@@ -279,12 +290,12 @@ i.key([10, 40], expand: 60, ampenv: ~cageenv.normalize);
 
 
 Env().plot;
-i.playEnv(Env(), {rrand(10, 40)});
+i.playEnv(Env(), {rrand(50, 60)});
 
 ~cageenv.plot;
 (
 i.playEnv(~cageenv.normalize, {rrand(10, 40)});
-Sampler(\cage).samples[0].play;
+SSampler(\cage).samples[0].play;
 )
 
 
@@ -319,8 +330,13 @@ SamplerDB(\default).playEnv(Env());
 
 
 (
-SamplerDB(\default).playEnv(env: ~cageenv, samplerThickness: 7, morph: [2, 0]);
+~test = SamplerDB(\default).playEnv(env: ~cageenv, samplerThickness: 7, morph: [2, 0]);
 SSampler(\cage).samples[0].play;
 )
 
 ~cageenv.peakTime;
+
+(
+~test.play;
+SSampler(\cage).samples[0].play;
+)
