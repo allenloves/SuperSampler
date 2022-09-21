@@ -6,7 +6,7 @@
 		var colorSet2 = [Color(0.639,0.576,0.463), Color(0.953,0.918,0.847),Color(0.78,0.725,0.627),Color(0.498,0.435,0.325),Color(0.38,0.31,0.184)];
 		var colorSet3 = [Color(0.627,0.455,0.463), Color(0.937,0.831,0.835),Color(0.765,0.616,0.624),Color(0.49,0.318,0.325),Color(0.373,0.18,0.188)];
 		var win, sfw, drw, drg;
-		var onsetButton, onsetView, breakButton, breakView, peakIndexButton, peakIndexView, peakTimeButton, peakTimeView, startButton, startView, endButton, endView;
+		var onsetButton, onsetView, breakButton, breakView, peakIndexButton, peakIndexView, peakTimeButton, peakTimeView, startButton, startView, endButton, gridButton, endView;
 		~temp = nil;
 
 
@@ -14,6 +14,33 @@
 		.front.alwaysOnTop_(true)
 		.background_(colorSet1[2])
 		.onClose_({soundfile.free; soundfile = nil; ~temp.free; ~temp = nil});
+
+		if(filename.isSoundFile){
+
+			~temp = soundfile;
+
+			sfw = SoundFileView(win, Rect(15, 80, win.bounds.width-30, win.bounds.height-100))
+			.resize_(5)
+			.gridResolution_(soundfile.hoptime)
+			.gridOn_(false)
+			.soundfile_(SoundFile.openRead(filename)).read(closeFile: true).refresh
+			.background_(Color(1,1,1))
+			.background_(colorSet1[0])
+			;
+
+			//*** Draw index lines ***
+			drw = UserView(win, sfw.bounds).resize_(5)
+			.background_(Color(0,0,0,0))
+			.drawFunc_({|uview|
+				//** Reset Buttons **//
+				onsetButton.value_(0);
+				breakButton.value_(0);
+				peakIndexButton.value_(0);
+				peakTimeButton.value_(0);
+				startButton.value_(0);
+				endButton.value_(0);
+			})
+		};
 
 		//*** Drop Area ***
 		drg = DragSink(win, Rect(15, 15, 700, 50))
@@ -117,7 +144,7 @@
 					breakView = UserView(win, sfw.bounds).resize_(5).background_(Color(0,0,0,0))
 					.drawFunc_({|breakView|
 						soundfile.sectionBreakPoint.do({|btime|
-							var linelocation = breakView.bounds.width * btime * ~temp.hoptime / soundfile.duration;
+							var linelocation = breakView.bounds.width * btime * soundfile.hoptime / soundfile.duration;
 							Pen.strokeColor_(Color.cyan)
 							.moveTo(linelocation @ 0)
 							.lineTo(linelocation @ (breakView.bounds.height))
@@ -146,7 +173,7 @@
 					peakIndexView = UserView(win, sfw.bounds).resize_(5).background_(Color(0,0,0,0))
 					.drawFunc_({|breakView|
 						soundfile.peakIndex.do({|ptime|
-							var linelocation = peakIndexView.bounds.width * ptime * ~temp.hoptime / soundfile.duration;
+							var linelocation = peakIndexView.bounds.width * ptime * soundfile.hoptime / soundfile.duration;
 							Pen.strokeColor_(Color.white)
 							.moveTo(linelocation @ 0)
 							.lineTo(linelocation @ (peakIndexView.bounds.height))
@@ -239,6 +266,22 @@
 				{endView.remove};
 			}
 		});//endButton
+
+
+		gridButton = Button(win, Rect(1030, 15, 45, 22))
+		.resize_(3)
+		.states_([
+			["Grid", Color.black, colorSet1[1]],
+			["Grid", Color.white, Color.blue]
+		])
+		.action_({|butt|
+			if(butt.value == 1){
+				sfw.gridOn_(true);
+			}
+			{
+				sfw.gridOn_(false);
+			}
+		});//gridButton
 
 	}//*gui
 

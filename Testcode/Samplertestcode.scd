@@ -18,7 +18,7 @@ t.keyRanges;
 
 t.key(0, amp: 2.5);
 
-Sampler(\tublar).key;
+SSampler(\tublar).key;
 
 // play a chord with an array
 t.key([30, 40, 50, 60, 70, 80]);
@@ -267,11 +267,11 @@ s.waitForBoot{
 }
 )
 
-i.key;
-i.key(30, expand: 30);
-i.key({rrand(10, 20)});
+i.key(79);
+i.key(79, expand: 30);
+i.key({rrand(60, 80)});
 
-i.key([-40, 10]);
+i.key([-60, 60]);
 
 i.keynums;
 i.numActiveSample;
@@ -281,7 +281,7 @@ i.averageDuration;
 i.averageTemporalCentroid;
 
 
-x = i.key({rrand(10, 30)});
+x = i.key({rrand(60, 80)});
 x.keynums;
 
 SSampler.playArgs(x);
@@ -290,11 +290,11 @@ i.key([10, 40], expand: 60, ampenv: ~cageenv.normalize);
 
 
 Env().plot;
-i.playEnv(Env(), {rrand(50, 60)});
+i.playEnv(Env(), {rrand(60, 80)});
 
 ~cageenv.plot;
 (
-i.playEnv(~cageenv.normalize, {rrand(10, 40)});
+i.playEnv(~cageenv.normalize, {rrand(60, 80)});
 SSampler(\cage).samples[0].play;
 )
 

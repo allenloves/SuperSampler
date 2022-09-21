@@ -4,14 +4,67 @@
 
 w = SampleDescript.gui;
 ~temp.peakAmp;
+SS_SCMIR.framehop;
+
 
 ///////////////////////////////////////////////////////
 d = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Nickel 2.wav");
 d.gui;
-d.peakAmp;
-d.env.plot;
+d.play(0);
+
+SS_SCMIR.samplingrate;
+SS_SCMIR.framehop;
+(SS_SCMIR.framehop * 44100/48000).round;
+d.framehop;
+44100/48000;
+d.hoptime;
+
+d.numSamples/d.sampleRate;
+d.duration;
+
+d.duration/d.hoptime;
+d.numFrames;
+d.rmsData.size;
+
+d.framehop;
+d.numSamples/d.framehop;
+d.numFrames;
+
+d.mirDataByFeatures.plot;
+d.rmsData.plot;
+d.centroidData.plot;
+d.noiseData.plot;
+d.rmsDataBySection.postln;
+d.pitchData[0].plot
+d.mfccData.plot;
+d.activeCentroidData.plot;
+d.activeNoiseData.plot;
+d.activeRMSData.plot;
+
+d.file;
+d.filename;
+d.sampleRate;
+d.numSamples;
+d.numChannels;
+d.bufferServer;
+d.buffer;
+d.activeBuffer;
+
+d.keynumFromFileName;
+d.keynumFromPitchFound;
+
+d.duration;
+d.numFrames;
+d.sectionBreakPoint;
+d.globalPeakIndex;
 d.globalPeakAmp;
+d.globalPeakTime;
+
+d.peakAmp;
+d.peakAmp.maxIndex;
+d.env.plot;
 d.rmsData.maxIndex;
+d.rmsData.maxItem;
 d.rmsData.plot;
 d.peakAmp;
 d.peakTime;
@@ -27,10 +80,25 @@ d.activeEnv.plot;
 
 SS_SCMIR.hoptime;
 
+d.hoptime;
+d.duration/d.hoptime;
+d.numFrames;
+
+d.onsetTime;
+d.onsetIndex;
+d.frameTimes[d.onsetIndex[0]];
+
 d.sectionBreakPoint;
 d.rmsData.maxIndex;
 d.rmsData.maxIndex * SS_SCMIR.hoptime;
+d.rmsData.postln;
+d.rmsData.size;
 d.rmsData.plot;
+d.numFrames;
+d.frameTimes.size;
+d.hoptime;
+d.frameTimes.postln;
+(d.frameTimes/d.hoptime).postln;
 
 ////////////////////////////////////////////////////////////////////
 a = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff", loadToBuffer: true)
@@ -40,6 +108,7 @@ a.filename;
 a.duration;
 a.play;
 a.play(0);
+a.gui;
 //a.free;
 
 a.numChannels; // This is a mono file
@@ -93,6 +162,7 @@ a.play;
 /////////////////////////////////////////////////////////////////////////////////////////
 
 f = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/onsettest.wav")
+f.gui;
 f.loadToBuffer;
 f.numChannels; //This is a stereo file
 f.buffer[1].plot; // All stereo files are loaded into an array of two mono buffers
@@ -110,6 +180,7 @@ f.sectionBreakPoint;
 f.globalPeakIndex;
 f.globalPeakAmp;
 f.frameTimes;
+f.peakAmp;
 f.globalPeakTime;
 f.onsetIndex;
 f.peakIndex;

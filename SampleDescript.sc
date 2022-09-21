@@ -19,7 +19,7 @@ SampleDescript{
 	var <activeCentroidData;  //frequency centroid
 	var <activeNoiseData;  // higher value indicates dissonance
 	var <activeRMSData;
-	var <activeSpecFlatness;  // 0-1, 0 is single sinesoid wave, 1 is white noise.  This indicates the degree of noiseness.
+	// var <activeSpecFlatness;  // 0-1, 0 is single sinesoid wave, 1 is white noise.  This indicates the degree of noiseness.
 
 
 	//General information
@@ -34,7 +34,8 @@ SampleDescript{
 	var <keynumFromFileName;  //get key number from file name, nil if there is none
 	var <keynumFromPitchFound;  //get key number from pitch detection. not necessarily an integer.
 	var <hoptime;      //for internal use, time for each hop
-	var <frameTimes;  //Time stamp of each frame
+	var <framehop;  //the size of SCMIR frame
+	var <frameTimes;  //An array of time stamp of each hop frame
 
 
 	//****** global description *****
@@ -134,6 +135,7 @@ SampleDescript{
 		numChannels = soundFile.numChannels;
 		numSamples = soundFile.numFrames;
 		hoptime = SS_SCMIR.hoptime;
+		framehop = (SS_SCMIR.framehop / SS_SCMIR.samplingrate * this.sampleRate).round.asInteger;
 		globalPeakAmp = soundFileArray.abs.maxItem;
 
 
@@ -218,7 +220,7 @@ SampleDescript{
 		pitchData = nil;
 		activeCentroidData = nil;
 		activeNoiseData = nil;
-		activeSpecFlatness = nil;
+		// activeSpecFlatness = nil;
 
 		buffer.free;
 		activeBuffer.do({|thisBuffer, index|
@@ -455,7 +457,8 @@ SampleDescript{
 			//if no pitch data is collected, than use centroid data for pitch
 			//if there are pitch data collected, get the most occurred data for keynum
 			if((pitchCollection.size == 0) || (pitchCollection.occurrencesArray(0.5).maxItem == 1))
-			{keynumFromPitchFound = keynumFromPitchFound.add((centroidData[thisPeakIndex] ? centroidData[centroidData.size-1]).explin(20, 20000, 28, 103) - 12); // an octave lower to map to the range of my keyboard :p
+			// use an octave lower to map to fit the range of my keyboard :p
+			{keynumFromPitchFound = keynumFromPitchFound.add((centroidData[thisPeakIndex] ? centroidData[centroidData.size-1]).explin(20, 20000, 28, 103) - 12);
 			"no pitch detected, using centorid".postln;}
 			{keynumFromPitchFound = keynumFromPitchFound.add(pitchCollection.mostOccurredItems(0.5).mean)};
 		});
@@ -543,14 +546,17 @@ SampleDescript{
 		peakTime = [];
 		peakAmp = [];
 		soundArrayByChannels = soundFileArray.clump(numChannels).flop; //[[channel 1], [channel 2],....]
+
 		sectionBreakPoint.do{|thisSection, index|
 			var nextSection = sectionBreakPoint[index + 1];
 			var peakhop = rmsDataBySection[index].maxIndex + thisSection; //find the biggest rms session
 			var peaksInTheHop = [];
 			//find detailed peak time and level
 			numChannels.do{|channel|
-				var channelPeakPoint = (soundArrayByChannels[channel].abs[peakhop*SS_SCMIR.framehop..(peakhop+1)*SS_SCMIR.framehop].maxIndex)/SS_SCMIR.framehop;
-				var channelPeakLevel = soundArrayByChannels[channel].abs[peakhop*SS_SCMIR.framehop..(peakhop+1)*SS_SCMIR.framehop].maxItem;
+				var thisframe = peakhop*framehop;
+				var nextframe = (peakhop+1)*framehop;
+				var channelPeakPoint = (soundArrayByChannels[channel].abs[thisframe..nextframe].maxIndex)/framehop;
+				var channelPeakLevel = soundArrayByChannels[channel].abs[thisframe..nextframe].maxItem;
 				peaksInTheHop = peaksInTheHop.add([channelPeakPoint, channelPeakLevel]);
 			};
 			peaksInTheHop = peaksInTheHop.flop; //[peakPoints, peakLevels]
