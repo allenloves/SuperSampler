@@ -17,7 +17,14 @@ SS_SCMIR.framehop;
 (SS_SCMIR.framehop * 44100/48000).round;
 d.framehop;
 44100/48000;
+d.buffer[0].plot;
+d.activeBuffer[0][0].plot;
 d.hoptime;
+d.attackDur;
+d.startTime*d.sampleRate;
+d.startIndex;
+d.endTime;
+d.peakTime;
 
 d.numSamples/d.sampleRate;
 d.duration;
@@ -55,10 +62,13 @@ d.keynumFromPitchFound;
 
 d.duration;
 d.numFrames;
+;
 d.sectionBreakPoint;
 d.globalPeakIndex;
 d.globalPeakAmp;
 d.globalPeakTime;
+d.attackDur;
+d.hoptime;
 
 d.peakAmp;
 d.peakAmp.maxIndex;
@@ -68,13 +78,17 @@ d.rmsData.maxItem;
 d.rmsData.plot;
 d.peakAmp;
 d.peakTime;
+d.onsetTime;
+d.onsetIndex;
 d.peakIndex;
 d.sampleRate;
 d.numChannels;
 d.keynum;
 d.mfcc;
-
+d.attackDur;
 d.activeBuffer.size;
+d.buffer[0].plot;
+d.activeBuffer[0][0].plot;
 
 d.activeEnv.plot;
 
@@ -199,6 +213,7 @@ f.keynum;
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 g = SampleDescript(Quarks.folder ++ "/SuperSampler/Testcode/Sounds/3-04 Impacts-Hollow Impacts 5 Versio.wav")
+
 g.arEnv(startThresh: 0.05, endThresh: 0.05);
 g.keynum;
 g.play;
@@ -232,17 +247,19 @@ g.activeEnv.plot
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 e = SampleDescript(Platform.resourceDir +/+ "sounds/a11wlk01.wav", loadToBuffer: false)
-e.play; //automatically load to buffer when you call play
+e.gui;
+e.play(2); //automatically load to buffer when you call play
 e.buffer;
 e.startTime;
-e.play(4);
+e.peakTime;
+e.attackDur;
+e.play;
 e.sampleRate;
 e.onsetIndex;
 e.file.onsetdata;
 e.startIndex;
 e.endIndex;
 e.temporalCentroid;
-e.peakTime;
 e.attackDur;
 e.env.plot;
 e.env.peakTime;

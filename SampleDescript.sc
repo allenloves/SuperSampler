@@ -275,7 +275,10 @@ SampleDescript{
 		var buf, startSample = 0, durSample;
 		var cond = Condition(false);
 		bufferServer = server;
+
+		// Clear buffer if the buffer is not empty
 		if(buffer.isEmpty.not){
+			"Buffer is not empty, cleaning...".warn;
 			numChannels.do{|chan| buffer[chan].free;};
 			buffer = [];
 
@@ -284,7 +287,7 @@ SampleDescript{
 			activeBuffer = [];
 		};
 
-			"Loading soundfile into Buffer".postln;
+		"Loading soundfile into Buffer".postln;
 
 		server.waitForBoot{
 			Routine.run{
@@ -295,10 +298,10 @@ SampleDescript{
 				};
 
 				//load each sections into sub buffers
-				startIndex.do{|thisSectionStartIndex, sectionIndex|
+				startTime.do{|thisSectionStartTime, sectionIndex|
 					var monoBufArray = [];
-					startSample = thisSectionStartIndex * SS_SCMIR.framehop;
-					durSample = (activeRMSData[sectionIndex].size - 1) * SS_SCMIR.framehop;
+					startSample = thisSectionStartTime * sampleRate - 6;
+					durSample = (endTime[sectionIndex] - thisSectionStartTime) * sampleRate;
 
 					numChannels.do{|channel|
 						var monoBuf;
@@ -310,8 +313,9 @@ SampleDescript{
 
 					activeBuffer = activeBuffer.add(monoBufArray);
 				};
+
 				action.value;
-			}
+			}// end of Routine
 		}
 	}
 
@@ -517,12 +521,25 @@ SampleDescript{
 	// Remove breakpoints if the peak amplitude inside the section does not reach the threshold
 	// preset to 0.2 of global peak amplitude
 	cleanBreakPointByOnsets{|thresh = 0.2|
+		var newSectionBreakPoint = [], newOnsetIndex = [], newOnsetTime = [];
 		var sectionSampleIndex = (sectionBreakPoint * hoptime * sampleRate * numChannels).asInteger;
-		sectionBreakPoint = sectionBreakPoint.select({|thisSection, index|
+
+		sectionBreakPoint.do({|thisSection, index|
 			var thisSectionSampleIndex = sectionSampleIndex[index];
 			var nextSectionSampleIndex = sectionSampleIndex[index+1];
-			soundFileArray[thisSectionSampleIndex..nextSectionSampleIndex].abs.maxItem > (globalPeakAmp * thresh);
-		})
+			var thisSectionPeak = soundFileArray[thisSectionSampleIndex..nextSectionSampleIndex].abs.maxItem;
+			if(thisSectionPeak > (globalPeakAmp * thresh))
+				{
+					newSectionBreakPoint = newSectionBreakPoint.add(sectionBreakPoint[index]);
+					newOnsetIndex = newOnsetIndex.add(onsetIndex[index]);
+					newOnsetTime = newOnsetTime.add(onsetTime[index]);
+				}; // end of if(thisSectionPeak > (globalPeakAmp * thresh))
+			}); // end of sectionBreakPoint.do
+
+			sectionBreakPoint = newSectionBreakPoint;
+			onsetIndex = newOnsetIndex;
+			onsetTime = newOnsetTime;
+
 	}
 
 
@@ -538,7 +555,7 @@ SampleDescript{
 	}
 
 
-	//find local peaks in the section breakpoint
+	//find local peaks in the sectionBreakPoint
 	findPeaksByOnsets {
 		var peakArray = [], peakAmpArray = [];
 		var soundArrayByChannels;
@@ -560,26 +577,22 @@ SampleDescript{
 				peaksInTheHop = peaksInTheHop.add([channelPeakPoint, channelPeakLevel]);
 			};
 			peaksInTheHop = peaksInTheHop.flop; //[peakPoints, peakLevels]
-			peakAmpArray = peakAmpArray.add(peaksInTheHop[1].maxItem);
-			peaksInTheHop = peaksInTheHop[0][peaksInTheHop[1].maxIndex];
+			//select item with max amplitude in between channels.
+			peakAmpArray = peakAmpArray.add(peaksInTheHop[1].maxItem);  // Peak Amps
+			peaksInTheHop = peaksInTheHop[0][peaksInTheHop[1].maxIndex]; // Peak Sample
+
 			peakArray = peakArray.add(peakhop + peaksInTheHop);
 		};
 
 
-		//globalPeakAmp = peakAmpArray.maxItem;
-/*
-		// remove sections if the section peak amplitude is below 10% to the global peak
-		peakIndex = peakArray.select({|item, i| peakAmpArray[i] > (globalPeakAmp * 0.1)});
-		sectionBreakPoint = sectionBreakPoint.select({|item, i| peakAmpArray[i] > (globalPeakAmp * 0.1)});
-		peakAmp = peakAmpArray.select({|item, i| item > (globalPeakAmp * 0.1)});
-*/
-
 		peakIndex = peakArray;
 		peakAmp = peakAmpArray;
-		globalPeakIndex = peakIndex[peakAmpArray.maxIndex];
-		globalPeakTime = peakTime[peakAmpArray.maxIndex];
 
+
+		globalPeakIndex = peakIndex[peakAmpArray.maxIndex];
 		peakTime = peakIndex * hoptime;
+		globalPeakTime = peakTime[peakAmp.maxIndex];
+
 
 	}
 
@@ -600,6 +613,7 @@ SampleDescript{
 		releaseDur = [];
 		activeDuration = [];
 
+
 		//for each onset section, find peaks
 		rmsDataBySection.do{|thisSection, sectionIndex|
 			var thisSectionStartIndex = sectionBreakPoint[sectionIndex];
@@ -611,16 +625,45 @@ SampleDescript{
 			//search for the first point pass above threshold.
 			//MAYBE: Use adaptative threshold method (weakest effort method) for start time detection.
 			//Peeters, Geoffroy. “A Large Set of Audio Features for Sound Description (Similarity and Description) in the Cuidado Project.” IRCAM, Paris, France (2004).
-			block{|break|
-				thisSection.do({|rmsenergy, index|
-					if(rmsenergy >= startAmp)
-					{
-						startIndex = startIndex.add(thisSectionStartIndex + index);
-						startTime = startTime.add(startIndex.last * hoptime);
-						break.value(0);
-					};
-				})
+
+			case
+/*
+			//for percussive sounds, peak earlier than onset
+			{peakTime[sectionIndex] < onsetTime[sectionIndex]}  
+			{
+				"Percussive sound, start at peak!".postln;
+				startTime = startTime.add(peakTime[sectionIndex]);
+				startIndex = startIndex.add(peakIndex[sectionIndex].asInteger);
+
+			}
+
+
+			{(peakTime[sectionIndex] - onsetTime[sectionIndex]) <= (framehop * 2)}  
+			{
+				"Percussive sound, start at onset!".postln;
+				startTime = startTime.add(onsetTime[sectionIndex]);
+				startIndex = startIndex.add(onsetIndex[sectionIndex].asInteger);
+				peakTime[sectionIndex] = onsetTime[sectionIndex];
+			}
+*/
+
+			// for less percussive sounds
+			{true}
+			{
+				block{|break|
+					thisSection.do({|rmsenergy, index|
+						if(rmsenergy >= startAmp)
+						{
+							var stime;
+							startIndex = startIndex.add(thisSectionStartIndex + index);
+							stime = startIndex.last * hoptime;
+							startTime = startTime.add(stime);
+							break.value(0);
+						};
+					})
+				};
 			};
+
 
 			//search for the last point pass below threshold.
 			block{|break|

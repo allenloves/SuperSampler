@@ -302,9 +302,9 @@ SSampler {
 				var elapsed = 0;
 				while({elapsed < env.duration},
 					{
-						var delayTime = 0.02;
+						var delayTime = 0.03;
 						var texture = env.at(elapsed).linlin(0, env.levels.maxItem, 1, maxtexture).asInteger;
-						var args = this.key(keynums.asArray.choose, \percussive, dur: min((dur ? 1), 0.1), amp: env.at(elapsed) * amp, pan: pan, texture: texture, out: out, midiChannel: midiChannel);
+						var args = this.key(keynums.asArray.choose, \percussive, dur: dur, amp: env.at(elapsed) * amp, pan: pan, texture: texture, out: out, midiChannel: midiChannel);
 						elapsed = elapsed + delayTime;
 						argslist.add([args, delayTime]);
 						delayTime.wait;
