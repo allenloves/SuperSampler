@@ -74,7 +74,8 @@
 			// loop = 1: Phasor.ar wraps between [loopStart, loopEnd] at rate*BufRateScale.
 			SynthDef(\ssvoice1, {arg buf, rate = 1, amp = 1, pan = 0, out = 0,
 				                startPos = 0, dur = 1, gate = 1,
-				                loop = 0, loopStart = 0, loopEnd = 0;
+				                loop = 0, loopDir = 0,
+				                loopStart = 0, loopEnd = 0;
 				var envCtl = \env.kr(Env.newClear(8).asArray);
 				var bufSR = BufSampleRate.kr(buf);
 				var bufFrames = BufFrames.kr(buf);
@@ -83,9 +84,12 @@
 				// loopEnd <= 0 means "use whole buffer".
 				var lEnd = Select.kr(loopEnd > 0, [bufFrames, loopEnd]);
 				var lStart = loopStart;
-				var fwd = Phasor.ar(0, step, lStart, lEnd, lStart);
+				var fwd = Phasor.ar(0, step,     lStart, lEnd, lStart);
+				var rev = Phasor.ar(0, step.neg, lStart, lEnd, lEnd);
+				// loopDir: 0 fwd, 1 rev, 2 palin (palin added in next commit; placeholder = fwd).
+				var loopPtr = Select.ar(loopDir, [fwd, rev, fwd]);
 				var onePtr = Line.ar(startFrames, startFrames + bufFrames, dur);
-				var ptr = Select.ar(loop, [onePtr, fwd]);
+				var ptr = Select.ar(loop, [onePtr, loopPtr]);
 				var sig = BufRd.ar(1, buf, ptr, loop: 1, interpolation: 4);
 				var env = EnvGen.kr(envCtl, gate, doneAction: 2);
 				Out.ar(out, Pan2.ar(sig * env * amp, pan));

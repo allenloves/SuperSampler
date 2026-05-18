@@ -59,6 +59,12 @@ SamplerPrepare {
 		var bufMono = buffer[0];
 		var voiceEnv;
 		var synth;
+		var loopDirInt = case
+			{ args.loopDir == \fwd }   { 0 }
+			{ args.loopDir == \rev }   { 1 }
+			{ args.loopDir == \palin } { 2 }
+			{ args.loopDir.isNumber }  { args.loopDir.asInteger }
+			{ true } { 0 };
 
 		voiceEnv = if(args.loop > 0) {
 			Env.asr(args.attack, 1, args.release, \sin).asArray
@@ -78,6 +84,7 @@ SamplerPrepare {
 			dur: duration,
 			gate: args.gate,
 			loop: args.loop,
+			loopDir: loopDirInt,
 			loopStart: args.loopStart ? 0,
 			loopEnd: args.loopEnd ? 0,
 			env: voiceEnv
