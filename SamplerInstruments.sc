@@ -84,10 +84,15 @@
 				// loopEnd <= 0 means "use whole buffer".
 				var lEnd = Select.kr(loopEnd > 0, [bufFrames, loopEnd]);
 				var lStart = loopStart;
+				var llen = (lEnd - lStart).max(1);
 				var fwd = Phasor.ar(0, step,     lStart, lEnd, lStart);
 				var rev = Phasor.ar(0, step.neg, lStart, lEnd, lEnd);
-				// loopDir: 0 fwd, 1 rev, 2 palin (palin added in next commit; placeholder = fwd).
-				var loopPtr = Select.ar(loopDir, [fwd, rev, fwd]);
+				// Palindrome: unfolded triangle phase tri in [0, 2*llen),
+				// folded into [lStart, lEnd] by reflecting around llen.
+				var tri = Phasor.ar(0, step.abs, 0, 2 * llen);
+				var pal = lStart + (llen - (tri - llen).abs);
+				// loopDir: 0 fwd, 1 rev, 2 palin.
+				var loopPtr = Select.ar(loopDir, [fwd, rev, pal]);
 				var onePtr = Line.ar(startFrames, startFrames + bufFrames, dur);
 				var ptr = Select.ar(loop, [onePtr, loopPtr]);
 				var sig = BufRd.ar(1, buf, ptr, loop: 1, interpolation: 4);
