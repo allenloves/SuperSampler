@@ -87,6 +87,7 @@ SamplerPrepare {
 			loopDir: loopDirInt,
 			loopStart: args.loopStart ? 0,
 			loopEnd: args.loopEnd ? 0,
+			loopXfade: args.loopXfade ? 0,
 			env: voiceEnv
 		]).onFree({
 			SamplerQuery.playing[this.midiChannel].removeAt(synthID);

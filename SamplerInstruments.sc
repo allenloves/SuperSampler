@@ -75,7 +75,8 @@
 			SynthDef(\ssvoice1, {arg buf, rate = 1, amp = 1, pan = 0, out = 0,
 				                startPos = 0, dur = 1, gate = 1,
 				                loop = 0, loopDir = 0,
-				                loopStart = 0, loopEnd = 0;
+				                loopStart = 0, loopEnd = 0,
+				                loopXfade = 0;
 				var envCtl = \env.kr(Env.newClear(8).asArray);
 				var bufSR = BufSampleRate.kr(buf);
 				var bufFrames = BufFrames.kr(buf);
@@ -96,8 +97,17 @@
 				var onePtr = Line.ar(startFrames, startFrames + bufFrames, dur);
 				var ptr = Select.ar(loop, [onePtr, loopPtr]);
 				var sig = BufRd.ar(1, buf, ptr, loop: 1, interpolation: 4);
+				// Trapezoidal per-cycle window. ph is 0 at lStart, 1 at lEnd.
+				// The expression is symmetric in ph, so it works for fwd
+				// (sawtooth 0->1), rev (sawtooth 1->0), and pal (triangle 0->1->0).
+				// Disabled (win = 1) when loop = 0 or loopXfade <= 0.
+				var ph = ((ptr - lStart) / llen).clip(0, 1);
+				var f = ((loopXfade * bufSR) / llen).max(0.0001);
+				var winRaw = ((ph / f).clip(0, 1) * ((1 - ph) / f).clip(0, 1));
+				var winEnabled = loop * (loopXfade > 0);
+				var win = (winEnabled * winRaw) + (1 - winEnabled);
 				var env = EnvGen.kr(envCtl, gate, doneAction: 2);
-				Out.ar(out, Pan2.ar(sig * env * amp, pan));
+				Out.ar(out, Pan2.ar(sig * env * win * amp, pan));
 			}).add;
 		})
 	}
