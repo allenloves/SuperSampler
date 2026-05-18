@@ -64,6 +64,22 @@
 			}).add;
 
 
+			// Voice-mode mono SynthDef (Phase 1 step 1: one-shot only).
+			// Lifetime is owned by a single EnvGen with doneAction:2.
+			// Caller (SamplerPrepare#playVoice) supplies the envelope shape:
+			//   - one-shot: Env.linen(attack, body, release) -> self-frees at end.
+			//   - gated:    Env.asr(attack, 1, release) + gate -> released via .set(\gate, 0).
+			SynthDef(\ssvoice1, {arg buf, amp = 1, pan = 0, out = 0,
+				                startPos = 0, dur = 1, gate = 1;
+				var envCtl = \env.kr(Env.newClear(8).asArray);
+				var bufSR = BufSampleRate.kr(buf);
+				var bufFrames = BufFrames.kr(buf);
+				var startFrames = startPos * bufSR;
+				var ptr = Line.ar(startFrames, startFrames + bufFrames, dur);
+				var sig = BufRd.ar(1, buf, ptr, loop: 1, interpolation: 4);
+				var env = EnvGen.kr(envCtl, gate, doneAction: 2);
+				Out.ar(out, Pan2.ar(sig * env * amp, pan));
+			}).add;
 		})
 	}
 

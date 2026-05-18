@@ -19,6 +19,17 @@ SamplerArguments{
 	var <> grainDur = 0.15;
 	var <> midiChannel = 0;
 
+	//Voice-mode (gated keyboard playback) args.
+	//Inert when loop == 0 and the voice path is not used.
+	var <> gate = 1;
+	var <> loop = 0;             //0 = one-shot, 1 = looped
+	var <> loopDir = \fwd;       //\fwd / \rev / \palin
+	var <> loopStart;            //frames; nil -> 0
+	var <> loopEnd;              //frames; nil -> BufFrames of the section
+	var <> loopXfade = 0.02;     //seconds; trapezoidal window disabled when <= 0
+	var <> attack = 0.005;
+	var <> release = 0.05;
+
 	//for playEnv
 	var <> env;
 	var <> morphNum = 0;
@@ -69,7 +80,8 @@ SamplerArguments{
 		env = Env();
 	}
 
-	set{|keynums, syncmode, detune, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel, env, morph|
+	set{|keynums, syncmode, detune, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel, env, morph,
+		gate, loop, loopDir, loopStart, loopEnd, loopXfade, attack, release|
 		this.keynums = keynums.value.asArray.flat ? this.keynums.asArray.flat;
 		this.detune = detune.value ? this.detune;
 		this.syncmode = syncmode ? this.syncmode;
@@ -78,6 +90,14 @@ SamplerArguments{
 		this.pan = pan.value ? this.pan;
 		this.out = out ? this.out;
 		this.midiChannel = midiChannel ? this.midiChannel;
+		this.gate = gate ? this.gate;
+		this.loop = loop ? this.loop;
+		this.loopDir = loopDir ? this.loopDir;
+		this.loopStart = loopStart ? this.loopStart;
+		this.loopEnd = loopEnd ? this.loopEnd;
+		this.loopXfade = loopXfade ? this.loopXfade;
+		this.attack = attack ? this.attack;
+		this.release = release ? this.release;
 		// this.env = env.value ? this.env;
 		this.texture = texture.value ? SSampler.defaultTexture;
 		// this.morphNum = morph.asArray[0] ? this.morphNum;

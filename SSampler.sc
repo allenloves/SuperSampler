@@ -28,6 +28,10 @@ SSampler {
 
 	var <kdTreeNode; // temporarily setting to be [averageDuration, averageTemporalCentroid, averageMFCC].flat
 
+	//Voice-mode registry: note (Integer) -> List of Synth.
+	//Populated by #noteOn / #keyVoice, drained on Synth free.
+	var <activeVoices;
+
 	// Initialization in this class is in SamplerInstruments.sc
 	*initClass {
 	}
@@ -112,6 +116,7 @@ SSampler {
 		numActiveBuffer = 0;
 		averageDuration = 0;
 		averageTemporalCentroid = 0;
+		activeVoices = IdentityDictionary.new;
 		allSampler.put(samplerName.asSymbol, this);
 	}
 
@@ -351,6 +356,97 @@ SSampler {
 			}
 		};
 		^argslist;
+	}
+
+
+	//==============================================================
+	// Voice-mode (gated keyboard) API
+	//
+	// Parallel to #key but routes through \ssvoice1 with a gated lifetime.
+	// Bypasses SamplerQuery.getPlayTime entirely -- no concatenative sorting,
+	// no texture layering by peak time. SamplerQuery.playing is still
+	// populated for parity with the existing introspection surface.
+	//
+	// Phase 1 step 1: one-shot only (loop is accepted but ignored by the
+	// SynthDef until subsequent commits add Phasor pointers).
+	//==============================================================
+
+	//Single-call voice trigger. Returns a List of Synths (one per texture layer).
+	keyVoice {arg keynums, dur = nil, amp = 1, pan = 0, texture = 1,
+		out = this.class.defaultOutputBus, midiChannel = 0,
+		gate = 1, loop = 0, loopDir = \fwd,
+		loopStart = nil, loopEnd = nil, loopXfade = 0.02,
+		attack = 0.005, release = 0.05,
+		note = nil;
+		var args = SamplerArguments.new;
+		var playkey = keynums ? {rrand(10.0, 100.0)};
+		args.set(keynums: playkey, dur: dur, amp: amp, pan: pan, texture: texture,
+			out: out, midiChannel: midiChannel,
+			gate: gate, loop: loop, loopDir: loopDir,
+			loopStart: loopStart, loopEnd: loopEnd, loopXfade: loopXfade,
+			attack: attack, release: release);
+		args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
+		^this.playVoiceArgs(args, note);
+	}
+
+	//Play a SamplerArguments object via the voice path.
+	playVoiceArgs {|args, note = nil|
+		var voices = List.new;
+		args.playSamples.do{|samplePrep|
+			var synthID = UniqueID.next.asSymbol;
+			var synth = samplePrep.playVoice(args, synthID);
+			if(note.isNil.not) {
+				this.registerVoice(note, synth);
+			};
+			voices.add(synth);
+		};
+		^voices;
+	}
+
+	registerVoice {|note, synth|
+		var key = note.asInteger;
+		var list = activeVoices.at(key);
+		if(list.isNil) { list = List.new; activeVoices.put(key, list) };
+		list.add(synth);
+		synth.onFree({ this.unregisterVoice(key, synth) });
+	}
+
+	unregisterVoice {|note, synth|
+		var key = note.asInteger;
+		var list = activeVoices.at(key);
+		if(list.isNil.not) {
+			list.remove(synth);
+			if(list.isEmpty) { activeVoices.removeAt(key) };
+		};
+	}
+
+	//MIDI-keyboard-style trigger. Holds the voice open via gate=1.
+	//Defaults loop=1 so the voice can sustain past the natural sample end.
+	noteOn {|note, vel = 64, amp = nil, loop = 1, loopDir = \fwd,
+		loopStart = nil, loopEnd = nil, loopXfade = 0.02,
+		attack = 0.005, release = 0.05,
+		dur = nil, pan = 0, out = this.class.defaultOutputBus,
+		midiChannel = 0, texture = 1|
+		var resolvedAmp = amp ? (vel / 127);
+		^this.keyVoice(keynums: note, dur: dur, amp: resolvedAmp, pan: pan,
+			texture: texture, out: out, midiChannel: midiChannel,
+			gate: 1, loop: loop, loopDir: loopDir,
+			loopStart: loopStart, loopEnd: loopEnd, loopXfade: loopXfade,
+			attack: attack, release: release,
+			note: note);
+	}
+
+	//Release every voice held under the given note. ASR release runs,
+	//doneAction:2 frees the node, .onFree handlers clean both registries.
+	noteOff {|note|
+		var list = activeVoices.at(note.asInteger);
+		if(list.isNil.not) {
+			list.copy.do{|synth| synth.set(\gate, 0) };
+		};
+	}
+
+	allNotesOff {
+		activeVoices.keys.copy.do{|key| this.noteOff(key) };
 	}
 }//end of Sampler class
 

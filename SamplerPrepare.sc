@@ -48,6 +48,42 @@ SamplerPrepare {
 
 	}
 
+	//Voice-mode playback. Returns the Synth so the caller may register it
+	//in SSampler#activeVoices. Also tracked in SamplerQuery.playing for parity.
+	//
+	//With args.loop == 0 the synth uses a self-terminating linen envelope
+	//(perceptual parity with \ssplaybuf1).
+	//With args.loop > 0 the synth uses an ASR envelope held open by gate;
+	//the caller drops gate via Synth#set(\gate, 0) to release.
+	playVoice {arg args, synthID = UniqueID.next.asSymbol;
+		var bufMono = buffer[0];
+		var voiceEnv;
+		var synth;
+
+		voiceEnv = if(args.loop > 0) {
+			Env.asr(args.attack, 1, args.release, \sin).asArray
+		} {
+			Env.linen(args.attack,
+				max(duration - args.attack - args.release, 0.001),
+				args.release, 1, \sine).asArray
+		};
+
+		synth = Synth(\ssvoice1, [
+			buf: bufMono,
+			amp: args.amp,
+			pan: args.pan,
+			out: args.out,
+			startPos: this.position,
+			dur: duration,
+			gate: args.gate,
+			env: voiceEnv
+		]).onFree({
+			SamplerQuery.playing[this.midiChannel].removeAt(synthID);
+		});
+		SamplerQuery.playing[this.midiChannel].put(synthID, synth);
+		^synth;
+	}
+
 	play {arg args, synthID = UniqueID.next.asSymbol;//a SamplerArgument object
 		case
 		{this.expand.isNumber}{
