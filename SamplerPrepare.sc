@@ -70,12 +70,16 @@ SamplerPrepare {
 
 		synth = Synth(\ssvoice1, [
 			buf: bufMono,
+			rate: this.rate,
 			amp: args.amp,
 			pan: args.pan,
 			out: args.out,
 			startPos: this.position,
 			dur: duration,
 			gate: args.gate,
+			loop: args.loop,
+			loopStart: args.loopStart ? 0,
+			loopEnd: args.loopEnd ? 0,
 			env: voiceEnv
 		]).onFree({
 			SamplerQuery.playing[this.midiChannel].removeAt(synthID);
