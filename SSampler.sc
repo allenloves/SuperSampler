@@ -12,6 +12,12 @@ SSampler {
 	classvar <> defaultOutputBus = 0;
 	classvar <> defaultLoadingServer;
 
+	//Voice-mode (gated) policy. Apply only to noteOn/keyVoice with a note key.
+	//\stack: when total active voices reaches maxVoices, drop the new note.
+	//\steal: release the oldest held voice (gate=0), then admit the new note.
+	classvar <> maxVoices = 16;
+	classvar <> voicePolicy = \stack;
+
 	var <dbs;  // an array of SamplerDB instances that this Sampler is registered to.
 	var <name;  //Name of this sampler
 	var <filenames;
@@ -31,6 +37,8 @@ SSampler {
 	//Voice-mode registry: note (Integer) -> List of Synth.
 	//Populated by #noteOn / #keyVoice, drained on Synth free.
 	var <activeVoices;
+	//Insertion-ordered flat list of all registered voices, for steal policy.
+	var <voiceOrder;
 
 	// Initialization in this class is in SamplerInstruments.sc
 	*initClass {
@@ -117,6 +125,7 @@ SSampler {
 		averageDuration = 0;
 		averageTemporalCentroid = 0;
 		activeVoices = IdentityDictionary.new;
+		voiceOrder = List.new;
 		allSampler.put(samplerName.asSymbol, this);
 	}
 
@@ -390,15 +399,25 @@ SSampler {
 	}
 
 	//Play a SamplerArguments object via the voice path.
+	//Voice-cap policy is enforced per playSample, so a texture > 1 call cannot
+	//exceed maxVoices wholesale.
 	playVoiceArgs {|args, note = nil|
 		var voices = List.new;
+		var capped = false;
 		args.playSamples.do{|samplePrep|
-			var synthID = UniqueID.next.asSymbol;
-			var synth = samplePrep.playVoice(args, synthID);
-			if(note.isNil.not) {
-				this.registerVoice(note, synth);
+			var synthID, synth;
+			if(note.isNil.not and: { voiceOrder.size >= this.class.maxVoices }) {
+				switch(this.class.voicePolicy,
+					\steal, { this.stealOldest },
+					\stack, { capped = true }
+				);
 			};
-			voices.add(synth);
+			if(capped.not) {
+				synthID = UniqueID.next.asSymbol;
+				synth = samplePrep.playVoice(args, synthID);
+				if(note.isNil.not) { this.registerVoice(note, synth) };
+				voices.add(synth);
+			};
 		};
 		^voices;
 	}
@@ -408,15 +427,29 @@ SSampler {
 		var list = activeVoices.at(key);
 		if(list.isNil) { list = List.new; activeVoices.put(key, list) };
 		list.add(synth);
+		voiceOrder.add(synth);
 		synth.onFree({ this.unregisterVoice(key, synth) });
 	}
 
 	unregisterVoice {|note, synth|
 		var key = note.asInteger;
 		var list = activeVoices.at(key);
+		voiceOrder.remove(synth);
 		if(list.isNil.not) {
 			list.remove(synth);
 			if(list.isEmpty) { activeVoices.removeAt(key) };
+		};
+	}
+
+	//Release the oldest held voice. Eagerly drop it from voiceOrder so a
+	//rapid burst of steals does not temporarily exceed the cap by the
+	//release tail of stolen voices; activeVoices is still cleaned via
+	//the .onFree path.
+	stealOldest {
+		var victim;
+		if(voiceOrder.isEmpty.not) {
+			victim = voiceOrder.removeAt(0);
+			victim.set(\gate, 0);
 		};
 	}
 
