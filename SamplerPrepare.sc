@@ -65,6 +65,12 @@ SamplerPrepare {
 			{ args.loopDir == \palin } { 2 }
 			{ args.loopDir.isNumber }  { args.loopDir.asInteger }
 			{ true } { 0 };
+		var loopModeInt = case
+			{ args.loopMode == \trapezoid } { 0 }
+			{ args.loopMode == \trap }      { 0 }
+			{ args.loopMode == \xfade }     { 1 }
+			{ args.loopMode.isNumber }      { args.loopMode.asInteger }
+			{ true } { 0 };
 
 		voiceEnv = if(args.loop > 0) {
 			Env.asr(args.attack, 1, args.release, \sin).asArray
@@ -85,6 +91,7 @@ SamplerPrepare {
 			gate: args.gate,
 			loop: args.loop,
 			loopDir: loopDirInt,
+			loopMode: loopModeInt,
 			loopStart: args.loopStart ? 0,
 			loopEnd: args.loopEnd ? 0,
 			loopXfade: args.loopXfade ? 0,

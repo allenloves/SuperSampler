@@ -24,9 +24,10 @@ SamplerArguments{
 	var <> gate = 1;
 	var <> loop = 0;             //0 = one-shot, 1 = looped
 	var <> loopDir = \fwd;       //\fwd / \rev / \palin
+	var <> loopMode = \trapezoid;//\trapezoid (cheap) / \xfade (2-tap equal-power)
 	var <> loopStart;            //frames; nil -> 0
 	var <> loopEnd;              //frames; nil -> BufFrames of the section
-	var <> loopXfade = 0.02;     //seconds; trapezoidal window disabled when <= 0
+	var <> loopXfade = 0.02;     //seconds; trapezoidal width; ignored when loopMode == \xfade
 	var <> attack = 0.005;
 	var <> release = 0.05;
 
@@ -81,7 +82,7 @@ SamplerArguments{
 	}
 
 	set{|keynums, syncmode, detune, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel, env, morph,
-		gate, loop, loopDir, loopStart, loopEnd, loopXfade, attack, release|
+		gate, loop, loopDir, loopMode, loopStart, loopEnd, loopXfade, attack, release|
 		this.keynums = keynums.value.asArray.flat ? this.keynums.asArray.flat;
 		this.detune = detune.value ? this.detune;
 		this.syncmode = syncmode ? this.syncmode;
@@ -93,6 +94,7 @@ SamplerArguments{
 		this.gate = gate ? this.gate;
 		this.loop = loop ? this.loop;
 		this.loopDir = loopDir ? this.loopDir;
+		this.loopMode = loopMode ? this.loopMode;
 		this.loopStart = loopStart ? this.loopStart;
 		this.loopEnd = loopEnd ? this.loopEnd;
 		this.loopXfade = loopXfade ? this.loopXfade;

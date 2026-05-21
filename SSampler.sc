@@ -383,7 +383,7 @@ SSampler {
 	//Single-call voice trigger. Returns a List of Synths (one per texture layer).
 	keyVoice {arg keynums, dur = nil, amp = 1, pan = 0, texture = 1,
 		out = this.class.defaultOutputBus, midiChannel = 0,
-		gate = 1, loop = 0, loopDir = \fwd,
+		gate = 1, loop = 0, loopDir = \fwd, loopMode = \trapezoid,
 		loopStart = nil, loopEnd = nil, loopXfade = 0.02,
 		attack = 0.005, release = 0.05,
 		note = nil;
@@ -391,7 +391,7 @@ SSampler {
 		var playkey = keynums ? {rrand(10.0, 100.0)};
 		args.set(keynums: playkey, dur: dur, amp: amp, pan: pan, texture: texture,
 			out: out, midiChannel: midiChannel,
-			gate: gate, loop: loop, loopDir: loopDir,
+			gate: gate, loop: loop, loopDir: loopDir, loopMode: loopMode,
 			loopStart: loopStart, loopEnd: loopEnd, loopXfade: loopXfade,
 			attack: attack, release: release);
 		args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
@@ -455,7 +455,7 @@ SSampler {
 
 	//MIDI-keyboard-style trigger. Holds the voice open via gate=1.
 	//Defaults loop=1 so the voice can sustain past the natural sample end.
-	noteOn {|note, vel = 64, amp = nil, loop = 1, loopDir = \fwd,
+	noteOn {|note, vel = 64, amp = nil, loop = 1, loopDir = \fwd, loopMode = \trapezoid,
 		loopStart = nil, loopEnd = nil, loopXfade = 0.02,
 		attack = 0.005, release = 0.05,
 		dur = nil, pan = 0, out = this.class.defaultOutputBus,
@@ -463,7 +463,7 @@ SSampler {
 		var resolvedAmp = amp ? (vel / 127);
 		^this.keyVoice(keynums: note, dur: dur, amp: resolvedAmp, pan: pan,
 			texture: texture, out: out, midiChannel: midiChannel,
-			gate: 1, loop: loop, loopDir: loopDir,
+			gate: 1, loop: loop, loopDir: loopDir, loopMode: loopMode,
 			loopStart: loopStart, loopEnd: loopEnd, loopXfade: loopXfade,
 			attack: attack, release: release,
 			note: note);
