@@ -1,0 +1,84 @@
+TITLE:: SSamplerMIDI
+summary:: MIDI bridge for the voice-mode API on SSampler.
+categories:: SuperSampler
+related:: Classes/SSampler
+
+DESCRIPTION::
+Routes incoming MIDI Note On / Note Off messages to link::Classes/SSampler#-noteOn:: / link::Classes/SSampler#-noteOff::, with CC64 sustain-pedal handling.
+
+Each instance owns its own code::MIDIdef:: keys, so multiple bridges can coexist (for example, one per SSampler instance, listening on different channels).
+
+Velocity 0 on Note On is treated as Note Off (running-status convention).
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Create a new bridge and immediately register the MIDIdef handlers.
+
+ARGUMENT:: sampler
+The link::Classes/SSampler:: instance that should receive Note On / Note Off events.
+
+ARGUMENT:: key
+Optional code::Symbol:: prefix for the MIDIdef keys. If code::nil::, a unique key is generated.
+
+ARGUMENT:: channel
+Optional MIDI channel filter (0-15). code::nil:: -> listen on any channel.
+
+returns:: an SSamplerMIDI instance.
+
+
+INSTANCEMETHODS::
+
+METHOD:: free
+Detach all MIDIdef handlers and clear the deferred-notes set. After this the bridge is inert.
+
+
+METHOD:: disconnect
+Free the MIDIdef handlers without clearing internal state. Useful if you want to re-link::#-connect:: later.
+
+
+METHOD:: connect
+Re-register the MIDIdef handlers. Called automatically by link::#*new::.
+
+
+METHOD:: sustain
+Returns code::true:: while the sustain pedal is held.
+
+
+METHOD:: heldByPedal
+A code::Set:: of notes whose Note Off was deferred because the sustain pedal was down. Cleared on pedal release.
+
+
+METHOD:: sampler
+The bound link::Classes/SSampler:: instance. Read-only.
+
+
+METHOD:: channel
+The MIDI channel filter (code::nil:: = any). Read/write.
+
+
+EXAMPLES::
+
+code::
+// Setup a sampler, then attach the MIDI bridge.
+(
+s.waitForBoot{
+    var a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
+    t = SSampler(\tublarVoice).load(a, filenameAsKeynum: true);
+};
+)
+
+MIDIIn.connectAll;        // user does this once
+m = SSamplerMIDI(t);      // attach handlers; play your keyboard
+
+// State introspection.
+m.sustain;                // true while CC64 >= 64
+m.heldByPedal.asArray;    // notes currently deferred by the pedal
+
+// Optional: restrict to channel 0.
+m.channel = 0;
+
+// Detach.
+m.free;
+::
