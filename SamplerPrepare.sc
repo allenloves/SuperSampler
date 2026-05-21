@@ -51,14 +51,17 @@ SamplerPrepare {
 	//Voice-mode playback. Returns the Synth so the caller may register it
 	//in SSampler#activeVoices. Also tracked in SamplerQuery.playing for parity.
 	//
+	//Dispatches to \ssvoice1 (mono) or \ssvoice2 (stereo) by buffer arity --
+	//same dispatch policy as the existing #play method.
+	//
 	//With args.loop == 0 the synth uses a self-terminating linen envelope
-	//(perceptual parity with \ssplaybuf1).
+	//(perceptual parity with \ssplaybuf{1,2}).
 	//With args.loop > 0 the synth uses an ASR envelope held open by gate;
 	//the caller drops gate via Synth#set(\gate, 0) to release.
 	playVoice {arg args, synthID = UniqueID.next.asSymbol;
-		var bufMono = buffer[0];
 		var voiceEnv;
 		var synth;
+		var common;
 		var loopDirInt = case
 			{ args.loopDir == \fwd }   { 0 }
 			{ args.loopDir == \rev }   { 1 }
@@ -80,23 +83,29 @@ SamplerPrepare {
 				args.release, 1, \sine).asArray
 		};
 
-		synth = Synth(\ssvoice1, [
-			buf: bufMono,
-			rate: this.rate,
-			amp: args.amp,
-			pan: args.pan,
-			out: args.out,
-			startPos: this.position,
-			dur: duration,
-			gate: args.gate,
-			loop: args.loop,
-			loopDir: loopDirInt,
-			loopMode: loopModeInt,
-			loopStart: args.loopStart ? 0,
-			loopEnd: args.loopEnd ? 0,
-			loopXfade: args.loopXfade ? 0,
-			env: voiceEnv
-		]).onFree({
+		common = [
+			\rate, this.rate,
+			\amp, args.amp,
+			\pan, args.pan,
+			\out, args.out,
+			\startPos, this.position,
+			\dur, duration,
+			\gate, args.gate,
+			\loop, args.loop,
+			\loopDir, loopDirInt,
+			\loopMode, loopModeInt,
+			\loopStart, args.loopStart ? 0,
+			\loopEnd, args.loopEnd ? 0,
+			\loopXfade, args.loopXfade ? 0,
+			\env, voiceEnv
+		];
+
+		synth = if(buffer.size == 2) {
+			Synth(\ssvoice2, [\buf0, buffer[0], \buf1, buffer[1]] ++ common)
+		} {
+			Synth(\ssvoice1, [\buf, buffer[0]] ++ common)
+		};
+		synth.onFree({
 			SamplerQuery.playing[this.midiChannel].removeAt(synthID);
 		});
 		SamplerQuery.playing[this.midiChannel].put(synthID, synth);
