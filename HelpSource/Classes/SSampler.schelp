@@ -1,7 +1,7 @@
 TITLE:: SSampler
 summary:: A sampler synthesizer that knows what it's doing.
 categories:: SuperSampler
-related:: Classes/SampleDescript, Classes/SamplerDB
+related:: Classes/SampleDescript, Classes/SamplerDB, Classes/SSamplerMIDI
 
 DESCRIPTION::
 Make sure you have installed SC3 plugins before using SuperSampler.
@@ -32,6 +32,17 @@ Play a SamplerArguments instance. Use this method if you want to play an exactly
 
 ARGUMENT:: args
 A SamplerArguments to play;
+
+
+METHOD:: maxVoices
+Voice-mode cap. Applies to held voices created by link::#-noteOn:: or link::#-keyVoice:: with a code::note:: argument. Default: 16.
+
+METHOD:: voicePolicy
+Voice-mode allocation policy when link::#*maxVoices:: is reached. One of:
+
+code::\stack:: -- silently drop the incoming voice. Default.
+
+code::\steal:: -- release the oldest held voice (code::set(\gate, 0)::), then admit the new one.
 
 INSTANCEMETHODS::
 
@@ -218,6 +229,122 @@ Play a SamplerArguments instance. Use this method if you want to play an exactly
 ARGUMENT:: args
 A SamplerArguments to play;
 
+SUBSECTION:: Voice mode (gated playback)
+
+The voice-mode API is an opt-in alternative to link::#-key:: for MIDI-keyboard-style triggering. It does NOT touch the existing concatenative engine (link::Classes/SamplerQuery#*getPlayTime::); voice synths run through dedicated SynthDefs (code::\ssvoice1::, code::\ssvoice2::) that are gated by an envelope rather than by a fixed duration. Each voice is registered under its note in link::#-activeVoices:: and can be released by sending link::#-noteOff::.
+
+
+METHOD:: keyVoice
+One-shot or sustained voice trigger. Mirrors link::#-key:: but bypasses link::Classes/SamplerQuery#*getPlayTime:: and routes through code::\ssvoice1:: / code::\ssvoice2::.
+
+ARGUMENT:: keynums
+MIDI key number(s) to play. Same semantics as link::#-key::.
+
+ARGUMENT:: dur
+Length of the linen one-shot envelope when code::loop == 0::. Ignored when code::loop > 0:: (the ASR envelope is gate-driven).
+
+ARGUMENT:: amp
+Linear amplitude multiplier.
+
+ARGUMENT:: pan
+Panning, -1 to 1.
+
+ARGUMENT:: texture
+Number of voices stacked per keynum. Default 1.
+
+ARGUMENT:: out
+Output bus.
+
+ARGUMENT:: midiChannel
+Channel slot used for the link::Classes/SamplerQuery#*playing:: registry.
+
+ARGUMENT:: gate
+Initial gate. Default 1. Pass code::0:: to start an immediately-releasing voice (mostly useful for tests).
+
+ARGUMENT:: loop
+code::0:: -- one-shot. The voice plays through with a self-terminating linen envelope.
+
+code::1:: -- looped. The voice uses an ASR envelope held open by code::gate::; release via code::synth.set(\gate, 0):: or link::#-noteOff::.
+
+ARGUMENT:: loopDir
+code::\fwd:: (default), code::\rev::, or code::\palin:: (palindrome / ping-pong).
+
+ARGUMENT:: loopMode
+code::\trapezoid:: (default) -- cheap per-cycle trapezoidal window; the fade width is controlled by code::loopXfade::.
+
+code::\xfade:: -- equal-power 2-tap continuous crossfade. Doubles BufRd cost and can sound phasey on slowly-varying material. Palindrome falls back to a single reader (no seam to mask).
+
+ARGUMENT:: loopStart
+Loop region start, in frames. code::nil:: -> 0.
+
+ARGUMENT:: loopEnd
+Loop region end, in frames. code::nil:: -> whole section buffer (resolved server-side from code::BufFrames::).
+
+ARGUMENT:: loopXfade
+Width of the trapezoidal fade window, in seconds. Setting to code::0:: disables the window entirely. Ignored when code::loopMode == \xfade::.
+
+ARGUMENT:: attack
+Envelope attack time, seconds.
+
+ARGUMENT:: release
+Envelope release time, seconds.
+
+ARGUMENT:: note
+Optional. If supplied, the resulting voice is registered in link::#-activeVoices:: under this key and can be released by link::#-noteOff::.
+
+returns:: A code::List:: of code::Synth:: (one per texture layer).
+
+
+METHOD:: noteOn
+MIDI-keyboard-style trigger. Equivalent to link::#-keyVoice:: with code::gate: 1, loop: 1, note: note::, with velocity-to-amp mapping.
+
+ARGUMENT:: note
+MIDI note number.
+
+ARGUMENT:: vel
+MIDI velocity (0--127). Used to compute amp when no explicit code::amp:: is given.
+
+ARGUMENT:: amp
+Optional explicit amp. Overrides the velocity calculation.
+
+ARGUMENT:: loop
+Default code::1::.
+
+ARGUMENT:: loopDir
+Default code::\fwd::.
+
+ARGUMENT:: loopMode
+Default code::\trapezoid::.
+
+ARGUMENT:: loopStart, loopEnd, loopXfade, attack, release, dur, pan, out, midiChannel, texture
+See link::#-keyVoice::.
+
+returns:: A code::List:: of code::Synth::.
+
+
+METHOD:: noteOff
+Release every voice currently held under the given note. The ASR envelope's release segment runs over code::release:: seconds, then the synth self-frees and is removed from link::#-activeVoices::.
+
+ARGUMENT:: note
+MIDI note number.
+
+
+METHOD:: allNotesOff
+Release every voice in link::#-activeVoices::.
+
+
+METHOD:: activeVoices
+The per-instance registry, an code::IdentityDictionary:: keyed by note (Integer) holding a code::List:: of code::Synth::.
+
+
+METHOD:: voiceOrder
+Insertion-ordered flat code::List:: of all held voices. Used by link::#*voicePolicy:: code::\steal:: to find the oldest held voice. Read-only.
+
+
+METHOD:: stealOldest
+Release the oldest held voice. Normally called by the policy enforcement in link::#-keyVoice::; available for manual use.
+
+
 METHOD:: playEnv
 The SSampler will fit it's sound into the provided Envelope automatically.
 
@@ -341,5 +468,44 @@ SamplerDB(\default).playEnv(Env());
 SamplerDB(\default).playEnv(env: ~cageenv);
 SSampler(\cage).samples[0].play;
 )
+
+
+// === Voice mode (gated keyboard playback) ===
+
+// One-shot voice (perceptually equivalent to .key in the simple case).
+SSampler(\tublar).keyVoice(81);
+
+// Sustained voice with a forward loop and a 50ms trapezoidal xfade window.
+~v = SSampler(\tublar).keyVoice(81, loop: 1, loopDir: \fwd, loopXfade: 0.05);
+~v.do{|s| s.set(\gate, 0)};
+
+// Reverse, palindrome, sub-region.
+SSampler(\tublar).keyVoice(81, loop: 1, loopDir: \rev,   loopXfade: 0.05);
+SSampler(\tublar).keyVoice(81, loop: 1, loopDir: \palin, loopXfade: 0);
+
+(
+~b = SSampler(\tublar).samples[0].activeBuffer[0][0];
+~v = SSampler(\tublar).keyVoice(81,
+    loop: 1, loopStart: (~b.numFrames * 0.5).asInteger, loopEnd: ~b.numFrames);
+)
+
+// Opt-in equal-power 2-tap crossfade loop (loopXfade is ignored in this mode).
+SSampler(\tublar).keyVoice(81, loop: 1, loopDir: \fwd, loopMode: \xfade);
+
+// MIDI-keyboard-style noteOn / noteOff.
+SSampler(\tublar).noteOn(60, vel: 100);
+SSampler(\tublar).noteOff(60);
+
+// Multiple voices stack on the same note.
+SSampler(\tublar).noteOn(60); SSampler(\tublar).noteOn(60); SSampler(\tublar).noteOn(60);
+SSampler(\tublar).activeVoices[60].size;   // 3
+SSampler(\tublar).allNotesOff;
+
+// Voice cap + steal policy.
+SSampler.maxVoices = 4;
+SSampler.voicePolicy = \steal;
+5.do{|i| SSampler(\tublar).noteOn(60 + i)}; // note 60 is stolen
+SSampler(\tublar).allNotesOff;
+SSampler.maxVoices = 16; SSampler.voicePolicy = \stack;
 
 ::
