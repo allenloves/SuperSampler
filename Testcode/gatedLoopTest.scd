@@ -89,6 +89,50 @@ t.activeVoices;                         // -> empty IdentityDictionary.
 
 
 // ============================================================
+// 5b. Equal-power 2-tap crossfade loop (loopMode: \xfade)
+// ============================================================
+(
+~v = t.keyVoice(81, loop: 1, loopDir: \fwd, loopMode: \xfade);
+)
+// HEAR: sustained tone with NO seam click. The continuous sin/cos crossfade
+// reads two buffer pointers offset by half a cycle and blends them with
+// equal-power gains; phaseyness on slow material is the tradeoff.
+// loopXfade is ignored in this mode (the xfade is full-cycle).
+~v.do{|s| s.set(\gate, 0)};
+
+(
+~v = t.keyVoice(81, loop: 1, loopDir: \rev, loopMode: \xfade);
+)
+// HEAR: reverse loop with continuous crossfade.
+~v.do{|s| s.set(\gate, 0)};
+
+(
+~v = t.keyVoice(81, loop: 1, loopDir: \palin, loopMode: \xfade);
+)
+// HEAR: identical to loopMode: \trapezoid with palin -- palindrome has no
+// seam, so the xfade path falls back to a single reader.
+~v.do{|s| s.set(\gate, 0)};
+
+
+// ============================================================
+// 5c. Stereo dispatch (loads a stereo sample, plays through \ssvoice2)
+// ============================================================
+// Reel Palindromue is typically stereo in the included corpus. Load it
+// fresh and verify the voice path produces a stereo image.
+(
+s.waitForBoot{
+	g = SSampler(\reelVoice).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Reel Palindruome_44.1kHz_int16.aiff"]);
+};
+)
+
+// Stereo sample -> playVoice picks \ssvoice2 automatically. Confirm by
+// checking the SynthDef name on the live node.
+~v = g.keyVoice(60, loop: 1, loopDir: \fwd, loopXfade: 0.05);
+~v[0].defName;                          // -> \ssvoice2 if the sample is stereo
+~v.do{|s| s.set(\gate, 0)};
+
+
+// ============================================================
 // 6. Sub-region loop (the latter half of a section)
 // ============================================================
 (
