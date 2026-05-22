@@ -29,6 +29,8 @@ SamplerArguments{
 	var <> loopEnd;              //frames; nil -> BufFrames of the section
 	var <> loopXfade = 0.02;     //seconds; trapezoidal width; ignored when loopMode == \xfade
 	var <> attack = 0.005;
+	var <> decay = 0.0;          //seconds; 0 -> ADSR collapses to ASR
+	var <> sustainLevel = 1;     //0..1; level held while gate == 1
 	var <> release = 0.05;
 
 	//Ableton-style release region (second loop). Engaged on note-off (gate -> 0).
@@ -89,7 +91,7 @@ SamplerArguments{
 	}
 
 	set{|keynums, syncmode, detune, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel, env, morph,
-		gate, loop, loopDir, loopMode, loopStart, loopEnd, loopXfade, attack, release,
+		gate, loop, loopDir, loopMode, loopStart, loopEnd, loopXfade, attack, decay, sustainLevel, release,
 		releaseMode, releaseStart, releaseEnd, releaseXfade|
 		this.keynums = keynums.value.asArray.flat ? this.keynums.asArray.flat;
 		this.detune = detune.value ? this.detune;
@@ -107,6 +109,8 @@ SamplerArguments{
 		this.loopEnd = loopEnd ? this.loopEnd;
 		this.loopXfade = loopXfade ? this.loopXfade;
 		this.attack = attack ? this.attack;
+		this.decay = decay ? this.decay;
+		this.sustainLevel = sustainLevel ? this.sustainLevel;
 		this.release = release ? this.release;
 		this.releaseMode = releaseMode ? this.releaseMode;
 		this.releaseStart = releaseStart ? this.releaseStart;

@@ -89,8 +89,13 @@ SamplerPrepare {
 		//envelope's release segment is still ramping down.
 		var releaseActive = releaseModeInt > 0;
 
+		//Gate-driven ADSR for sustained / release-mode voices; self-terminating
+		//linen for one-shots without a release region. ADSR collapses to ASR
+		//when sustainLevel == 1 (decay segment is flat), preserving the
+		//pre-decay/sustainLevel default behavior.
 		voiceEnv = if((args.loop > 0) or: { releaseActive }) {
-			Env.asr(args.attack, 1, args.release, \sin).asArray
+			Env.adsr(args.attack, args.decay, args.sustainLevel,
+				args.release, 1, \sin).asArray
 		} {
 			Env.linen(args.attack,
 				max(duration - args.attack - args.release, 0.001),

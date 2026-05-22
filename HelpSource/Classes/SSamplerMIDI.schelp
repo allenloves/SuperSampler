@@ -25,6 +25,9 @@ Optional code::Symbol:: prefix for the MIDIdef keys. If code::nil::, a unique ke
 ARGUMENT:: channel
 Optional MIDI channel filter (0-15). code::nil:: -> listen on any channel.
 
+ARGUMENT:: defaults
+Optional code::Event:: of extra keyword args forwarded to link::Classes/SSampler#-noteOn:: for every triggered note. Any keyword that code::SSampler#-noteOn:: accepts is fair game: code::loop::, code::loopDir::, code::loopMode::, code::loopXfade::, code::attack::, code::decay::, code::sustainLevel::, code::release::, code::releaseMode::, code::releaseStart::, code::releaseEnd::, code::releaseXfade::, code::pan::, code::texture::, etc.
+
 returns:: an SSamplerMIDI instance.
 
 
@@ -58,6 +61,22 @@ METHOD:: channel
 The MIDI channel filter (code::nil:: = any). Read/write.
 
 
+METHOD:: defaults
+The code::Event:: of extra keyword args forwarded to link::Classes/SSampler#-noteOn::. Read/write. Replace it wholesale or mutate in place (code::m.defaults.put(\release, 2.0)::).
+
+
+METHOD:: triggerNote
+Manually trigger a note as if it had arrived on MIDI. Mostly useful for tests. Applies the current code::defaults:: just like the live MIDI path.
+
+ARGUMENT:: note
+MIDI note number.
+
+ARGUMENT:: vel
+MIDI velocity (1--127).
+
+returns:: A code::List:: of code::Synth::, from link::Classes/SSampler#-noteOn::.
+
+
 EXAMPLES::
 
 code::
@@ -78,6 +97,25 @@ m.heldByPedal.asArray;    // notes currently deferred by the pedal
 
 // Optional: restrict to channel 0.
 m.channel = 0;
+
+// Ableton-style release loop for the keyboard. Every triggered note will
+// sustain on a forward loop while held, then on key release crossfade
+// into a forward-loop release region while a 2s amp-envelope release
+// fades it out.
+(
+~b = t.samples[0].activeBuffer[0][0];
+~rs = (~b.numFrames * 0.7).asInteger;
+m.defaults = (
+    loop: 1, loopDir: \fwd, loopXfade: 0.05,
+    attack: 0.01, decay: 0.2, sustainLevel: 0.8, release: 2.0,
+    releaseMode: \loop, releaseStart: ~rs, releaseEnd: ~b.numFrames,
+    releaseXfade: 0.02
+);
+)
+
+// Manually fire a note (bypassing MIDI hardware) for quick A/B checks.
+m.triggerNote(60, 100);
+SSampler(\tublarVoice).noteOff(60);
 
 // Detach.
 m.free;

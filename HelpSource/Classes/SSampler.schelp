@@ -284,10 +284,16 @@ ARGUMENT:: loopXfade
 Width of the trapezoidal fade window, in seconds. Setting to code::0:: disables the window entirely. Ignored when code::loopMode == \xfade::.
 
 ARGUMENT:: attack
-Envelope attack time, seconds.
+ADSR attack time, seconds. Ramp 0 -> peak (1).
+
+ARGUMENT:: decay
+ADSR decay time, seconds. Ramp peak -> code::sustainLevel:: after attack ends. Default code::0:: -- with code::sustainLevel == 1:: this collapses to an ASR envelope.
+
+ARGUMENT:: sustainLevel
+ADSR sustain level (0..1) held while gate is open. Default code::1::.
 
 ARGUMENT:: release
-Envelope release time, seconds.
+ADSR release time, seconds. Ramp current level -> 0 on note-off. For release-mode loops to be audible, this needs to be set long enough -- same caveat as Ableton's Sampler.
 
 ARGUMENT:: releaseMode
 Ableton-Sampler-style second loop, engaged on note-off. Default code::\off::.
@@ -338,7 +344,7 @@ Default code::\fwd::.
 ARGUMENT:: loopMode
 Default code::\trapezoid::.
 
-ARGUMENT:: loopStart, loopEnd, loopXfade, attack, release, releaseMode, releaseStart, releaseEnd, releaseXfade, dur, pan, out, midiChannel, texture
+ARGUMENT:: loopStart, loopEnd, loopXfade, attack, decay, sustainLevel, release, releaseMode, releaseStart, releaseEnd, releaseXfade, dur, pan, out, midiChannel, texture
 See link::#-keyVoice::.
 
 returns:: A code::List:: of code::Synth::.

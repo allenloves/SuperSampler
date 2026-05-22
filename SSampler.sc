@@ -385,7 +385,7 @@ SSampler {
 		out = this.class.defaultOutputBus, midiChannel = 0,
 		gate = 1, loop = 0, loopDir = \fwd, loopMode = \trapezoid,
 		loopStart = nil, loopEnd = nil, loopXfade = 0.02,
-		attack = 0.005, release = 0.05,
+		attack = 0.005, decay = 0.0, sustainLevel = 1, release = 0.05,
 		releaseMode = \off, releaseStart = nil, releaseEnd = nil, releaseXfade = 0.02,
 		note = nil;
 		var args = SamplerArguments.new;
@@ -394,7 +394,7 @@ SSampler {
 			out: out, midiChannel: midiChannel,
 			gate: gate, loop: loop, loopDir: loopDir, loopMode: loopMode,
 			loopStart: loopStart, loopEnd: loopEnd, loopXfade: loopXfade,
-			attack: attack, release: release,
+			attack: attack, decay: decay, sustainLevel: sustainLevel, release: release,
 			releaseMode: releaseMode, releaseStart: releaseStart,
 			releaseEnd: releaseEnd, releaseXfade: releaseXfade);
 		args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
@@ -461,7 +461,7 @@ SSampler {
 	//Uses arg-style declaration because |...| arg defaults must be literal.
 	noteOn {arg note, vel = 64, amp = nil, loop = 1, loopDir = \fwd, loopMode = \trapezoid,
 		loopStart = nil, loopEnd = nil, loopXfade = 0.02,
-		attack = 0.005, release = 0.05,
+		attack = 0.005, decay = 0.0, sustainLevel = 1, release = 0.05,
 		releaseMode = \off, releaseStart = nil, releaseEnd = nil, releaseXfade = 0.02,
 		dur = nil, pan = 0, out = this.class.defaultOutputBus,
 		midiChannel = 0, texture = 1;
@@ -470,7 +470,7 @@ SSampler {
 			texture: texture, out: out, midiChannel: midiChannel,
 			gate: 1, loop: loop, loopDir: loopDir, loopMode: loopMode,
 			loopStart: loopStart, loopEnd: loopEnd, loopXfade: loopXfade,
-			attack: attack, release: release,
+			attack: attack, decay: decay, sustainLevel: sustainLevel, release: release,
 			releaseMode: releaseMode, releaseStart: releaseStart,
 			releaseEnd: releaseEnd, releaseXfade: releaseXfade,
 			note: note);
