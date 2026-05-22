@@ -74,9 +74,28 @@ SamplerPrepare {
 			{ args.loopMode == \xfade }     { 1 }
 			{ args.loopMode.isNumber }      { args.loopMode.asInteger }
 			{ true } { 0 };
+		//Ableton release-mode dispatch: 0=off, 1=oneShot, 2=loop (fwd), 3=palin.
+		var releaseModeInt = case
+			{ args.releaseMode == \off }     { 0 }
+			{ args.releaseMode == \oneShot } { 1 }
+			{ args.releaseMode == \loop }    { 2 }
+			{ args.releaseMode == \fwd }     { 2 }
+			{ args.releaseMode == \palin }   { 3 }
+			{ args.releaseMode.isNumber }    { args.releaseMode.asInteger }
+			{ true } { 0 };
+		//If a release region is active, use the gate-driven ASR envelope so
+		//the synth survives long enough for the release region to be heard.
+		//Mirrors Ableton: the release region is audible only while the amp
+		//envelope's release segment is still ramping down.
+		var releaseActive = releaseModeInt > 0;
 
-		voiceEnv = if(args.loop > 0) {
-			Env.asr(args.attack, 1, args.release, \sin).asArray
+		//Gate-driven ADSR for sustained / release-mode voices; self-terminating
+		//linen for one-shots without a release region. ADSR collapses to ASR
+		//when sustainLevel == 1 (decay segment is flat), preserving the
+		//pre-decay/sustainLevel default behavior.
+		voiceEnv = if((args.loop > 0) or: { releaseActive }) {
+			Env.adsr(args.attack, args.decay, args.sustainLevel,
+				args.release, 1, \sin).asArray
 		} {
 			Env.linen(args.attack,
 				max(duration - args.attack - args.release, 0.001),
@@ -97,6 +116,10 @@ SamplerPrepare {
 			\loopStart, args.loopStart ? 0,
 			\loopEnd, args.loopEnd ? 0,
 			\loopXfade, args.loopXfade ? 0,
+			\releaseMode, releaseModeInt,
+			\releaseStart, args.releaseStart ? 0,
+			\releaseEnd, args.releaseEnd ? 0,
+			\releaseXfade, args.releaseXfade ? 0,
 			\env, voiceEnv
 		];
 

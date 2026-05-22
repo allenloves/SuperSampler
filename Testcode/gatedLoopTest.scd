@@ -147,6 +147,74 @@ s.waitForBoot{
 
 
 // ============================================================
+// 6b. Release region (Ableton-style second loop)
+// ============================================================
+// On note-off, the playhead crossfades from the sustain pointer to the
+// release-region pointer over `releaseXfade` seconds, then plays the
+// release region according to `releaseMode` while the amp envelope
+// releases. `release` must be long enough for this to be audible.
+(
+~b = t.samples[0].activeBuffer[0][0];   // mono section-0 buffer
+~rs = (~b.numFrames * 0.7).asInteger;   // release region = last 30%
+~v = t.keyVoice(81,
+	loop: 1, loopDir: \fwd, loopXfade: 0.05,
+	release: 1.5,
+	releaseMode: \loop, releaseStart: ~rs, releaseEnd: ~b.numFrames);
+)
+~v.do{|s| s.set(\gate, 0)};
+// HEAR: while held, sustain loops the whole slice. After noteOff, the
+// last 30% loops by itself, fading out over the 1.5s release tail.
+
+// One-shot release region: plays the release region once, then silence
+// (or whatever the env release leaves).
+(
+~v = t.keyVoice(81,
+	loop: 1, loopDir: \fwd, loopXfade: 0.05,
+	release: 2,
+	releaseMode: \oneShot, releaseStart: ~rs, releaseEnd: ~b.numFrames);
+)
+~v.do{|s| s.set(\gate, 0)};
+// HEAR: sustain loop, then on release the tail plays through once.
+
+// Palindrome ("back-and-forth") release region.
+(
+~v = t.keyVoice(81,
+	loop: 1, loopDir: \fwd, loopXfade: 0.05,
+	release: 2,
+	releaseMode: \palin, releaseStart: ~rs, releaseEnd: ~b.numFrames);
+)
+~v.do{|s| s.set(\gate, 0)};
+// HEAR: sustain loop, then release region bounces back and forth.
+
+// releaseMode \off: byte-identical to the pre-release-mode behavior.
+(
+~v = t.keyVoice(81, loop: 1, loopDir: \fwd, loopXfade: 0.05,
+	releaseMode: \off);
+)
+~v.do{|s| s.set(\gate, 0)};
+
+
+// ============================================================
+// 6c. ADSR amplitude envelope
+// ============================================================
+// The voice envelope is a gate-driven ADSR whenever loop > 0 OR
+// releaseMode != \off. sustainLevel = 1 (default) makes the decay segment
+// flat, so the env collapses to ASR for backward compatibility.
+//
+// Long attack + decay to a half sustain level, with a 2s release tail
+// that lets the release region breathe.
+(
+~v = t.keyVoice(81,
+	loop: 1, loopDir: \fwd, loopXfade: 0.05,
+	attack: 0.5, decay: 0.5, sustainLevel: 0.5, release: 2.0,
+	releaseMode: \loop, releaseStart: ~rs, releaseEnd: ~b.numFrames);
+)
+// HEAR: slow swell up to peak, falls to half level, sustains, then on
+// release the release region loops while the amp env fades over 2s.
+~v.do{|s| s.set(\gate, 0)};
+
+
+// ============================================================
 // 7. noteOn / noteOff -- stacking and registry hygiene
 // ============================================================
 t.noteOn(60, vel: 100);                 // HEAR: sustained voice at MIDI 60.
@@ -203,6 +271,30 @@ m = SSamplerMIDI(t);                    // route Note On/Off + CC64 to t
 // Sustain-pedal state introspection:
 m.sustain;                              // true while pedal is down
 m.heldByPedal.asArray;                  // notes deferred by the pedal
+
+
+// ----- MIDI defaults: ADSR + Ableton-style release region -----
+// Every triggered note inherits these args (any noteOn keyword works).
+(
+~b = t.samples[0].activeBuffer[0][0];
+~rs = (~b.numFrames * 0.7).asInteger;
+m.defaults = (
+	loop: 1, loopDir: \fwd, loopXfade: 0.05,
+	attack: 0.01, decay: 0.2, sustainLevel: 0.8, release: 2.0,
+	releaseMode: \loop, releaseStart: ~rs, releaseEnd: ~b.numFrames,
+	releaseXfade: 0.02
+);
+)
+
+// Manually fire a note (skips MIDI hardware) to A/B the bridge defaults.
+m.triggerNote(81, 100);
+// HEAR: sustained tone, 2s release tail looping the last 30% on key release.
+t.noteOff(81);
+
+// Tweak a single default in place, then play again.
+m.defaults.put(\releaseMode, \palin);
+m.triggerNote(81, 100);
+t.noteOff(81);
 
 // Clean up:
 m.free;                                 // detach handlers

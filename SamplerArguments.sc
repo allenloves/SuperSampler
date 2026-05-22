@@ -29,7 +29,16 @@ SamplerArguments{
 	var <> loopEnd;              //frames; nil -> BufFrames of the section
 	var <> loopXfade = 0.02;     //seconds; trapezoidal width; ignored when loopMode == \xfade
 	var <> attack = 0.005;
+	var <> decay = 0.0;          //seconds; 0 -> ADSR collapses to ASR
+	var <> sustainLevel = 1;     //0..1; level held while gate == 1
 	var <> release = 0.05;
+
+	//Ableton-style release region (second loop). Engaged on note-off (gate -> 0).
+	//Inert when releaseMode == \off.
+	var <> releaseMode = \off;   //\off / \oneShot / \loop / \palin
+	var <> releaseStart;         //frames; nil -> 0
+	var <> releaseEnd;           //frames; nil -> BufFrames of the section
+	var <> releaseXfade = 0.02;  //seconds; crossfade from sustain ptr to release ptr
 
 	//for playEnv
 	var <> env;
@@ -82,7 +91,8 @@ SamplerArguments{
 	}
 
 	set{|keynums, syncmode, detune, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel, env, morph,
-		gate, loop, loopDir, loopMode, loopStart, loopEnd, loopXfade, attack, release|
+		gate, loop, loopDir, loopMode, loopStart, loopEnd, loopXfade, attack, decay, sustainLevel, release,
+		releaseMode, releaseStart, releaseEnd, releaseXfade|
 		this.keynums = keynums.value.asArray.flat ? this.keynums.asArray.flat;
 		this.detune = detune.value ? this.detune;
 		this.syncmode = syncmode ? this.syncmode;
@@ -99,7 +109,13 @@ SamplerArguments{
 		this.loopEnd = loopEnd ? this.loopEnd;
 		this.loopXfade = loopXfade ? this.loopXfade;
 		this.attack = attack ? this.attack;
+		this.decay = decay ? this.decay;
+		this.sustainLevel = sustainLevel ? this.sustainLevel;
 		this.release = release ? this.release;
+		this.releaseMode = releaseMode ? this.releaseMode;
+		this.releaseStart = releaseStart ? this.releaseStart;
+		this.releaseEnd = releaseEnd ? this.releaseEnd;
+		this.releaseXfade = releaseXfade ? this.releaseXfade;
 		// this.env = env.value ? this.env;
 		this.texture = texture.value ? SSampler.defaultTexture;
 		// this.morphNum = morph.asArray[0] ? this.morphNum;
