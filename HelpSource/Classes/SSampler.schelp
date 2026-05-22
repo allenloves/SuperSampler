@@ -289,6 +289,28 @@ Envelope attack time, seconds.
 ARGUMENT:: release
 Envelope release time, seconds.
 
+ARGUMENT:: releaseMode
+Ableton-Sampler-style second loop, engaged on note-off. Default code::\off::.
+
+code::\off:: -- no release region. Sustain pointer keeps running while the amp envelope's release segment fades out (existing behavior).
+
+code::\oneShot:: -- on note-off, jump to code::releaseStart:: and play once through to code::releaseEnd:: while the amp envelope releases.
+
+code::\loop:: -- on note-off, loop forward over the release region while the amp envelope releases.
+
+code::\palin:: -- on note-off, palindrome (back-and-forth) over the release region.
+
+When code::releaseMode != \off:: the synth uses the gate-driven ASR envelope regardless of code::loop::, so the release region is audible only while the amp envelope's release segment is still ramping down. Adjust code::release:: long enough for the release region to be heard -- same caveat as Ableton's Sampler.
+
+ARGUMENT:: releaseStart
+Release region start, in frames. code::nil:: -> 0.
+
+ARGUMENT:: releaseEnd
+Release region end, in frames. code::nil:: -> whole section buffer (resolved server-side from code::BufFrames::).
+
+ARGUMENT:: releaseXfade
+Crossfade time from sustain pointer to release-region pointer at note-off, in seconds. Default code::0.02::. Ignored when code::releaseMode == \off::.
+
 ARGUMENT:: note
 Optional. If supplied, the resulting voice is registered in link::#-activeVoices:: under this key and can be released by link::#-noteOff::.
 
@@ -316,7 +338,7 @@ Default code::\fwd::.
 ARGUMENT:: loopMode
 Default code::\trapezoid::.
 
-ARGUMENT:: loopStart, loopEnd, loopXfade, attack, release, dur, pan, out, midiChannel, texture
+ARGUMENT:: loopStart, loopEnd, loopXfade, attack, release, releaseMode, releaseStart, releaseEnd, releaseXfade, dur, pan, out, midiChannel, texture
 See link::#-keyVoice::.
 
 returns:: A code::List:: of code::Synth::.
@@ -491,6 +513,19 @@ SSampler(\tublar).keyVoice(81, loop: 1, loopDir: \palin, loopXfade: 0);
 
 // Opt-in equal-power 2-tap crossfade loop (loopXfade is ignored in this mode).
 SSampler(\tublar).keyVoice(81, loop: 1, loopDir: \fwd, loopMode: \xfade);
+
+// Ableton-style release region. On note-off, jump to [releaseStart, releaseEnd]
+// and play according to releaseMode while the amp envelope releases. Bump
+// `release` to make the release region audible.
+(
+~b = SSampler(\tublar).samples[0].activeBuffer[0][0];
+~rs = (~b.numFrames * 0.7).asInteger;
+~v = SSampler(\tublar).keyVoice(81,
+    loop: 1, loopDir: \fwd, loopXfade: 0.05,
+    release: 1.5,
+    releaseMode: \loop, releaseStart: ~rs, releaseEnd: ~b.numFrames);
+)
+~v.do{|s| s.set(\gate, 0)};
 
 // MIDI-keyboard-style noteOn / noteOff.
 SSampler(\tublar).noteOn(60, vel: 100);

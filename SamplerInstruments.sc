@@ -79,11 +79,21 @@
 			//              offset reader. Doubles BufRd cost; phaseyness on
 			//              slowly-varying material. Palindrome falls back to ptr
 			//              (no seam to mask).
+			//
+			// Release region (Ableton-style second loop): on note-off (gate -> 0)
+			// the playhead crossfades from the sustain pointer to a release-region
+			// pointer over releaseXfade seconds. The release region lives inside
+			// the same buffer at [releaseStart, releaseEnd].
+			// releaseMode: 0 off, 1 oneShot, 2 loop (fwd), 3 palin (back-and-forth).
+			// The release region is audible only while the amp envelope's release
+			// segment is still ramping down -- same caveat as Ableton's Sampler.
 			SynthDef(\ssvoice1, {arg buf, rate = 1, amp = 1, pan = 0, out = 0,
 				                startPos = 0, dur = 1, gate = 1,
 				                loop = 0, loopDir = 0, loopMode = 0,
 				                loopStart = 0, loopEnd = 0,
-				                loopXfade = 0;
+				                loopXfade = 0,
+				                releaseMode = 0, releaseStart = 0, releaseEnd = 0,
+				                releaseXfade = 0;
 				var envCtl = \env.kr(Env.newClear(8).asArray);
 				var bufSR = BufSampleRate.kr(buf);
 				var bufFrames = BufFrames.kr(buf);
@@ -131,7 +141,39 @@
 				var sigXfade = ((1 - isPalin) * sigSeam) + (isPalin * sig1);
 				var sigLoop = Select.ar(loopMode, [sigTrap, sigXfade]);
 				// One-shot is always sig1 (loopMode irrelevant).
-				var sig = Select.ar(loop, [sig1, sigLoop]);
+				var sustainSig = Select.ar(loop, [sig1, sigLoop]);
+				// ---- Release region (Ableton-style) ----
+				// noteOffTrig fires once on gate -> 0 (one shot per synth lifetime,
+				// since voice synths are never re-gated; a re-press makes a new node).
+				var noteOffTrig = 1 - gate;
+				var rEnd = Select.kr(releaseEnd > 0, [bufFrames, releaseEnd]);
+				var rStart = releaseStart;
+				var rLen = (rEnd - rStart).max(1);
+				var rFwd = Phasor.ar(noteOffTrig, step,     rStart, rEnd, rStart);
+				var rTri = Phasor.ar(noteOffTrig, step.abs, 0, 2 * rLen);
+				var rPal = rStart + (rLen - (rTri - rLen).abs);
+				// One-shot: linear sweep from rStart starting at noteOff, clamped at rEnd.
+				// Sweep is units-per-second; multiply step (frames/sample) by SR.
+				var rSweep = Sweep.ar(noteOffTrig, step * SampleRate.ir);
+				var rOneShotPtr = (rStart + rSweep).min(rEnd);
+				// Slot 0 is a stable rStart placeholder. releaseMode 0 keeps the
+				// release contribution muted via fadeAmt = 0 below, so the value
+				// here only matters in so far as it makes BufRd a cheap no-op.
+				var releasePtr = Select.ar(releaseMode, [
+					DC.ar(0),
+					rOneShotPtr,
+					rFwd,
+					rPal
+				]);
+				var releaseSig = BufRd.ar(1, buf, releasePtr, loop: 1, interpolation: 4);
+				// Equal-power crossfade from sustain pointer to release pointer.
+				// releaseActive masks the fade to 0 when releaseMode == \off so that
+				// the existing sustain-mode behavior is byte-identical.
+				var releaseActive = releaseMode > 0;
+				var fadeAmt = Lag.kr(noteOffTrig * releaseActive, releaseXfade.max(0));
+				var sustainGain = K2A.ar(cos(fadeAmt * (pi/2)));
+				var releaseGain = K2A.ar(sin(fadeAmt * (pi/2)));
+				var sig = (sustainSig * sustainGain) + (releaseSig * releaseGain);
 				var env = EnvGen.kr(envCtl, gate, doneAction: 2);
 				Out.ar(out, Pan2.ar(sig * env * amp, pan));
 			}).add;
@@ -146,7 +188,9 @@
 				                startPos = 0, dur = 1, gate = 1,
 				                loop = 0, loopDir = 0, loopMode = 0,
 				                loopStart = 0, loopEnd = 0,
-				                loopXfade = 0;
+				                loopXfade = 0,
+				                releaseMode = 0, releaseStart = 0, releaseEnd = 0,
+				                releaseXfade = 0;
 				var envCtl = \env.kr(Env.newClear(8).asArray);
 				var bufSR = BufSampleRate.kr(buf0);
 				var bufFrames = BufFrames.kr(buf0);
@@ -189,8 +233,32 @@
 				var sigXfadeR = ((1 - isPalin) * sigSeamR) + (isPalin * sig1R);
 				var sigLoopL = Select.ar(loopMode, [sigTrapL, sigXfadeL]);
 				var sigLoopR = Select.ar(loopMode, [sigTrapR, sigXfadeR]);
-				var sigL = Select.ar(loop, [sig1L, sigLoopL]);
-				var sigR = Select.ar(loop, [sig1R, sigLoopR]);
+				var sustainSigL = Select.ar(loop, [sig1L, sigLoopL]);
+				var sustainSigR = Select.ar(loop, [sig1R, sigLoopR]);
+				// ---- Release region (Ableton-style) ----
+				var noteOffTrig = 1 - gate;
+				var rEnd = Select.kr(releaseEnd > 0, [bufFrames, releaseEnd]);
+				var rStart = releaseStart;
+				var rLen = (rEnd - rStart).max(1);
+				var rFwd = Phasor.ar(noteOffTrig, step,     rStart, rEnd, rStart);
+				var rTri = Phasor.ar(noteOffTrig, step.abs, 0, 2 * rLen);
+				var rPal = rStart + (rLen - (rTri - rLen).abs);
+				var rSweep = Sweep.ar(noteOffTrig, step * SampleRate.ir);
+				var rOneShotPtr = (rStart + rSweep).min(rEnd);
+				var releasePtr = Select.ar(releaseMode, [
+					DC.ar(0),
+					rOneShotPtr,
+					rFwd,
+					rPal
+				]);
+				var releaseSigL = BufRd.ar(1, buf0, releasePtr, loop: 1, interpolation: 4);
+				var releaseSigR = BufRd.ar(1, buf1, releasePtr, loop: 1, interpolation: 4);
+				var releaseActive = releaseMode > 0;
+				var fadeAmt = Lag.kr(noteOffTrig * releaseActive, releaseXfade.max(0));
+				var sustainGain = K2A.ar(cos(fadeAmt * (pi/2)));
+				var releaseGain = K2A.ar(sin(fadeAmt * (pi/2)));
+				var sigL = (sustainSigL * sustainGain) + (releaseSigL * releaseGain);
+				var sigR = (sustainSigR * sustainGain) + (releaseSigR * releaseGain);
 				var env = EnvGen.kr(envCtl, gate, doneAction: 2);
 				Out.ar(out, Balance2.ar(sigL * env * amp, sigR * env * amp, pan));
 			}).add;

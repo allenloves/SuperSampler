@@ -386,6 +386,7 @@ SSampler {
 		gate = 1, loop = 0, loopDir = \fwd, loopMode = \trapezoid,
 		loopStart = nil, loopEnd = nil, loopXfade = 0.02,
 		attack = 0.005, release = 0.05,
+		releaseMode = \off, releaseStart = nil, releaseEnd = nil, releaseXfade = 0.02,
 		note = nil;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
@@ -393,7 +394,9 @@ SSampler {
 			out: out, midiChannel: midiChannel,
 			gate: gate, loop: loop, loopDir: loopDir, loopMode: loopMode,
 			loopStart: loopStart, loopEnd: loopEnd, loopXfade: loopXfade,
-			attack: attack, release: release);
+			attack: attack, release: release,
+			releaseMode: releaseMode, releaseStart: releaseStart,
+			releaseEnd: releaseEnd, releaseXfade: releaseXfade);
 		args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
 		^this.playVoiceArgs(args, note);
 	}
@@ -459,6 +462,7 @@ SSampler {
 	noteOn {arg note, vel = 64, amp = nil, loop = 1, loopDir = \fwd, loopMode = \trapezoid,
 		loopStart = nil, loopEnd = nil, loopXfade = 0.02,
 		attack = 0.005, release = 0.05,
+		releaseMode = \off, releaseStart = nil, releaseEnd = nil, releaseXfade = 0.02,
 		dur = nil, pan = 0, out = this.class.defaultOutputBus,
 		midiChannel = 0, texture = 1;
 		var resolvedAmp = amp ? (vel / 127);
@@ -467,6 +471,8 @@ SSampler {
 			gate: 1, loop: loop, loopDir: loopDir, loopMode: loopMode,
 			loopStart: loopStart, loopEnd: loopEnd, loopXfade: loopXfade,
 			attack: attack, release: release,
+			releaseMode: releaseMode, releaseStart: releaseStart,
+			releaseEnd: releaseEnd, releaseXfade: releaseXfade,
 			note: note);
 	}
 

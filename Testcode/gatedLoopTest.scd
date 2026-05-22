@@ -147,6 +147,54 @@ s.waitForBoot{
 
 
 // ============================================================
+// 6b. Release region (Ableton-style second loop)
+// ============================================================
+// On note-off, the playhead crossfades from the sustain pointer to the
+// release-region pointer over `releaseXfade` seconds, then plays the
+// release region according to `releaseMode` while the amp envelope
+// releases. `release` must be long enough for this to be audible.
+(
+~b = t.samples[0].activeBuffer[0][0];   // mono section-0 buffer
+~rs = (~b.numFrames * 0.7).asInteger;   // release region = last 30%
+~v = t.keyVoice(81,
+	loop: 1, loopDir: \fwd, loopXfade: 0.05,
+	release: 1.5,
+	releaseMode: \loop, releaseStart: ~rs, releaseEnd: ~b.numFrames);
+)
+~v.do{|s| s.set(\gate, 0)};
+// HEAR: while held, sustain loops the whole slice. After noteOff, the
+// last 30% loops by itself, fading out over the 1.5s release tail.
+
+// One-shot release region: plays the release region once, then silence
+// (or whatever the env release leaves).
+(
+~v = t.keyVoice(81,
+	loop: 1, loopDir: \fwd, loopXfade: 0.05,
+	release: 2,
+	releaseMode: \oneShot, releaseStart: ~rs, releaseEnd: ~b.numFrames);
+)
+~v.do{|s| s.set(\gate, 0)};
+// HEAR: sustain loop, then on release the tail plays through once.
+
+// Palindrome ("back-and-forth") release region.
+(
+~v = t.keyVoice(81,
+	loop: 1, loopDir: \fwd, loopXfade: 0.05,
+	release: 2,
+	releaseMode: \palin, releaseStart: ~rs, releaseEnd: ~b.numFrames);
+)
+~v.do{|s| s.set(\gate, 0)};
+// HEAR: sustain loop, then release region bounces back and forth.
+
+// releaseMode \off: byte-identical to the pre-release-mode behavior.
+(
+~v = t.keyVoice(81, loop: 1, loopDir: \fwd, loopXfade: 0.05,
+	releaseMode: \off);
+)
+~v.do{|s| s.set(\gate, 0)};
+
+
+// ============================================================
 // 7. noteOn / noteOff -- stacking and registry hygiene
 // ============================================================
 t.noteOn(60, vel: 100);                 // HEAR: sustained voice at MIDI 60.
