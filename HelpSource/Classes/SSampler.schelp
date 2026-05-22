@@ -373,6 +373,74 @@ METHOD:: stealOldest
 Release the oldest held voice. Normally called by the policy enforcement in link::#-keyVoice::; available for manual use.
 
 
+SUBSECTION:: Per-sample voice overrides
+
+Voice-mode args (loop region, release region, ADSR, etc.) may be configured per-(SampleDescript, section). Overrides set this way take precedence over args passed to link::#-keyVoice:: / link::#-noteOn:: for the matching sample/section, and have no effect on the concatenative path (link::#-key::, link::#-playArgs::, link::#-playEnv::).
+
+This is useful when one sample stretches across multiple notes and needs its own loop region / amp envelope baked in -- rather than threaded through every noteOn call site (or through link::Classes/SSamplerMIDI#-defaults:: which applies the same args to every triggered note regardless of which sample answers).
+
+Recognised override keys (any subset; see link::#-keyVoice:: for semantics):
+list::
+## code::loop::, code::loopDir::, code::loopMode::, code::loopStart::, code::loopEnd::, code::loopXfade::
+## code::attack::, code::decay::, code::sustainLevel::, code::release::
+## code::releaseMode::, code::releaseStart::, code::releaseEnd::, code::releaseXfade::
+## code::ampenv:: -- an code::Env::. Bypasses the ADSR builder and is plugged into the code::\env:: control directly. A release node is added automatically if the Env doesn't have one and the voice is gated.
+::
+
+METHOD:: setSampleVoiceArgs
+Merge an Event of voice-mode overrides onto the override store for code::(sample, section)::. Pre-existing keys for that (sample, section) are preserved if not mentioned in code::args::.
+
+ARGUMENT:: sample
+A code::SampleDescript:: previously loaded into this sampler via link::#-load::.
+
+ARGUMENT:: section
+Section index within code::sample::. Default code::0::.
+
+ARGUMENT:: args
+An code::Event:: of override keys. See above.
+
+code::
+~tubular.setSampleVoiceArgs(~tubular.samples[0], 0, (
+    loop: 1, loopStart: 22000, loopEnd: 88000, loopXfade: 0.05,
+    attack: 0.1, decay: 0.3, sustainLevel: 0.7, release: 1.5,
+    releaseMode: \loop, releaseStart: 60000, releaseEnd: 88000
+));
+::
+
+METHOD:: getSampleVoiceArgs
+Returns the override code::Event:: for this (sample, section), or code::nil:: if none is set.
+
+ARGUMENT:: sample
+See link::#-setSampleVoiceArgs::.
+
+ARGUMENT:: section
+See link::#-setSampleVoiceArgs::.
+
+
+METHOD:: clearSampleVoiceArgs
+With no arguments, clears all overrides for this sampler. With code::sample::, clears every section of that sample. With code::sample:: and code::section::, clears that one section.
+
+ARGUMENT:: sample
+Optional. See link::#-setSampleVoiceArgs::.
+
+ARGUMENT:: section
+Optional. See link::#-setSampleVoiceArgs::.
+
+
+METHOD:: sampleVoiceArgs
+Read-only access to the override store. code::IdentityDictionary:: keyed by code::SampleDescript:: holding an code::IdentityDictionary:: keyed by section index holding the override code::Event::.
+
+
+METHOD:: voiceEditor
+Open the per-sample voice-mode editor window. Without args, opens with the first loaded sample (section 0) selected; the top "Sample:" dropdown switches to any other (sample, section). The cyan band on the waveform is the loop region, orange is the release region -- drag the bands or edit the NumberBoxes. Changes save automatically through link::#-setSampleVoiceArgs::. The Audition button triggers link::#-noteOn:: at the section's anchored pitch.
+
+ARGUMENT:: targetSample
+Optional. A code::SampleDescript:: to focus on at open.
+
+ARGUMENT:: targetSection
+Optional. Section index within code::targetSample::. Default code::0::.
+
+
 METHOD:: playEnv
 The SSampler will fit it's sound into the provided Envelope automatically.
 

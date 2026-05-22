@@ -40,6 +40,13 @@ SSampler {
 	//Insertion-ordered flat list of all registered voices, for steal policy.
 	var <voiceOrder;
 
+	//Per-(SampleDescript, section) voice-mode overrides.
+	//Shape: IdentityDictionary(SampleDescript -> IdentityDictionary(section -> Event)).
+	//Consulted by SamplerPrepare#playVoice; takes precedence over args passed
+	//to #keyVoice / #noteOn. Has no effect on the concatenative path (#key,
+	//#playArgs, #playEnv) -- those don't go through \ssvoice{1,2}.
+	var <sampleVoiceArgs;
+
 	// Initialization in this class is in SamplerInstruments.sc
 	*initClass {
 	}
@@ -126,6 +133,7 @@ SSampler {
 		averageTemporalCentroid = 0;
 		activeVoices = IdentityDictionary.new;
 		voiceOrder = List.new;
+		sampleVoiceArgs = IdentityDictionary.new;
 		allSampler.put(samplerName.asSymbol, this);
 	}
 
@@ -487,6 +495,72 @@ SSampler {
 
 	allNotesOff {
 		activeVoices.keys.copy.do{|key| this.noteOff(key) };
+	}
+
+
+	//==============================================================
+	// Per-sample voice-mode overrides
+	//==============================================================
+	// Configure voice-mode args on a per-(SampleDescript, section) basis.
+	// Overrides apply only to voices triggered via #keyVoice / #noteOn
+	// (not to #key / #playArgs / #playEnv -- those use the concatenative
+	// SynthDefs which have no loop / release-region support).
+	//
+	// Recognised keys (any subset):
+	//   loop, loopDir, loopMode, loopStart, loopEnd, loopXfade,
+	//   attack, decay, sustainLevel, release,
+	//   releaseMode, releaseStart, releaseEnd, releaseXfade,
+	//   ampenv  -- an Env. If set, bypasses the ADSR builder and is plugged
+	//              directly into the \env control. A release node is added
+	//              automatically if the Env doesn't have one and the voice
+	//              is gated.
+	//
+	// Each call merges the supplied keys onto any existing override Event
+	// for this (sample, section). To replace wholesale, call
+	// #clearSampleVoiceArgs first.
+	setSampleVoiceArgs {|sample, section = 0, args|
+		var bySection, current;
+		if(sample.isNil) { Error("setSampleVoiceArgs: sample is nil").throw };
+		if(args.isKindOf(Dictionary).not) {
+			Error("setSampleVoiceArgs: args must be an Event/Dictionary").throw;
+		};
+		bySection = sampleVoiceArgs.at(sample);
+		if(bySection.isNil) {
+			bySection = IdentityDictionary.new;
+			sampleVoiceArgs.put(sample, bySection);
+		};
+		current = bySection.at(section) ?? { Event.new };
+		args.keysValuesDo({|k, v| current.put(k, v) });
+		bySection.put(section, current);
+		^current;
+	}
+
+	//Returns the override Event for this (sample, section), or nil.
+	getSampleVoiceArgs {|sample, section = 0|
+		var bySection;
+		if(sample.isNil) { ^nil };
+		bySection = sampleVoiceArgs.at(sample);
+		if(bySection.isNil) { ^nil };
+		^bySection.at(section);
+	}
+
+	//With no args: clear all overrides. With sample: clear that sample.
+	//With sample + section: clear that one section's overrides.
+	clearSampleVoiceArgs {|sample = nil, section = nil|
+		var bySection;
+		if(sample.isNil) {
+			sampleVoiceArgs = IdentityDictionary.new;
+			^this;
+		};
+		if(section.isNil) {
+			sampleVoiceArgs.removeAt(sample);
+			^this;
+		};
+		bySection = sampleVoiceArgs.at(sample);
+		if(bySection.isNil.not) {
+			bySection.removeAt(section);
+			if(bySection.isEmpty) { sampleVoiceArgs.removeAt(sample) };
+		};
 	}
 }//end of Sampler class
 

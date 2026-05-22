@@ -62,26 +62,54 @@ SamplerPrepare {
 		var voiceEnv;
 		var synth;
 		var common;
+		//Per-(sample, section) overrides (SSampler#setSampleVoiceArgs).
+		//Take precedence over args.<field>. Lookup may yield nil at any layer.
+		var sampler = SSampler.allSampler.at(this.samplerName);
+		var overrides = if(sampler.isNil) { nil } {
+			sampler.getSampleVoiceArgs(this.sample, this.section)
+		};
+		var pick = {|key, fallback|
+			if(overrides.isNil) { fallback } {
+				var v = overrides.at(key);
+				if(v.isNil) { fallback } { v };
+			};
+		};
+		var effLoop         = pick.(\loop,         args.loop);
+		var effLoopDir      = pick.(\loopDir,      args.loopDir);
+		var effLoopMode     = pick.(\loopMode,     args.loopMode);
+		var effLoopStart    = pick.(\loopStart,    args.loopStart);
+		var effLoopEnd      = pick.(\loopEnd,      args.loopEnd);
+		var effLoopXfade    = pick.(\loopXfade,    args.loopXfade);
+		var effAttack       = pick.(\attack,       args.attack);
+		var effDecay        = pick.(\decay,        args.decay);
+		var effSustainLevel = pick.(\sustainLevel, args.sustainLevel);
+		var effRelease      = pick.(\release,      args.release);
+		var effReleaseMode  = pick.(\releaseMode,  args.releaseMode);
+		var effReleaseStart = pick.(\releaseStart, args.releaseStart);
+		var effReleaseEnd   = pick.(\releaseEnd,   args.releaseEnd);
+		var effReleaseXfade = pick.(\releaseXfade, args.releaseXfade);
+		var effAmpenv       = pick.(\ampenv,       nil);
+
 		var loopDirInt = case
-			{ args.loopDir == \fwd }   { 0 }
-			{ args.loopDir == \rev }   { 1 }
-			{ args.loopDir == \palin } { 2 }
-			{ args.loopDir.isNumber }  { args.loopDir.asInteger }
+			{ effLoopDir == \fwd }   { 0 }
+			{ effLoopDir == \rev }   { 1 }
+			{ effLoopDir == \palin } { 2 }
+			{ effLoopDir.isNumber }  { effLoopDir.asInteger }
 			{ true } { 0 };
 		var loopModeInt = case
-			{ args.loopMode == \trapezoid } { 0 }
-			{ args.loopMode == \trap }      { 0 }
-			{ args.loopMode == \xfade }     { 1 }
-			{ args.loopMode.isNumber }      { args.loopMode.asInteger }
+			{ effLoopMode == \trapezoid } { 0 }
+			{ effLoopMode == \trap }      { 0 }
+			{ effLoopMode == \xfade }     { 1 }
+			{ effLoopMode.isNumber }      { effLoopMode.asInteger }
 			{ true } { 0 };
 		//Ableton release-mode dispatch: 0=off, 1=oneShot, 2=loop (fwd), 3=palin.
 		var releaseModeInt = case
-			{ args.releaseMode == \off }     { 0 }
-			{ args.releaseMode == \oneShot } { 1 }
-			{ args.releaseMode == \loop }    { 2 }
-			{ args.releaseMode == \fwd }     { 2 }
-			{ args.releaseMode == \palin }   { 3 }
-			{ args.releaseMode.isNumber }    { args.releaseMode.asInteger }
+			{ effReleaseMode == \off }     { 0 }
+			{ effReleaseMode == \oneShot } { 1 }
+			{ effReleaseMode == \loop }    { 2 }
+			{ effReleaseMode == \fwd }     { 2 }
+			{ effReleaseMode == \palin }   { 3 }
+			{ effReleaseMode.isNumber }    { effReleaseMode.asInteger }
 			{ true } { 0 };
 		//If a release region is active, use the gate-driven ASR envelope so
 		//the synth survives long enough for the release region to be heard.
@@ -89,17 +117,30 @@ SamplerPrepare {
 		//envelope's release segment is still ramping down.
 		var releaseActive = releaseModeInt > 0;
 
-		//Gate-driven ADSR for sustained / release-mode voices; self-terminating
-		//linen for one-shots without a release region. ADSR collapses to ASR
-		//when sustainLevel == 1 (decay segment is flat), preserving the
-		//pre-decay/sustainLevel default behavior.
-		voiceEnv = if((args.loop > 0) or: { releaseActive }) {
-			Env.adsr(args.attack, args.decay, args.sustainLevel,
-				args.release, 1, \sin).asArray
+		//A per-sample ampenv (Env) overrides the ADSR builder entirely.
+		//If gated (loop > 0 or releaseActive) and the Env has no release
+		//node, set one to the penultimate breakpoint so .set(\gate, 0)
+		//can run the final segment as the release.
+		voiceEnv = if(effAmpenv.isKindOf(Env)) {
+			var e = effAmpenv;
+			if(e.releaseNode.isNil and: { (effLoop > 0) or: { releaseActive } }) {
+				e = e.copy;
+				e.releaseNode = (e.levels.size - 2).max(0);
+			};
+			e.asArray
 		} {
-			Env.linen(args.attack,
-				max(duration - args.attack - args.release, 0.001),
-				args.release, 1, \sine).asArray
+			//Gate-driven ADSR for sustained / release-mode voices; self-
+			//terminating linen for one-shots without a release region. ADSR
+			//collapses to ASR when sustainLevel == 1 (decay segment is flat),
+			//preserving the pre-decay/sustainLevel default behavior.
+			if((effLoop > 0) or: { releaseActive }) {
+				Env.adsr(effAttack, effDecay, effSustainLevel,
+					effRelease, 1, \sin).asArray
+			} {
+				Env.linen(effAttack,
+					max(duration - effAttack - effRelease, 0.001),
+					effRelease, 1, \sine).asArray
+			}
 		};
 
 		common = [
@@ -110,16 +151,16 @@ SamplerPrepare {
 			\startPos, this.position,
 			\dur, duration,
 			\gate, args.gate,
-			\loop, args.loop,
+			\loop, effLoop,
 			\loopDir, loopDirInt,
 			\loopMode, loopModeInt,
-			\loopStart, args.loopStart ? 0,
-			\loopEnd, args.loopEnd ? 0,
-			\loopXfade, args.loopXfade ? 0,
+			\loopStart, effLoopStart ? 0,
+			\loopEnd, effLoopEnd ? 0,
+			\loopXfade, effLoopXfade ? 0,
 			\releaseMode, releaseModeInt,
-			\releaseStart, args.releaseStart ? 0,
-			\releaseEnd, args.releaseEnd ? 0,
-			\releaseXfade, args.releaseXfade ? 0,
+			\releaseStart, effReleaseStart ? 0,
+			\releaseEnd, effReleaseEnd ? 0,
+			\releaseXfade, effReleaseXfade ? 0,
 			\env, voiceEnv
 		];
 
