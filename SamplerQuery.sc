@@ -23,6 +23,14 @@ SamplerQuery {
 		};
 	}
 
+	//Peak-normalization gain for one (sample, section): align sample peaks to
+	//SSampler.headroomRef when the owning sampler has normalize enabled.
+	*normGainFor {|sampler, sample, section|
+		^if(sampler.normalize == true)
+		{SSampler.headroomRef / sample.peakAmp[section].max(1e-4)}
+		{1};
+	}
+
 
 
 
@@ -53,6 +61,7 @@ SamplerQuery {
 						samplePrep.setRate(2**((keyNum - thisSample.keynum[idx])/12) * (keySign + 1 - keySign.abs));
 						samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 						samplePrep.midiChannel = args.midiChannel;
+						samplePrep.normGain = SamplerQuery.normGainFor(sampler, thisSample, idx);
 						sampleList = sampleList.add(samplePrep)
 					};
 				}
@@ -84,6 +93,7 @@ SamplerQuery {
 				samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 				//samplePrep.duration = args.dur;
 				samplePrep.midiChannel = args.midiChannel;
+				samplePrep.normGain = SamplerQuery.normGainFor(sampler, samplePrep.sample, samplePrep.section);
 
 
 				sampleList = sampleList.add(samplePrep);
@@ -135,6 +145,12 @@ SamplerQuery {
 			samplePrep.buffer = sample.activeBuffer(section);
 			samplePrep.section = section;
 			samplePrep.setRate(2**(args.detune / 12));
+			//NOTE: no `sampler` reference reaches this path (see signature above), so the
+			//normalize-flag-driven gain in *normGainFor is unavailable here; normGain is
+			//left at the neutral 1 rather than silently normalizing. This method is not
+			//currently called anywhere in the codebase (pre-existing: it also never builds
+			//or returns a result list) — flagged for a follow-up task if it's ever wired up.
+			samplePrep.normGain = 1;
 		}
 
 	}

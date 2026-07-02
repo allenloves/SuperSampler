@@ -100,6 +100,20 @@ section.("Section 3: gestureID + releaseGesture", {
 	SamplerQuery.playing[0].removeAt(\v1); SamplerQuery.playing[0].removeAt(\v2); SamplerQuery.playing[5].removeAt(\v3);
 });
 
+section.("Section 4: normalize gain stamping", {
+	// 直接測 getSamplesByKeynum 的蓋章路徑需要完整 sampler；改測與其等價的公式封裝:
+	// SamplerQuery.*normGainFor {|sampler, sample, section|}
+	var mockSampler = (normalize: true);
+	var mockSample = (peakAmp: [0.5, 0.001]);
+	assertClose.(SamplerQuery.normGainFor(mockSampler, mockSample, 0), 0.7 / 0.5, 1e-9,
+		"normGain: headroomRef / peakAmp");
+	assertClose.(SamplerQuery.normGainFor(mockSampler, mockSample, 1), 0.7 / 0.001, 1e-9,
+		"normGain: tiny peak clamps at 1e-4 floor -- here 0.001 > floor so exact");
+	mockSampler = (normalize: false);
+	assertClose.(SamplerQuery.normGainFor(mockSampler, mockSample, 0), 1.0, 1e-9,
+		"normGain: normalize off -> 1");
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;

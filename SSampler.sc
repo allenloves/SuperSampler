@@ -11,12 +11,15 @@ SSampler {
 	classvar <> defaultTexture;
 	classvar <> defaultOutputBus = 0;
 	classvar <> defaultLoadingServer;
+	classvar <> headroomRef = 0.7;
+	classvar <> headroomTarget = 0.9;
 
 	var <dbs;  // an array of SamplerDB instances that this Sampler is registered to.
 	var <name;  //Name of this sampler
 	var <filenames;
 	var <samples;  // samples are SampleDescript instances
 	var <bufServer;
+	var <> normalize = true;  //when true, getSamplesByKeynum stamps each SamplerPrepare's normGain to align sample peaks to headroomRef
 	//                                                                |- section -|   |- section -|
 	var <keyRanges;// Is a dictionary in format  (SampleDescrtipt -> [[lower, upper], [lower, upper],..], ..)
 
@@ -253,6 +256,7 @@ SSampler {
 	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
+		args.autoGain = normalize;
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 		args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));  //find play samples
 
@@ -263,6 +267,7 @@ SSampler {
 	setArgs {arg keynums = keynums ? {rrand(10.0, 100.0)}, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
+		args.autoGain = normalize;
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 
 		^args;
@@ -274,6 +279,7 @@ SSampler {
 	// etc. [[SampleDescript, 2], [SampleDescript, 0], ......]
 	playSample {arg samplesArray, syncmode = \keeplength, detune = 0, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
+		args.autoGain = normalize;
 		args.set(syncmode: syncmode, detune: detune, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 
 	}
@@ -324,6 +330,7 @@ SSampler {
 				var args = SamplerArguments.new;
 				var ampenv, envStartTime, maxTexture, texture, expand;
 
+				args.autoGain = normalize;
 				//put data into args
 				args.set(keynums: playkey.value.asArray, out: out, midiChannel: midiChannel);
 				args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));

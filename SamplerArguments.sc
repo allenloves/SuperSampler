@@ -19,6 +19,7 @@ SamplerArguments{
 	var <> grainDur = 0.15;
 	var <> midiChannel = 0;
 	var <> gestureID;   //identifies which .key/.playEnv call (gesture) a voice belongs to; auto-assigned in init
+	var <> autoGain = false;  //mirrors the owning SSampler's normalize flag at the time this gesture's args were created
 
 	//for playEnv
 	var <> env;
