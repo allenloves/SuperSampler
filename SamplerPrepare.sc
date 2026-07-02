@@ -17,6 +17,7 @@ SamplerPrepare {
 	var <> posenv;    // grain position envelope for \ssexpand (normalized buffer position over
 	                  // normalized time). nil = constant-speed sweep (classic Line behavior);
 	                  // \stretchshort sets a two-segment env to align pre/post-peak separately.
+	var <> normGain;  //Set by later task; predictive-gain normalization multiplier applied to amp.
 
 	var <> attackDur;
 	var <> releaseDur;
@@ -63,25 +64,45 @@ SamplerPrepare {
 		};
 	}
 
+	//Register a spawned synth into SamplerQuery.playing as a SamplerVoice
+	//carrying the metadata used by predictive gain management.
+	registerVoice {|synth, args, synthID|
+		var voice = SamplerVoice(
+			synth,
+			args.amp * (this.normGain ? 1),
+			thisThread.seconds,
+			sample, section, rate,
+			duration ? 1,
+			args.gestureID
+		);
+		SamplerQuery.playing[this.midiChannel].put(synthID, voice);
+		synth.onFree{SamplerQuery.playing[this.midiChannel].removeAt(synthID)};
+		^voice;
+	}
+
 	// args are realizations of a SamplerArgument object
 	play {arg args, synthID = UniqueID.next.asSymbol;//a SamplerArgument object
 		case
 		{this.expand.isNumber}{
 			case
 			{buffer.size == 2}{//stereo
-				SamplerQuery.playing[this.midiChannel].put(synthID, Synth(\ssexpand2, [buf0: buffer[0], buf1: buffer[1], expand: this.expand, dur: duration + 0.02, rate: this.rate, startPos: this.position, amp: args.amp, ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, posenv: this.posenvArray, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[this.midiChannel].removeAt(synthID)});
+				var synth = Synth(\ssexpand2, [buf0: buffer[0], buf1: buffer[1], expand: this.expand, dur: duration + 0.02, rate: this.rate, startPos: this.position, amp: args.amp * (this.normGain ? 1), ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, posenv: this.posenvArray, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);
+				this.registerVoice(synth, args, synthID);
 			}
 			{true}{//mono
-				SamplerQuery.playing[this.midiChannel].put(synthID, Synth(\ssexpand1, [buf: buffer[0], expand: this.expand, dur: duration + 0.02, rate: this.rate, startPos: this.position, amp: args.amp, ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, posenv: this.posenvArray, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[this.midiChannel].removeAt(synthID)});
+				var synth = Synth(\ssexpand1, [buf: buffer[0], expand: this.expand, dur: duration + 0.02, rate: this.rate, startPos: this.position, amp: args.amp * (this.normGain ? 1), ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, posenv: this.posenvArray, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]);
+				this.registerVoice(synth, args, synthID);
 			};
 		}
 		{true}{//expand is nil
 			case
 			{buffer.size == 2}{//stereo
-				SamplerQuery.playing[this.midiChannel].put(synthID, Synth(\ssplaybuf2, [buf0: buffer[0], buf1: buffer[1], rate: this.rate, startPos: this.position, dur: duration, amp: args.amp, ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, out: args.out]).onFree{SamplerQuery.playing[this.midiChannel].removeAt(synthID)});
+				var synth = Synth(\ssplaybuf2, [buf0: buffer[0], buf1: buffer[1], rate: this.rate, startPos: this.position, dur: duration, amp: args.amp * (this.normGain ? 1), ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, out: args.out]);
+				this.registerVoice(synth, args, synthID);
 			}
 			{true}{//mono
-				SamplerQuery.playing[this.midiChannel].put(synthID, Synth(\ssplaybuf1, [buf: buffer[0], rate: this.rate, startPos: this.position, dur: duration, amp: args.amp, ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, out: args.out]).onFree{SamplerQuery.playing[this.midiChannel].removeAt(synthID)});
+				var synth = Synth(\ssplaybuf1, [buf: buffer[0], rate: this.rate, startPos: this.position, dur: duration, amp: args.amp * (this.normGain ? 1), ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, out: args.out]);
+				this.registerVoice(synth, args, synthID);
 			};
 		};
 	}
