@@ -31,6 +31,51 @@ SamplerQuery {
 		{1};
 	}
 
+	//Array interpolation lookup for a stored RMS shape, normalized so its peak = 1.
+	//Out-of-range positions return 0. Pure function -- no Env objects on the trigger path.
+	*shapeLookup {|data, normPos|
+		var idx, frac, a, b;
+		if(normPos.isNil or: {normPos < 0} or: {normPos >= 1} or: {data.isNil} or: {data.size < 2}) {^0};
+		idx = normPos * (data.size - 1);
+		frac = idx.frac;
+		idx = idx.asInteger;
+		a = data[idx];
+		b = data[(idx + 1).min(data.size - 1)];
+		^(a + ((b - a) * frac)) / data.maxItem.max(1e-9);
+	}
+
+	//Estimated summed output amplitude of every playing voice at absolute time tAbs,
+	//using each voice's analyzed RMS shape (linear sum -- conservative).
+	*predictedLevelAt {|tAbs|
+		var total = 0;
+		playing.do{|channelDict|
+			channelDict.do{|voice|
+				total = total + (voice.ampScale * voice.sample.ampShapeAt(voice.section, (tAbs - voice.onsetAbs) / voice.wallDur.max(1e-9)));
+			};
+		};
+		^total;
+	}
+
+	//Wall-clock offset from trigger to the gesture's aligned peak.
+	*predictedPeakOffset {|args|
+		var syncmode = args.syncmode.asArray;
+		^switch(syncmode[0].asSymbol,
+			\peakat, {syncmode[1] ? 0},
+			\percussive, {0},
+			{	//keeplength and others: globalAttackDur, bend-aware
+				if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
+				{args.bendenv.asEnv.copy.duration_(args.globalDur ? 1).cumIntegralInverse(args.globalAttackDur ? 0)}
+				{args.globalAttackDur ? 0}
+			}
+		);
+	}
+
+	//Gain applied to a NEW gesture so predicted total stays within SSampler.headroomTarget.
+	*autoGainScale {|lOld, lNew|
+		if(lNew <= 0) {^1};
+		^((SSampler.headroomTarget - lOld) / lNew).clip(0.05, 1);
+	}
+
 
 
 

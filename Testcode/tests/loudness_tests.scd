@@ -114,6 +114,39 @@ section.("Section 4: normalize gain stamping", {
 		"normGain: normalize off -> 1");
 });
 
+section.("Section 5: ampShapeAt + prediction", {
+	var mockRms = [0, 0.5, 1.0, 0.5, 0];   // 三角形，peak 在 normPos 0.5
+	var mkVoice = {|amp, onset, wallDur, shape|
+		SamplerVoice((set: {|self ...a|}, onFree: {|self, fn|}), amp, onset,
+			(ampShapeAt: {|self, sec, pos| shape.(pos)}), 0, 1, wallDur, \gX)};
+	var triShape = {|pos| if(pos.isNil or: {pos < 0} or: {pos >= 1}) {0} {1 - ((pos - 0.5).abs * 2)}};
+
+	// ampShapeAt 本體 (真 SampleDescript 的陣列內插): 用鴨子型別繞不過, 直接建最小 mock 測公式
+	// -> 對 SampleDescript 實體測太重, 由公式測試涵蓋: 建一個帶 rmsDataBySection 的假物件不可行,
+	//    因此 ampShapeAt 以 SamplerQuery.*shapeLookup {|data, normPos|} 純函式實作, SampleDescript 轉呼叫它
+	assertClose.(SamplerQuery.shapeLookup(mockRms, 0.5), 1.0, 1e-9, "shape: peak");
+	assertClose.(SamplerQuery.shapeLookup(mockRms, 0.25), 0.5, 1e-9, "shape: interpolated");
+	assertClose.(SamplerQuery.shapeLookup(mockRms, 1.2), 0.0, 1e-9, "shape: past end -> 0");
+	assertClose.(SamplerQuery.shapeLookup(mockRms, -0.1), 0.0, 1e-9, "shape: negative -> 0");
+
+	// predictedLevelAt: 兩個在響 voice, onset 0 與 2, wallDur 4, 三角 shape, amp 0.6/0.8
+	SamplerQuery.playing[0].put(\p1, mkVoice.(0.6, 0, 4, triShape));
+	SamplerQuery.playing[0].put(\p2, mkVoice.(0.8, 2, 4, triShape));
+	// t=2: voice1 normPos 0.5 -> shape 1 -> 0.6 ; voice2 normPos 0 -> 0
+	assertClose.(SamplerQuery.predictedLevelAt(2), 0.6, 1e-6, "predict: level at t=2");
+	// t=4: voice1 pos 1 -> 0 ; voice2 pos 0.5 -> 0.8
+	assertClose.(SamplerQuery.predictedLevelAt(4), 0.8, 1e-6, "predict: level at t=4");
+	SamplerQuery.playing[0].removeAt(\p1); SamplerQuery.playing[0].removeAt(\p2);
+});
+
+section.("Section 6: autoGain scaling in playArgs path", {
+	// 縮放公式封裝為 SamplerQuery.*autoGainScale {|lOld, lNew|} 以便純函式測試
+	assertClose.(SamplerQuery.autoGainScale(0.3, 1.0), (0.9 - 0.3) / 1.0, 1e-9, "scale: (target-old)/new");
+	assertClose.(SamplerQuery.autoGainScale(0.0, 0.5), 1.0, 1e-9, "scale: headroom enough -> clip at 1");
+	assertClose.(SamplerQuery.autoGainScale(0.89, 2.0), 0.05, 1e-9, "scale: floor clip 0.05");
+	assertClose.(SamplerQuery.autoGainScale(0.3, 0), 1.0, 1e-9, "scale: no new level -> 1");
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;

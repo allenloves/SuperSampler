@@ -48,6 +48,17 @@ SSampler {
 	*playArgs{|args|
 		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
 
+		//predictive gain management: keep the summed level at this gesture's peak
+		//moment within headroomTarget (only scales the NEW gesture -- running
+		//voices have their amp baked at EnvGen init and cannot be rescaled)
+		if(args.autoGain == true) {
+			var tAbs = thisThread.seconds + SamplerQuery.predictedPeakOffset(args);
+			var lOld = SamplerQuery.predictedLevelAt(tAbs);
+			var perVoicePeak = args.playSamples.collect{|p| args.amp * (p.normGain ? 1)}.maxItem ? 0;
+			var lNew = args.playSamples.size.sqrt * perVoicePeak;
+			args.amp = args.amp * SamplerQuery.autoGainScale(lOld, lNew);
+		};
+
 		Routine.run{
 			args.playSamples.do{|thisSample, index| //thisSample are realizations of SamplerPrepare class
 				var bufRateScale = thisSample.bufServer.sampleRate / thisSample.sample.sampleRate;

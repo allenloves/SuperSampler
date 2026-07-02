@@ -781,6 +781,11 @@ SampleDescript{
 		activeEnv = envArray;
 	}
 
+	//RMS amplitude shape of a section at a normalized position (0..1), peak-normalized.
+	ampShapeAt {|section = 0, normPos|
+		^SamplerQuery.shapeLookup(rmsDataBySection[section], normPos);
+	}
+
 	plot {
 		this.buffer.plot;
 	}
