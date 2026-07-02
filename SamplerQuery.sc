@@ -12,6 +12,17 @@ SamplerQuery {
 		};
 	}
 
+	//Gate off every playing voice tagged with one of the given gestureIDs.
+	//Voices fade over the SynthDef kill-gate release (0.1s) then free themselves.
+	*releaseGesture {|gestureIDs|
+		var ids = gestureIDs.asArray;
+		playing.do{|channelDict|
+			channelDict.copy.do{|voice|
+				if(ids.includes(voice.gestureID)) { voice.set(\gate, 0) };
+			};
+		};
+	}
+
 
 
 

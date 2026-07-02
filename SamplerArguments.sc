@@ -68,6 +68,7 @@ SamplerArguments{
 		ampenv = Env([1, 1], [1]);
 		panenv = Env([0, 0], [1]);
 		env = Env();
+		gestureID = ("gesture" ++ UniqueID.next).asSymbol;  //identifies this gesture's voices for predictive gain / releaseGesture
 	}
 
 	set{|keynums, syncmode, detune, dur, amp, ampenv, pan, out, panenv, bendenv, texture, expand, grainRate, grainDur, midiChannel, env, morph|

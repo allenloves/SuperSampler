@@ -74,6 +74,32 @@ section.("Section 2: registerVoice bookkeeping", {
 	assertTrue.(SamplerQuery.playing[3][\testID].isNil, "register: onFree removes entry");
 });
 
+section.("Section 3: gestureID + releaseGesture", {
+	var setCalls = [];
+	// Same mock strategy as Section 1: IdentityDictionary + know_(true), NOT an Event
+	// literal — Event's NodeEvents extension defines real .set, which would shadow a
+	// (set: ...) key and never reach it via doesNotUnderstand.
+	var mkSynth = {
+		var synth = IdentityDictionary.new.know_(true);
+		synth.put(\set, {|self ...a| setCalls = setCalls.add(a)});
+		synth.put(\onFree, {|self, fn|});
+		synth;
+	};
+	var mkVoice = {|gid| SamplerVoice(mkSynth.(), 1, 0, nil, 0, 1, 1, gid)};
+	var a1 = SamplerArguments.new, a2 = SamplerArguments.new;
+
+	assertTrue.(a1.gestureID.notNil and: {a1.gestureID != a2.gestureID}, "gestureID: auto-assigned and unique");
+
+	SamplerQuery.playing[0].put(\v1, mkVoice.(\gA));
+	SamplerQuery.playing[0].put(\v2, mkVoice.(\gB));
+	SamplerQuery.playing[5].put(\v3, mkVoice.(\gA));
+
+	SamplerQuery.releaseGesture([\gA]);
+	assertTrue.(setCalls.size == 2 and: {setCalls.every({|c| c == [\gate, 0]})},
+		"releaseGesture: only \\gA voices gated (got " ++ setCalls ++ ")");
+	SamplerQuery.playing[0].removeAt(\v1); SamplerQuery.playing[0].removeAt(\v2); SamplerQuery.playing[5].removeAt(\v3);
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;
