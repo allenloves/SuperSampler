@@ -79,13 +79,13 @@ section.("Section 3: gestureID + releaseGesture", {
 	// Same mock strategy as Section 1: IdentityDictionary + know_(true), NOT an Event
 	// literal — Event's NodeEvents extension defines real .set, which would shadow a
 	// (set: ...) key and never reach it via doesNotUnderstand.
-	var mkSynth = {
+	var mkSynth = {|gid|
 		var synth = IdentityDictionary.new.know_(true);
-		synth.put(\set, {|self ...a| setCalls = setCalls.add(a)});
+		synth.put(\set, {|self ...a| setCalls = setCalls.add([gid] ++ a)});
 		synth.put(\onFree, {|self, fn|});
 		synth;
 	};
-	var mkVoice = {|gid| SamplerVoice(mkSynth.(), 1, 0, nil, 0, 1, 1, gid)};
+	var mkVoice = {|gid| SamplerVoice(mkSynth.(gid), 1, 0, nil, 0, 1, 1, gid)};
 	var a1 = SamplerArguments.new, a2 = SamplerArguments.new;
 
 	assertTrue.(a1.gestureID.notNil and: {a1.gestureID != a2.gestureID}, "gestureID: auto-assigned and unique");
@@ -95,8 +95,8 @@ section.("Section 3: gestureID + releaseGesture", {
 	SamplerQuery.playing[5].put(\v3, mkVoice.(\gA));
 
 	SamplerQuery.releaseGesture([\gA]);
-	assertTrue.(setCalls.size == 2 and: {setCalls.every({|c| c == [\gate, 0]})},
-		"releaseGesture: only \\gA voices gated (got " ++ setCalls ++ ")");
+	assertTrue.(setCalls.size == 2 and: {setCalls.every{|c| c == [\gA, \gate, 0]}},
+		"releaseGesture: exactly the two \\gA voices gated, \\gB untouched (got " ++ setCalls ++ ")");
 	SamplerQuery.playing[0].removeAt(\v1); SamplerQuery.playing[0].removeAt(\v2); SamplerQuery.playing[5].removeAt(\v3);
 });
 

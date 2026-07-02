@@ -18,7 +18,7 @@ SamplerArguments{
 	var <> grainRate = 20;
 	var <> grainDur = 0.15;
 	var <> midiChannel = 0;
-	var <> gestureID;   //Set by later task; identifies the gesture a voice belongs to for predictive gain.
+	var <> gestureID;   //identifies which .key/.playEnv call (gesture) a voice belongs to; auto-assigned in init
 
 	//for playEnv
 	var <> env;
