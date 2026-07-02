@@ -155,6 +155,24 @@ section.("Section 7: playEnv gesture collection", {
 		"playEnv: collects unique gestureIDs from score");
 });
 
+section.("Section 8: playEnv global envelope slices", {
+	var env = Env([0, 1, 0], [1, 1]);          // 主 env, 2 秒
+	var ampenv = Env([1, 0.5], [1]);           // 使用者 ampenv (將 stretch 到 2 秒)
+	var composite = SSampler.envComposite(env, ampenv);
+	// composite(1.0) = env(1.0) * ampenv@mid = 1 * 0.75
+	assertClose.(composite.at(1.0), 0.75, 0.01, "composite: env ** ampenv pointwise");
+	assertClose.(composite.duration, 2.0, 1e-6, "composite: domain = env.duration");
+
+	// gesture 佔 [0, 1.2] 窗口, envDur 2
+	{
+		var slices = SSampler.globalEnvSlices(composite, Env([-1, 1], [1]), nil, 1.2, 2.0);
+		assertClose.(slices[\ampenv].duration, 1.2, 1e-6, "slice: ampenv domain = gestureDur");
+		assertClose.(slices[\ampenv].at(1.0), composite.at(1.0), 0.01, "slice: t=0 anchored (gesture time = global time)");
+		assertClose.(slices[\panenv].at(0.6), -1 + (0.6 / 2 * 2), 0.01, "slice: panenv sliced over gesture window");
+		assertTrue.(slices[\bendenv].isNil, "slice: nil passes through");
+	}.value;
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;

@@ -49,6 +49,33 @@ SSampler {
 		^argslist.collect{|pair| pair[0].gestureID}.asSet.asArray
 	}
 
+	//Normalize a user-supplied envelope (flat pairs array or Env instance) to an Env,
+	//matching the case handling in SamplerArguments.set.
+	*toFlatEnv {|e|
+		^case
+			{e.isKindOf(Env)} {e}
+			{e.isArray} {e.pairsAsEnv}
+			{true} {e.asEnv};
+	}
+
+	//Amplitude macro-contour of a playEnv call: the main env pointwise-multiplied
+	//by the user ampenv (stretched to the same domain). ampenv nil -> env itself.
+	*envComposite {|env, ampenv|
+		if(ampenv.isNil) {^env};
+		^env ** SSampler.toFlatEnv(ampenv).stretch(env.duration);
+	}
+
+	//Slice the global (env.duration-domain) contours down to one gesture's wall
+	//window [0, gestureDur]. Gestures all spawn at t = 0, so no offset is needed.
+	*globalEnvSlices {|composite, panenv, bendenv, gestureDur, envDur|
+		var slice = {|e| e !? {SSampler.toFlatEnv(e).stretch(envDur).subEnv(0, gestureDur)} };
+		^(
+			ampenv: slice.(composite),
+			panenv: slice.(panenv),
+			bendenv: slice.(bendenv)
+		);
+	}
+
 	// args is a realization of SamplerArguments
 	*playArgs{|args|
 		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
@@ -310,7 +337,7 @@ SSampler {
 
 	//==============================================================
 	//TODO: Play a sample with the influence of a global envelope
-	playEnv {arg env, keynums, dur, amp = 1, pan = 0, maxtexture = 5, out = this.class.defaultOutputBus, midiChannel = 0;
+	playEnv {arg env, keynums, dur, amp = 1, pan = 0, maxtexture = 5, ampenv, panenv, bendenv, out = this.class.defaultOutputBus, midiChannel = 0;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
 		var argslist= SamplerScore.new;
 
@@ -319,12 +346,15 @@ SSampler {
 		{(this.averageDuration < 0.3) || ((dur ? 1) < 0.2)}
 		{
 			Routine.run{
+				var composite = SSampler.envComposite(env, ampenv);
 				var elapsed = 0;
 				while({elapsed < env.duration},
 					{
 						var delayTime = 0.03;
 						var texture = env.at(elapsed).linlin(0, env.levels.maxItem, 1, maxtexture).asInteger;
-						var args = this.key(keynums.asArray.choose, \percussive, dur: dur, amp: env.at(elapsed) * amp, pan: pan, texture: texture, out: out, midiChannel: midiChannel);
+						var thisPan = (panenv !? {SSampler.toFlatEnv(panenv).stretch(env.duration).at(elapsed)}) ? pan;
+						var thisBendenv = bendenv !? {SSampler.toFlatEnv(bendenv).stretch(env.duration).subEnv(elapsed, 0.3)};
+						var args = this.key(keynums.asArray.choose, \percussive, dur: dur, amp: composite.at(elapsed) * amp, pan: thisPan, bendenv: thisBendenv, texture: texture, out: out, midiChannel: midiChannel);
 						elapsed = elapsed + delayTime;
 						argslist.add([args, delayTime]);
 						delayTime.wait;
@@ -336,6 +366,7 @@ SSampler {
 		// reverse the sound to fit the envelope if the attack or release is too short
 		{true}
 		{
+			var composite = SSampler.envComposite(env, ampenv);
 			//For Each Peak time of the envelop, put a sound peaking at that moment
 			env.peakTime.do{|thisPeakTime, index|
 				var previousPeakTime = env.peakTime[index - 1] ? 0;
@@ -344,7 +375,7 @@ SSampler {
 				var releaseTime = (nextPeakTime - thisPeakTime).abs;
 				var thisDur = attackTime + releaseTime;
 				var args = SamplerArguments.new;
-				var ampenv, envStartTime, maxTexture, texture, expand;
+				var texture, expand, slices;
 
 				args.autoGain = normalize;
 				//put data into args
@@ -363,10 +394,12 @@ SSampler {
 
 				args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
 				texture = env.range.at(thisPeakTime).linlin(0, 1, 1, maxtexture).asInteger;
-				envStartTime = (thisPeakTime-args.globalAttackDur).thresh(0);
-				ampenv = env.subEnv(envStartTime, min(args.globalDur, env.duration - thisPeakTime + envStartTime));
-				//args.set(syncmode: [\peakat, thisPeakTime], amp: amp, ampenv: ampenv, pan: pan, texture: texture);
-				args.set(syncmode: [\peakat, thisPeakTime], amp: env.at(thisPeakTime) * amp, pan: pan, texture: texture, expand: expand);
+				slices = SSampler.globalEnvSlices(composite, panenv, bendenv,
+					min(args.globalDur ? env.duration, env.duration), env.duration);
+				args.set(syncmode: [\peakat, thisPeakTime],
+					amp: amp,           // 振幅形狀交給 ampenv 切片, 不再用 env.at(peak) 點值
+					ampenv: slices[\ampenv], panenv: slices[\panenv], bendenv: slices[\bendenv],
+					pan: pan, texture: texture, expand: expand);
 				this.playArgs(args);
 				argslist.add([args, 0])
 			}
