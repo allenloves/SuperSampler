@@ -14,6 +14,9 @@ SamplerPrepare {
 	var <> bendenv;   //bend envelope
 	var <> ampenv;    // Amplitude Envelope
 	var <> panenv;    // panning envelope
+	var <> posenv;    // grain position envelope for \ssexpand (normalized buffer position over
+	                  // normalized time). nil = constant-speed sweep (classic Line behavior);
+	                  // \stretchshort sets a two-segment env to align pre/post-peak separately.
 
 	var <> attackDur;
 	var <> releaseDur;
@@ -48,15 +51,28 @@ SamplerPrepare {
 
 	}
 
+
+	//grain position envelope to feed \ssexpand: stored posenv, or the classic
+	//constant-speed sweep (start position → 0.95 forward / → 0 backward).
+	posenvArray {
+		^this.posenv ?? {
+			var bufDur = buffer[0].duration;
+			if(rate.isPositive)
+			{Env([(position / bufDur).clip(0, 1), 0.95], [1]).asArray}
+			{Env([(position / bufDur).clip(0, 1), 0], [1]).asArray};
+		};
+	}
+
+	// args are realizations of a SamplerArgument object
 	play {arg args, synthID = UniqueID.next.asSymbol;//a SamplerArgument object
 		case
 		{this.expand.isNumber}{
 			case
 			{buffer.size == 2}{//stereo
-				SamplerQuery.playing[this.midiChannel].put(synthID, Synth(\ssexpand2, [buf0: buffer[0], buf1: buffer[1], expand: this.expand, dur: duration + 0.02, rate: this.rate, startPos: this.position, amp: args.amp, ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[this.midiChannel].removeAt(synthID)});
+				SamplerQuery.playing[this.midiChannel].put(synthID, Synth(\ssexpand2, [buf0: buffer[0], buf1: buffer[1], expand: this.expand, dur: duration + 0.02, rate: this.rate, startPos: this.position, amp: args.amp, ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, posenv: this.posenvArray, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[this.midiChannel].removeAt(synthID)});
 			}
 			{true}{//mono
-				SamplerQuery.playing[this.midiChannel].put(synthID, Synth(\ssexpand1, [buf: buffer[0], expand: this.expand, dur: duration + 0.02, rate: this.rate, startPos: this.position, amp: args.amp, ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[this.midiChannel].removeAt(synthID)});
+				SamplerQuery.playing[this.midiChannel].put(synthID, Synth(\ssexpand1, [buf: buffer[0], expand: this.expand, dur: duration + 0.02, rate: this.rate, startPos: this.position, amp: args.amp, ampenv: this.ampenv, pan: args.pan, panenv: this.panenv, bendenv: this.bendenv, posenv: this.posenvArray, grainRate: args.grainRate, grainDur: args.grainDur, out: args.out]).onFree{SamplerQuery.playing[this.midiChannel].removeAt(synthID)});
 			};
 		}
 		{true}{//expand is nil

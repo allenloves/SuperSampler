@@ -70,7 +70,7 @@ t.key([-60, 60], [\peakat, 1], panenv: Env([-1, 1, -1]));
 t.key([-60, 60], [\peakat, 5], bendenv: [0, 1, 0.2, 1, 0.5, 3, 1, 0.5], panenv: Env([-1, 1, -1]));
 
 t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 5], ampenv: Env([3,0,3]))
-t.key([30, 40, -50, 50, -60, 60, 70, 80], [\startats, 1])
+
 
 t.key([70, 81], \stretchshort);
 t.key([70, 81], \percussive);
@@ -179,7 +179,7 @@ f.key(60, [\peakat, 3]);
 
 f.key(34);
 f.key(34, expand: 2);
-f.key(34, expand: 10, bendenv: [0, 1, 0.3, 1, 1, 3]);
+f.key([-34, 34], expand: 10, bendenv: [0, 1, 0.3, 1, 1, 3]);
 f.key(1)
 f.key(-60);
 
@@ -218,20 +218,16 @@ g.key(40, ampenv: [0,1, 1, 0]);
 
 
 
-g.key(60, expand: 7, bend: [0, 1, 0.3, 1, 1,  0.3]);
-
+g.key(60, bendenv: [0, 1, 0.3, 1, 1,  0.3]);
 g.key([70, 30, 50, 40, 60], \nosorting);
-
 g.key([70, 30, 50, 40, 60], dur: 1);
-
-
-g.key([70, 30, 50, 40, 60], [\peakat, 5])
-
-
+g.key([70, 30, 50, 40, 60], dur: 1, bendenv: [0, 1, 0.3, 1, 1,  0.3])
+g.key([70, 30, 50, 40, 60], [\peakat, 2], bendenv: [0, 1, 0.3, 1, 1,  0.3])
 g.key([70, 30, 50, 40, 60], \percussive, texture: 0)
 g.key([70, 30, 50, 40, 60], \stretchshort)
 g.key([70, 30, 50, 40, 60], \stretchshort, expand: 5, bendenv: [0, 1, 0.3, 1, 1,  0.3]);
 
+g.samples[0].gui;
 g.samples[0].startTime;
 g.samples[0].peakTime;
 g.samples[0].attackDur;

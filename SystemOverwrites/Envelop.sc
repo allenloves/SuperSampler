@@ -144,6 +144,68 @@
 	}
 
 
+	//Cumulative integral of a piecewise-LINEAR envelope: area under the envelope from 0 to the given time.
+	//Times beyond the envelope duration extend with the final level; negative times return 0.
+	//Exact closed form (trapezoids), no sampling error.
+	cumIntegral {|time|
+		var levels = this.levels;
+		var durs = this.times;
+		var area = 0, t = time;
+		if(t <= 0) {^0};
+		durs.do{|segDur, i|
+			var a = levels[i], b = levels[i + 1];
+			if(t >= segDur)
+			{
+				area = area + (a + b * segDur / 2);
+				t = t - segDur;
+			}
+			{
+				if(t > 0)
+				{
+					var slope = if(segDur > 0) {(b - a) / segDur} {0};
+					area = area + (a * t) + (slope * t * t / 2);
+					t = 0;
+				};
+			};
+		};
+		if(t > 0) { area = area + (levels.last * t) };  //extend past the end at the final level
+		^area;
+	}
+
+
+	//Inverse of cumIntegral: the time at which the cumulative integral reaches the given value.
+	//Piecewise-linear closed form: one quadratic solve inside the segment where the value lands.
+	//Values beyond the total integral extend with the final level; value <= 0 returns 0.
+	cumIntegralInverse {|value|
+		var levels = this.levels;
+		var durs = this.times;
+		var elapsed = 0, remain = value;
+		if(remain <= 0) {^0};
+		durs.do{|segDur, i|
+			var a = levels[i], b = levels[i + 1];
+			var segArea = a + b * segDur / 2;
+			if(remain > segArea)
+			{
+				remain = remain - segArea;
+				elapsed = elapsed + segDur;
+			}
+			{
+				if(remain > 0)
+				{
+					var slope = if(segDur > 0) {(b - a) / segDur} {0};
+					var tt = if(slope.abs < 1e-12)
+					{remain / a.max(1e-12)}
+					{(a.squared + (2 * slope * remain)).max(0).sqrt - a / slope};
+					elapsed = elapsed + tt.clip(0, segDur);
+					remain = 0;
+				};
+			};
+		};
+		if(remain > 0) { elapsed = elapsed + (remain / levels.last.max(1e-12)) };  //extend past the end
+		^elapsed;
+	}
+
+
 	// Intergral of reciprocal of an envelope.
 	// This is brute force reciprocal algorithm, might take time to finish calculation if the resolution is too small
 	// Also, this only approximate the real intergral value

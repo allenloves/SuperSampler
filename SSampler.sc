@@ -1,6 +1,6 @@
 //Sample Descripter By Allen Wu
 //Sampler is dependent on following extentions:
-//SCMIR, Make sure you have SCMIR installed in your SuperCollider extensions.  http://composerprogrammer.com/code.html
+//SCMIR, it is now included in SuperSampler boundle.  http://composerprogrammer.com/code.html
 //wslib Quark
 
 
@@ -41,7 +41,7 @@ SSampler {
 
 
 
-
+	// args is a realization of SamplerArguments
 	*playArgs{|args|
 		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
 
@@ -260,7 +260,6 @@ SSampler {
 		^args;
 	}
 
-
 	setArgs {arg keynums = keynums ? {rrand(10.0, 100.0)}, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
@@ -278,7 +277,6 @@ SSampler {
 		args.set(syncmode: syncmode, detune: detune, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 
 	}
-
 
 	// play a SampleArgument object
 	playArgs {|args|

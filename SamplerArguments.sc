@@ -126,11 +126,14 @@ SamplerArguments{
 		positiveArray = playSamples.select({|thisSample| thisSample.rate.isPositive});
 		negativeArray = playSamples.select({|thisSample| thisSample.rate.isPositive.not});
 
-		dursBeforePeak = dursBeforePeak.add(positiveArray.collect({|thisSample| thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}));
-		dursBeforePeak = dursBeforePeak.add(negativeArray.collect({|thisSample| thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs})).flat;
+		//use the EFFECTIVE attack/release set by SamplerPrepare#setRate (capped by args.dur
+		//when given, equal to the sample's full values otherwise), so globalDur reflects the
+		//gesture as it will actually sound — the time domain of amp/pan/bend envelopes.
+		dursBeforePeak = dursBeforePeak.add(positiveArray.collect({|thisSample| thisSample.attackDur / thisSample.rate.abs}));
+		dursBeforePeak = dursBeforePeak.add(negativeArray.collect({|thisSample| thisSample.releaseDur / thisSample.rate.abs})).flat;
 
-		dursAfterPeak = dursAfterPeak.add(positiveArray.collect({|thisSample| thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs}));
-		dursAfterPeak = dursAfterPeak.add(negativeArray.collect({|thisSample| thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs})).flat;
+		dursAfterPeak = dursAfterPeak.add(positiveArray.collect({|thisSample| thisSample.releaseDur / thisSample.rate.abs}));
+		dursAfterPeak = dursAfterPeak.add(negativeArray.collect({|thisSample| thisSample.attackDur / thisSample.rate.abs})).flat;
 
 		globalAttackDur = dursBeforePeak.maxItem * (expand ? 1);
 		globalReleaseDur = dursAfterPeak.maxItem * (expand ? 1);

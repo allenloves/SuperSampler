@@ -2,7 +2,7 @@
 
 SamplerQuery {
 
-	classvar <> playing; //a temporary address for all sounds that is playing for applying .set() to sounds after it's triggered
+	classvar <> playing; //a temporary dictionary for all sounds that is playing for applying .set() to sounds after it's triggered, it is set by midi channels.
 
 	*initClass {
 		playing = [];
@@ -146,6 +146,11 @@ SamplerQuery {
 			\keeplength,{
 				var waittime = 0, startpos = 0;
 
+				//Pitch bend timing is handled exactly via the cumulative integral of the
+				//bend envelope (see below). Granular playback (expand) is excluded: its
+				//grain pointer moves on a fixed Line, so bend changes pitch but not timing.
+				var bendActive = (args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0]) and: {args.expand.isNil};
+
 				//sort samples by the attack time of the section, longer first
 				playSamples = playSamples.sort({|a, b|
 					var aAttack = if(a.rate.isPositive) {a.sample.attackDur[a.section]} {a.sample.releaseDur[a.section]};
@@ -153,61 +158,88 @@ SamplerQuery {
 					(aAttack / a.rate.abs) > (bAttack / b.rate.abs)
 				});
 
-				//thisSample is a SamplePrepare object
-				playSamples.do{|thisSample, index|
-					var previousIndex = (index - 1).thresh(0);
-					var previousSample = playSamples[previousIndex];
-					var thisPeakTime, previousPeakTime;
+				if(bendActive)
+				{
+					//Exact peak alignment under a pitch bend envelope.
+					//Let b(t) be the bend (rate multiplier) over wall-clock time t, and
+					//M(t) = cumIntegral(t) the source (nominal-playback) seconds consumed
+					//by wall time t. A sound whose peak sits P source-seconds in, started
+					//at onset o, peaks at wall time M⁻¹(M(o) + P). To land every peak on
+					//T_peak = M⁻¹(P_max):  o_i = M⁻¹(P_max − P_i).
+					var bendWall = args.bendenv.asEnv.copy.duration_(globalDur);
+					var maxPeak = 0, prevOnset = 0;
 
+					playSamples.do{|thisSample, index|
+						var thisPeakTime, thisStartpos, onset, sourceDur, wallDur;
 
-					thisPeakTime = if(thisSample.rate.isPositive)
-					{thisSample.attackDur / thisSample.rate.abs}
-					{thisSample.releaseDur / thisSample.rate.abs};
+						thisPeakTime = if(thisSample.rate.isPositive)
+						{thisSample.attackDur / thisSample.rate.abs}
+						{thisSample.releaseDur / thisSample.rate.abs};
 
-					startpos = if(thisSample.rate.isPositive)
-					{(thisSample.sample.attackDur.[thisSample.section] - thisSample.attackDur[thisSample.section]).thresh(0)}
-					{(thisSample.sample.releaseDur[thisSample.section] - thisSample.releaseDur[thisSample.section]).thresh(0)};
+						if(index == 0) { maxPeak = thisPeakTime };  //sorted: first has the longest attack
 
-					previousPeakTime = if(previousSample.rate.isPositive)
-					{previousSample.attackDur[previousSample.section] / previousSample.rate.abs}
-					{previousSample.releaseDur[previousSample.section] / previousSample.rate.abs};
+						thisStartpos = if(thisSample.rate.isPositive)
+						{(thisSample.sample.attackDur.[thisSample.section] - thisSample.attackDur[thisSample.section]).thresh(0)}
+						{(thisSample.sample.releaseDur[thisSample.section] - thisSample.releaseDur[thisSample.section]).thresh(0)};
 
-					waittime = (previousPeakTime - thisPeakTime).thresh(0);  //wait time before pitch bendenv.
+						onset = bendWall.cumIntegralInverse(maxPeak - thisPeakTime);
+						sourceDur = thisSample.duration;  //nominal playback seconds (before bend)
+						wallDur = bendWall.cumIntegralInverse(maxPeak - thisPeakTime + sourceDur) - onset;
 
-					thisSample.wait = waittime * expand;
-					thisSample.position = if(thisSample.rate.isNegative){(thisSample.sample.activeBuffer[thisSample.section][0].duration - startpos).thresh(0)}{startpos};
-					thisSample.expand = args.expand;
+						thisSample.wait = onset - prevOnset;
+						prevOnset = onset;
+						thisSample.position = if(thisSample.rate.isNegative){(thisSample.sample.activeBuffer[thisSample.section][0].duration - thisStartpos).thresh(0)}{thisStartpos};
+						thisSample.expand = args.expand;
+						thisSample.duration = wallDur;  //wall-clock length under bend (synth envelope length)
 
-					nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
-					nWait = waittime * expand / globalDur;
-					nDur = thisSample.duration * expand / globalDur;
-
-					thisSample.ampenv = args.ampenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
-					thisSample.panenv = args.panenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
-
-					thisSample.bendenv = args.bendenv;
-
-
-					//pitch bendenv adjustments
-					//the math is not correct in this version, need to be fixed
-					//variation with n in the front means "normalized"
-					if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
-					{
-						var rBendEnv = args.bendenv.asEnv.reciprocal;
-						var bend = args.bendenv.asEnv;
-						//wait time equals to the integral of reciprocal bend envelope of the waiting time
-						thisSample.wait = (rBendEnv.integral(nElapsed + nWait) - rBendEnv.integral(nElapsed)) * rBendEnv.copy.duration_(globalDur).integral;
-
-						//brute force intergal, still not working
-						//thisSample.wait = (bend.reciprocalIntegral(nElapsed + nWait) - bend.reciprocalIntegral(nElapsed)) * bend.copy.duration_(globalDur).reciprocalIntegral;
-
-						//local bend envelope for each sound
-						thisSample.bendenv = args.bendenv.asEnv.subEnv(nElapsed + nWait, nDur).asArray;
-
-						elapsed = elapsed + thisSample.wait;
+						thisSample.ampenv = args.ampenv.asEnv.subEnv(onset / globalDur, wallDur / globalDur).stretch.asArray;
+						thisSample.panenv = args.panenv.asEnv.subEnv(onset / globalDur, wallDur / globalDur).stretch.asArray;
+						thisSample.bendenv = bendWall.subEnv(onset, wallDur).stretch.asArray;
 					}
-					{elapsed = elapsed + waittime;};
 				}
+				{
+					//thisSample is a SamplePrepare object
+					playSamples.do{|thisSample, index|
+						var previousIndex = (index - 1).thresh(0);
+						var previousSample = playSamples[previousIndex];
+						var thisPeakTime, previousPeakTime;
+
+
+						thisPeakTime = if(thisSample.rate.isPositive)
+						{thisSample.attackDur / thisSample.rate.abs}
+						{thisSample.releaseDur / thisSample.rate.abs};
+
+						startpos = if(thisSample.rate.isPositive)
+						{(thisSample.sample.attackDur.[thisSample.section] - thisSample.attackDur[thisSample.section]).thresh(0)}
+						{(thisSample.sample.releaseDur[thisSample.section] - thisSample.releaseDur[thisSample.section]).thresh(0)};
+
+						previousPeakTime = if(previousSample.rate.isPositive)
+						{previousSample.attackDur[previousSample.section] / previousSample.rate.abs}
+						{previousSample.releaseDur[previousSample.section] / previousSample.rate.abs};
+
+						waittime = (previousPeakTime - thisPeakTime).thresh(0);
+
+						thisSample.wait = waittime * expand;
+						thisSample.position = if(thisSample.rate.isNegative){(thisSample.sample.activeBuffer[thisSample.section][0].duration - startpos).thresh(0)}{startpos};
+						thisSample.expand = args.expand;
+
+						nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
+						nWait = waittime * expand / globalDur;
+						nDur = thisSample.duration * expand / globalDur;
+
+						thisSample.ampenv = args.ampenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
+						thisSample.panenv = args.panenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
+
+						//granular (expand) playback reaches here with a live bendenv: bend changes
+						//grain pitch but not timing — still slice each voice's window of the
+						//gesture-level bend contour, like ampenv/panenv above.
+						thisSample.bendenv = if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
+						{args.bendenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray}
+						{args.bendenv};
+
+						elapsed = elapsed + (waittime * expand);  //gesture-relative onset accumulation
+					}
+				};
 			},
 
 
@@ -215,6 +247,10 @@ SamplerQuery {
 			\peakat,{
 				var previousPeakTime = syncmode.asArray[1] ? 0; //initial peak time
 
+				//Pitch bend timing handled exactly via the cumulative bend integral;
+				//granular playback (expand) excluded — see \keeplength note.
+				var bendActive = (args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0]) and: {args.expand.isNil};
+
 				//sort samples by the attack time of the section, longer first
 				playSamples = playSamples.sort({|a, b|
 					var aAttack = if(a.rate.isPositive) {a.sample.attackDur[a.section]} {a.sample.releaseDur[a.section]};
@@ -222,77 +258,93 @@ SamplerQuery {
 					(aAttack / a.rate.abs) > (bAttack / b.rate.abs)
 				});
 
+				if(bendActive)
+				{
+					//Exact peak alignment on the user-assigned wall-clock peak time.
+					//M(t) = cumIntegral of the bend env; sourceAtTarget = M(T_peak) is the
+					//source amount consumable before the target. A sound with peak P_i:
+					//  P_i <= sourceAtTarget → start at o_i = M⁻¹(sourceAtTarget − P_i)
+					//  P_i  > sourceAtTarget → start at 0 and trim the source start so the
+					//                          remaining attack exactly fills M(T_peak).
+					var bendWall = args.bendenv.asEnv.copy.duration_(globalDur);
+					var targetPeak = previousPeakTime;
+					var sourceAtTarget = bendWall.cumIntegral(targetPeak);
+					var prevOnset = 0;
 
+					playSamples.do{|thisSample, index|
+						var pkFull, trimNominal, onset, remainSource, wallDur;
 
-				playSamples.do{|thisSample, index|
-					var thisPeakTime, adjust;
+						pkFull = if(thisSample.rate.isPositive)
+						{thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}
+						{thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs};
 
-					//find the peak time of playing sample
-					thisPeakTime = if(thisSample.rate.isPositive)
-					{thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}
-					{thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs};
+						if(pkFull <= sourceAtTarget)
+						{
+							onset = bendWall.cumIntegralInverse(sourceAtTarget - pkFull);
+							trimNominal = 0;
+						}
+						{
+							onset = 0;
+							trimNominal = pkFull - sourceAtTarget;
+						};
 
-					// wait time is the difference between previous peak time and this peak time
-					adjust = previousPeakTime - thisPeakTime;
-					thisSample.wait = adjust.thresh(0) * expand;
+						remainSource = (thisSample.sample.activeBuffer[thisSample.section][0].duration / thisSample.rate.abs) - trimNominal;
+						wallDur = bendWall.cumIntegralInverse(bendWall.cumIntegral(onset) + remainSource) - onset;
 
-					//calculate time for env adjustments
-					elapsed = if(index <= 1){0}{elapsed + thisSample.wait};
+						thisSample.wait = (onset - prevOnset).thresh(0);
+						prevOnset = onset;
+						thisSample.expand = args.expand;
+						thisSample.duration = wallDur;  //wall-clock length under bend (synth envelope length)
+						thisSample.position = if(thisSample.rate.isPositive)
+						{trimNominal * thisSample.rate.abs}
+						{thisSample.buffer[0].duration - (trimNominal * thisSample.rate.abs)};
 
-					// normalized time for envelope adjustments
-					nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
-					nWait = if(index == 0){0}{thisSample.wait} / globalDur;
-					nDur = thisSample.duration * expand / globalDur;
+						thisSample.ampenv = args.ampenv.asEnv.subEnv(onset / globalDur, wallDur / globalDur).stretch.asArray;
+						thisSample.panenv = args.panenv.asEnv.subEnv(onset / globalDur, wallDur / globalDur).stretch.asArray;
+						thisSample.bendenv = bendWall.subEnv(onset, wallDur).stretch.asArray;
+					}
+				}
+				{
+					playSamples.do{|thisSample, index|
+						var thisPeakTime, adjust;
 
-					// adjust for bendenv
-					if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
-					{
-						var nAttackTime, bendEnvForAttackTime, attackDur, bendedAttackDur;
+						//find the peak time of playing sample
+						thisPeakTime = if(thisSample.rate.isPositive)
+						{thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs}
+						{thisSample.sample.releaseDur[thisSample.section] / thisSample.rate.abs};
 
-						//the time difference between original and bend sounds is the integral of reciprocal bend envelope
-						//attackDur = if(thisSample.rate.isPositive){thisSample.attackDur}{thisSample.releaseDur};
-						nAttackTime = thisPeakTime * expand / globalDur;
-						bendEnvForAttackTime = args.bendenv.asEnv.subEnv(nElapsed + nWait, nAttackTime).stretch.asArray;
-						bendedAttackDur = (thisPeakTime * bendEnvForAttackTime.asEnv.reciprocal.integral);
-
-
-						adjust = adjust + (thisPeakTime - bendedAttackDur);
-						thisPeakTime = bendedAttackDur;
+						// wait time is the difference between previous peak time and this peak time
+						adjust = previousPeakTime - thisPeakTime;
 						thisSample.wait = adjust.thresh(0) * expand;
 
-						//now recalibrate normalized time for envelope adjustments
-						elapsed = if(index <= 1){0}{elapsed + thisSample.wait};
+						//gesture-relative onset: the first (longest) voice anchors the gesture at 0;
+						//later voices accumulate their (already expanded) waits from there.
+						elapsed = if(index == 0){0}{elapsed + thisSample.wait};
+
+						// normalized time for envelope adjustments
 						nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
-						nWait = if(index == 0){0}{thisSample.wait} / globalDur;
 						nDur = thisSample.duration * expand / globalDur;
 
-						thisSample.bendenv = args.bendenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
+						thisSample.expand = args.expand;
 
-						//thisSample.bendenv = args.bendenv;
+						thisSample.ampenv = args.ampenv.asEnv.subEnv(nElapsed, nDur).stretch.asArray;
+						thisSample.panenv = args.panenv.asEnv.subEnv(nElapsed, nDur).stretch.asArray;
+						//granular (expand) playback: slice the gesture-level bend contour per voice.
+						thisSample.bendenv = if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
+						{args.bendenv.asEnv.subEnv(nElapsed, nDur).stretch.asArray}
+						{args.bendenv};
+
+
+
+						thisSample.position = if(thisSample.rate.isPositive)
+						{adjust.neg.thresh(0) * thisSample.rate.abs}
+						{thisSample.buffer[0].duration - (adjust.neg.thresh(0) * thisSample.rate.abs)};
+
+						thisPeakTime = (thisPeakTime - adjust.neg.thresh(0)).thresh(0);
+
+						previousPeakTime = thisPeakTime;
 					}
-					{
-						thisSample.bendenv = args.bendenv;
-					};
-
-
-
-					thisSample.expand = args.expand;
-					thisSample.ampenv = args.ampenv;
-					thisSample.panenv = args.panenv;
-
-					thisSample.ampenv = args.ampenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
-					thisSample.panenv = args.panenv.asEnv.subEnv(nElapsed + nWait, nDur).stretch.asArray;
-
-
-
-					thisSample.position = if(thisSample.rate.isPositive)
-					{adjust.neg.thresh(0) * thisSample.rate.abs}
-					{thisSample.buffer[0].duration - (adjust.neg.thresh(0) * thisSample.rate.abs)};
-
-					thisPeakTime = (thisPeakTime - adjust.neg.thresh(0)).thresh(0);
-
-					previousPeakTime = thisPeakTime;
-				}
+				};
 			},
 
 
@@ -412,17 +464,44 @@ SamplerQuery {
 				}
 			},
 
-			//expand shorter sample to fit the largest sample
+			//expand shorter sample to fit the largest sample.
+			//The peak can sit anywhere in the file (a crescendo peaks near the end) and
+			//negative keys traverse the buffer backwards, so pre-peak and post-peak lengths
+			//are aligned SEPARATELY: every voice reaches the peak at globalAttackDur and
+			//ends at globalAttackDur + globalReleaseDur, via a two-segment grain-position
+			//envelope (the pointer stays continuous — only its speed changes at the peak).
 			\stretchshort,{
-				var globalAttackDur = playSamples.collect({|thisSample, index| thisSample.sample.attackDur[thisSample.section]}).maxItem;
 				var waittime = syncmode.asArray[1] ? 0;
-				var startpos = 0;
+				//pre/post-peak maxima in playback order (rate-sign aware, from getGlobalDur),
+				//taken back to nominal (un-expanded) seconds.
+				var globalAttack = args.globalAttackDur / expand;
+				var globalRelease = args.globalReleaseDur / expand;
+				var totalNominal = (globalAttack + globalRelease).max(1e-9);
+
 				playSamples.do{|thisSample, index|
-					var stratch = globalAttackDur / (thisSample.sample.attackDur[thisSample.section] / thisSample.rate.abs);
+					var pre = if(thisSample.rate.isPositive) {thisSample.attackDur} {thisSample.releaseDur} / thisSample.rate.abs;
+					var post = if(thisSample.rate.isPositive) {thisSample.releaseDur} {thisSample.attackDur} / thisSample.rate.abs;
+					var bufDur = thisSample.sample.activeBuffer[thisSample.section][0].duration;
+					var peakNorm = (thisSample.sample.attackDur[thisSample.section] / bufDur).clip(0, 1);
+
 					thisSample.wait = waittime;
 					waittime = 0;
-					thisSample.position = if(thisSample.rate.isNegative){(thisSample.sample.activeBuffer[thisSample.section][0].duration-startpos).thresh(0)}{startpos};
-					if(stratch != 1){thisSample.expand = stratch * (args.expand ? 1)}{thisSample.expand = args.expand;};
+					thisSample.position = if(thisSample.rate.isNegative){bufDur}{0};
+
+					if(((pre - globalAttack).abs < 1e-9) and: {(post - globalRelease).abs < 1e-9})
+					{
+						//already the longest on both sides — plain playback, nothing to stretch
+						thisSample.expand = args.expand;
+						thisSample.posenv = nil;
+					}
+					{
+						thisSample.expand = args.expand ? 1;
+						thisSample.duration = totalNominal;
+						thisSample.posenv = if(thisSample.rate.isPositive)
+						{Env([0, peakNorm, 0.95], [globalAttack, globalRelease] / totalNominal).asArray}
+						{Env([1, peakNorm, 0], [globalAttack, globalRelease] / totalNominal).asArray};
+					};
+
 					thisSample.bendenv = args.bendenv;
 					thisSample.ampenv = args.ampenv;
 					thisSample.panenv = args.panenv;
