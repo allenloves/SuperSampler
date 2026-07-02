@@ -44,6 +44,11 @@ SSampler {
 
 
 
+	//All distinct gestureIDs recorded in a SamplerScore ([args, delay] pairs).
+	*gestureIDsOf {|argslist|
+		^argslist.collect{|pair| pair[0].gestureID}.asSet.asArray
+	}
+
 	// args is a realization of SamplerArguments
 	*playArgs{|args|
 		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
@@ -366,6 +371,14 @@ SSampler {
 				argslist.add([args, 0])
 			}
 		};
+
+		//end-of-envelope cleanup: gate off whatever this call spawned that is
+		//still sounding shortly after the envelope ends (0.1s kill-gate fade)
+		SystemClock.sched(env.duration + 0.05, {
+			SamplerQuery.releaseGesture(SSampler.gestureIDsOf(argslist));
+			nil;
+		});
+
 		^argslist;
 	}
 }//end of Sampler class

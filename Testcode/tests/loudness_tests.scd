@@ -147,6 +147,14 @@ section.("Section 6: autoGain scaling in playArgs path", {
 	assertClose.(SamplerQuery.autoGainScale(0.3, 0), 1.0, 1e-9, "scale: no new level -> 1");
 });
 
+section.("Section 7: playEnv gesture collection", {
+	var a1 = SamplerArguments.new, a2 = SamplerArguments.new;
+	var score = SamplerScore.new;
+	score.add([a1, 0]); score.add([a2, 0.03]);
+	assertTrue.(SSampler.gestureIDsOf(score).asSet == Set[a1.gestureID, a2.gestureID],
+		"playEnv: collects unique gestureIDs from score");
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;
