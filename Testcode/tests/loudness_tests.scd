@@ -99,6 +99,19 @@ section.("Section 3: gestureID + releaseGesture", {
 	assertTrue.(setCalls.size == 2 and: {setCalls.every{|c| c == [\gA, \gate, 0]}},
 		"releaseGesture: exactly the two \\gA voices gated, \\gB untouched (got " ++ setCalls ++ ")");
 	SamplerQuery.playing[0].removeAt(\v1); SamplerQuery.playing[0].removeAt(\v2); SamplerQuery.playing[5].removeAt(\v3);
+
+	// The gate travels in an error-suppressed bundle: a voice can free itself on
+	// the server (doneAction: 2 at playback end) in the same instant releaseGesture
+	// fires, and the stray /n_set on the dead node would print
+	// "FAILURE IN SERVER /n_set Node not found" — harmless but alarming.
+	setCalls = [];
+	mkVoice.(\gC).gateOff;
+	assertTrue.(setCalls == [[\gC, \gate, 0]],
+		"gateOff: non-Node synths (mocks/duck types) fall back to plain .set(\\gate, 0)");
+	assertTrue.({
+		var node = Synth.basicNew(\ssplaybuf1, Server.default);
+		SamplerVoice.gateOffBundle(node) == [['/error', -1], node.setMsg(\gate, 0)]
+	}.value, "gateOff: real Nodes get [/error -1, /n_set gate 0] in ONE bundle (suppression scoped to it)");
 });
 
 section.("Section 4: normalize gain stamping", {

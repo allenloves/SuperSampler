@@ -13,5 +13,20 @@ SamplerVoice {
 	free {^synth.free}
 	release {|releaseTime| ^synth.release(releaseTime)}
 
+	//Gate the voice off (0.1s kill-gate fade in the SynthDefs). The voice may have
+	//just freed itself on the server (doneAction: 2 at playback end) with its /n_end
+	//still in flight, so the /n_set travels with error posting suppressed for this
+	//bundle — a gate landing on an already-gone node is the desired end state, not
+	//a failure worth "FAILURE IN SERVER /n_set Node not found" on the post window.
+	gateOff {
+		if(synth.isKindOf(Node))
+		{synth.server.sendBundle(nil, *SamplerVoice.gateOffBundle(synth))}
+		{synth.set(\gate, 0)};
+	}
+
+	//['/error', -1] turns server error posting off for the current bundle only
+	//(Server Command Reference), so nothing outside this gate is silenced.
+	*gateOffBundle {|node| ^[['/error', -1], node.setMsg(\gate, 0)]}
+
 	doesNotUnderstand {|selector ...args| ^synth.performList(selector, args)}
 }

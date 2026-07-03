@@ -14,11 +14,13 @@ SamplerQuery {
 
 	//Gate off every playing voice tagged with one of the given gestureIDs.
 	//Voices fade over the SynthDef kill-gate release (0.1s) then free themselves.
+	//gateOff (not raw .set) so a voice that just freed itself server-side doesn't
+	//print a Node-not-found FAILURE while its /n_end is still in flight.
 	*releaseGesture {|gestureIDs|
 		var ids = gestureIDs.asArray;
 		playing.do{|channelDict|
 			channelDict.copy.do{|voice|
-				if(ids.includes(voice.gestureID)) { voice.set(\gate, 0) };
+				if(ids.includes(voice.gestureID)) { voice.gateOff };
 			};
 		};
 	}
