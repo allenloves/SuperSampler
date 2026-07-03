@@ -440,6 +440,34 @@ section.("Section 12: \\percussive with negative keys gives a minimum audible sn
 	assertClose.(revNat.duration, 0.99, 1e-6, "percussive: reversed natural voice duration = attack playback time");
 });
 
+section.("Section 13: \\peakat target is wall-clock under expand", {
+	// expand stretches playback 10x; [\peakat, 3] must still land peaks at
+	// wall-clock 3s, not 3 * expand = 30s (Samplertestcode.scd:190).
+	var preps = [mockPrep.(0.2, 1.0), mockPrep.(0.05, 1.0)];
+	var args = makeArgs.(preps, [\peakat, 3], nil);
+	var sorted;
+	args.expand = 10;
+	args.getGlobalDur;
+	sorted = SamplerQuery.getPlayTime(args);
+
+	assertClose.(sorted[0].wait, 1.0, 1e-6, "expand-peakat: first onset = 3 - (0.2 * 10)");
+	assertClose.(sorted[1].wait, 1.5, 1e-6, "expand-peakat: second onset 2.5 (delta 1.5)");
+	assertClose.(sorted[0].wait + (sorted[0].attackDur * 10), 3.0, 1e-6,
+		"expand-peakat: first peak at wall 3");
+	assertClose.(sorted[0].wait + sorted[1].wait + (sorted[1].attackDur * 10), 3.0, 1e-6,
+		"expand-peakat: second peak at wall 3");
+
+	// trimming: attack*expand exceeds the target -> source start trimmed so the
+	// (stretched) remaining attack still peaks exactly at wall 3
+	preps = [mockPrep.(0.5, 1.0)];
+	args = makeArgs.(preps, [\peakat, 3], nil);
+	args.expand = 10;
+	args.getGlobalDur;
+	sorted = SamplerQuery.getPlayTime(args);
+	assertClose.(sorted[0].wait, 0, 1e-6, "expand-peakat-trim: starts immediately");
+	assertClose.(sorted[0].position, 0.2, 1e-6, "expand-peakat-trim: source trimmed by pk - target/expand");
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;

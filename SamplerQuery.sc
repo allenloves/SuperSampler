@@ -337,7 +337,11 @@ SamplerQuery {
 
 			//assign a peak time where the pick of sound gesture happens.  e.g. [\peakat, 3]
 			\peakat,{
-				var previousPeakTime = syncmode.asArray[1] ? 0; //initial peak time
+				//the target is WALL-CLOCK seconds; the scheduling chain below works in
+				//nominal (pre-expand) time and multiplies waits by expand at the end,
+				//so convert the target into nominal time here (peaks land at target,
+				//not at target * expand)
+				var previousPeakTime = (syncmode.asArray[1] ? 0) / expand; //initial peak time
 
 				//Pitch bend timing handled exactly via the cumulative bend integral;
 				//granular playback (expand) excluded — see \keeplength note.
