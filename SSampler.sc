@@ -66,10 +66,17 @@ SSampler {
 		^env ** SSampler.toFlatEnv(ampenv).stretch(env.duration);
 	}
 
-	//Slice the global (env.duration-domain) contours down to one gesture's wall
-	//window [0, gestureDur]. Gestures all spawn at t = 0, so no offset is needed.
-	*globalEnvSlices {|composite, panenv, bendenv, gestureDur, envDur|
-		var slice = {|e| e !? {SSampler.toFlatEnv(e).stretch(envDur).subEnv(0, gestureDur)} };
+	//Slice the global (WALL-anchored, env.duration-domain) contours into one
+	//gesture's CLIMAX-anchored envelope: a window of nominal length
+	//attackDur + releaseDur positioned so the gesture's aligned peak (wall time
+	//targetPeak) sits exactly at the attackDur point — matching getPlayTime's
+	//nominal-timeline anchoring (peak at globalAttackDur). Values outside the
+	//global env clamp to its edge levels, so an end-of-envelope peak holds its
+	//level until the end-of-envelope cleanup gates the voices (accent-then-cut).
+	*globalEnvSlices {|composite, panenv, bendenv, targetPeak, attackDur, releaseDur, envDur|
+		var len = (attackDur + releaseDur).max(0.001);
+		var start = targetPeak - attackDur;
+		var slice = {|e| e !? {SSampler.toFlatEnv(e).stretch(envDur).subEnv(start, len)} };
 		^(
 			ampenv: slice.(composite),
 			panenv: slice.(panenv),
@@ -426,7 +433,7 @@ SSampler {
 				args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
 				texture = env.range.at(thisPeakTime).linlin(0, 1, 1, maxtexture).asInteger;
 				slices = SSampler.globalEnvSlices(composite, panenv, bendenv,
-					min(args.globalDur ? env.duration, env.duration), env.duration);
+					thisPeakTime, args.globalAttackDur ? 0, args.globalReleaseDur ? 0, env.duration);
 				args.set(syncmode: [\peakat, thisPeakTime],
 					amp: amp,           // 振幅形狀交給 ampenv 切片, 不再用 env.at(peak) 點值
 					ampenv: slices[\ampenv], panenv: slices[\panenv], bendenv: slices[\bendenv],

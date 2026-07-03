@@ -148,22 +148,35 @@ section.("Section 7: playEnv gesture collection", {
 		"playEnv: collects unique gestureIDs from score");
 });
 
-section.("Section 8: playEnv global envelope slices", {
-	var env = Env([0, 1, 0], [1, 1]);          // 主 env, 2 秒
+section.("Section 8: playEnv climax-anchored gesture slices", {
+	var env = Env([0, 1, 0], [1, 1]);          // 主 env, 2 秒, 牆鐘錨定
 	var ampenv = Env([1, 0.5], [1]);           // 使用者 ampenv (將 stretch 到 2 秒)
 	var composite = SSampler.envComposite(env, ampenv);
+	var slices;
 	// composite(1.0) = env(1.0) * ampenv@mid = 1 * 0.75
 	assertClose.(composite.at(1.0), 0.75, 0.01, "composite: env ** ampenv pointwise");
 	assertClose.(composite.duration, 2.0, 1e-6, "composite: domain = env.duration");
 
-	// gesture 佔 [0, 1.2] 窗口, envDur 2
-	{
-		var slices = SSampler.globalEnvSlices(composite, Env([-1, 1], [1]), nil, 1.2, 2.0);
-		assertClose.(slices[\ampenv].duration, 1.2, 1e-6, "slice: ampenv domain = gestureDur");
-		assertClose.(slices[\ampenv].at(1.0), composite.at(1.0), 0.01, "slice: t=0 anchored (gesture time = global time)");
-		assertClose.(slices[\panenv].at(0.6), -1 + (0.6 / 2 * 2), 0.01, "slice: panenv sliced over gesture window");
-		assertTrue.(slices[\bendenv].isNil, "slice: nil passes through");
-	}.value;
+	// gesture: peak 目標在牆鐘 1.5, 名義 attack 0.5 / release 1.0 —
+	// 切片必須讓「climax 錨點」(attackDur 位置) 讀到全域輪廓在 peak 牆鐘時刻的值,
+	// 與 getPlayTime 的名義軸錨定精確對接
+	slices = SSampler.globalEnvSlices(composite, Env([-1, 1], [1]), nil, 1.5, 0.5, 1.0, 2.0);
+	assertClose.(slices[\ampenv].duration, 1.5, 1e-6, "slice: domain = attack + release");
+	assertClose.(slices[\ampenv].at(0.5), composite.at(1.5), 0.01,
+		"slice: value at the attackDur point == global contour at the peak wall time");
+	assertClose.(slices[\panenv].at(0.5), Env([-1, 1], [1]).stretch(2.0).at(1.5), 0.01,
+		"slice: panenv climax-anchored too");
+	assertTrue.(slices[\bendenv].isNil, "slice: nil passes through");
+
+	// end-peak case (Samplertestcode.scd:134 bug): peak at the env END — the
+	// gesture env must be LOUD at its climax (reading the global end level),
+	// and the tail beyond the global env clamps to that level (accent-then-cut,
+	// not a fade that swallows the peak)
+	slices = SSampler.globalEnvSlices(Env([1, 0, 1], [1, 1]), nil, nil, 2.0, 0.04, 4.0, 2.0);
+	assertClose.(slices[\ampenv].at(0.04), 1.0, 0.02,
+		"slice: END-peak gesture is LOUD at its climax (not the mid dip)");
+	assertClose.(slices[\ampenv].at(4.04), 1.0, 0.02,
+		"slice: tail beyond the global env clamps to the end level");
 });
 
 "".postln;
