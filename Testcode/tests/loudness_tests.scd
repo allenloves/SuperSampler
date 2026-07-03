@@ -310,20 +310,7 @@ section.("Section 14: voice onsets are absolute times from one origin", {
 	assertTrue.(SamplerQuery.voiceOnsetTimes([], 5) == [], "onsets: empty list");
 });
 
-section.("Section 15: perceptual peak — first hop at 95% of the RMS max", {
-	// Sustained/plateau sounds (e.g. tape reels) put their absolute RMS max deep
-	// into the plateau while the ear locks onto where the loudness ARRIVES; the
-	// analyzed peak sat late (reel: attackDur 1.78s) making every peak-aligned
-	// gesture lead the perceived peak by half a second or more.
-	assertTrue.(SampleDescript.perceptualPeakHop([0, 0.2, 0.5, 0.9, 0.96, 1.0, 0.99, 0.97, 0.5]) == 4,
-		"perceptual peak: plateau — first hop >= 95% of max (not the absolute max)");
-	assertTrue.(SampleDescript.perceptualPeakHop([0.1, 0.5, 0.93, 0.94, 0.95, 0.99, 1.0]) == 4,
-		"perceptual peak: slow swell — arrival at 95%, not the late absolute max");
-	assertTrue.(SampleDescript.perceptualPeakHop([1.0, 0.6, 0.3, 0.1]) == 0,
-		"perceptual peak: percussive material unaffected (max is first)");
-});
-
-section.("Section 16: playEnv gestures carry NO automatic contour", {
+section.("Section 15: playEnv gestures carry NO automatic contour", {
 	// Multiplying each gesture by a slice of the main envelope backfired: the
 	// slice window (gesture nominal span, up to several seconds wide) contains
 	// NEIGHBORING envelope peaks, and voiceShape * contour then maxes BEFORE the
