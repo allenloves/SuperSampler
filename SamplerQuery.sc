@@ -57,6 +57,28 @@ SamplerQuery {
 		^total;
 	}
 
+	//Build one voice's local gesture-envelope: slice the normalized contour gEnv on
+	//the NOMINAL timeline (window s0..s0+len, peak at s0+peakOffset — trim-aware, so
+	//the contour stays glued to the aligned peak), then warp each breakpoint through
+	//the bend map so the linear wall-time EnvGen reproduces the contour on the audio
+	//content. An explicit breakpoint lands exactly on the peak instant.
+	//Units: s0/len/peakOffset in nominal seconds; gEnv normalized (domain 1 = globalDur);
+	//bendWall spans globalDur; onset = the voice's wall-clock start.
+	*warpEnvWindow {|gEnv, s0, len, peakOffset, bendWall, onset, globalDur|
+		var mOnset = bendWall.cumIntegral(onset);
+		var pts = [0, peakOffset.clip(0, len), len];
+		var taus, levels;
+		gEnv.timeLine.do{|tl|
+			var pNom = (tl * globalDur) - s0;
+			if((pNom > 1e-9) and: {pNom < (len - 1e-9)}) { pts = pts.add(pNom) };
+		};
+		pts = pts.sort;
+		levels = pts.collect{|pNom| gEnv.at((s0 + pNom) / globalDur)};
+		taus = pts.collect{|pNom| bendWall.cumIntegralInverse(mOnset + pNom) - onset};
+		^Env(levels, taus.differentiate.drop(1));
+	}
+
+
 	//Wall-clock offset from trigger to the gesture's aligned peak.
 	*predictedPeakOffset {|args|
 		var syncmode = args.syncmode.asArray;
@@ -260,8 +282,10 @@ SamplerQuery {
 						thisSample.expand = args.expand;
 						thisSample.duration = wallDur;  //wall-clock length under bend (synth envelope length)
 
-						thisSample.ampenv = args.ampenv.asEnv.subEnv(onset / globalDur, wallDur / globalDur).stretch.asArray;
-						thisSample.panenv = args.panenv.asEnv.subEnv(onset / globalDur, wallDur / globalDur).stretch.asArray;
+						//amp/pan contours: nominal-anchored window (peak glued at maxPeak),
+						//breakpoints warped through the bend map — see *warpEnvWindow
+						thisSample.ampenv = SamplerQuery.warpEnvWindow(args.ampenv.asEnv, maxPeak - thisPeakTime, sourceDur, thisPeakTime, bendWall, onset, globalDur).stretch.asArray;
+						thisSample.panenv = SamplerQuery.warpEnvWindow(args.panenv.asEnv, maxPeak - thisPeakTime, sourceDur, thisPeakTime, bendWall, onset, globalDur).stretch.asArray;
 						thisSample.bendenv = bendWall.subEnv(onset, wallDur).stretch.asArray;
 					}
 				}
@@ -367,8 +391,10 @@ SamplerQuery {
 						{trimNominal * thisSample.rate.abs}
 						{thisSample.buffer[0].duration - (trimNominal * thisSample.rate.abs)};
 
-						thisSample.ampenv = args.ampenv.asEnv.subEnv(onset / globalDur, wallDur / globalDur).stretch.asArray;
-						thisSample.panenv = args.panenv.asEnv.subEnv(onset / globalDur, wallDur / globalDur).stretch.asArray;
+						//amp/pan contours: nominal-anchored window (peak glued at globalAttackDur,
+						//trim skips the same leading portion), breakpoints warped through the bend map
+						thisSample.ampenv = SamplerQuery.warpEnvWindow(args.ampenv.asEnv, ((args.globalAttackDur ? 0) - (pkFull - trimNominal)).max(0), remainSource, pkFull - trimNominal, bendWall, onset, globalDur).stretch.asArray;
+						thisSample.panenv = SamplerQuery.warpEnvWindow(args.panenv.asEnv, ((args.globalAttackDur ? 0) - (pkFull - trimNominal)).max(0), remainSource, pkFull - trimNominal, bendWall, onset, globalDur).stretch.asArray;
 						thisSample.bendenv = bendWall.subEnv(onset, wallDur).stretch.asArray;
 					}
 				}

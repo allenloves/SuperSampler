@@ -67,13 +67,19 @@ var makeArgs = {|preps, syncmode, bendenv, dur = nil|
 };
 
 // simulate scheduled playback, return each sample's wall-clock peak time
+// (sign-aware: reversed voices traverse their release first, and their start
+// trim is measured from the buffer END via position)
 var simulatePeaks = {|sorted, bendWall|
 	var elapsed = 0;
 	sorted.collect{|p|
-		var onset, peakSource;
+		var onset, pre, trim, peakSource;
 		elapsed = elapsed + p.wait;
 		onset = elapsed;
-		peakSource = (p.attackDur / p.rate.abs) - (p.position / p.rate.abs).max(0);
+		pre = if(p.rate.isPositive) {p.attackDur} {p.releaseDur} / p.rate.abs;
+		trim = if(p.rate.isPositive)
+			{p.position / p.rate.abs}
+			{(p.sample.activeBuffer[0][0].duration - p.position) / p.rate.abs};
+		peakSource = (pre - trim.max(0)).max(0);
 		bruteWallTimeFor.(bendWall, onset, peakSource);
 	};
 };
@@ -365,6 +371,46 @@ section.("Section 10: \\peakat trimming keeps envelopes on the nominal timeline"
 		"peakat-trim: forward voice ampenv is ZERO at the aligned peak");
 	assertClose.(vFwd.ampenv.asEnv.at(1), 3, 0.02,
 		"peakat-trim: forward voice ampenv ends at global end = 3");
+});
+
+section.("Section 11: bend branches anchor + WARP envelopes to the nominal timeline", {
+	// Same principle as Section 10, with bendenv active: envelope windows sit on
+	// the nominal timeline (trim-aware), and breakpoint times are warped through
+	// the bend map M so the contour stays glued to the source content. The
+	// assertions probe the env at the WALL position where the peak actually
+	// sounds — this is what the synth (linear wall-time EnvGen) will play.
+	var preps, args, sorted, vRev, vFwd, bendWall, onsetFwd, peakWall;
+
+	// --- \peakat with trimming ---
+	preps = [mockPrep.(0.5, 8.0, 1), mockPrep.(0.5, 8.0, -1)];
+	args = makeArgs.(preps, [\peakat, 2], bendPairs);
+	args.set(ampenv: Env([3, 0, 3]), bendenv: bendPairs);  //set() resets omitted envs to defaults
+	sorted = SamplerQuery.getPlayTime(args);
+	vRev = sorted[0];  // pre 8 -> trimmed, onset 0
+	vFwd = sorted[1];
+	onsetFwd = vRev.wait + vFwd.wait;
+
+	assertClose.(vRev.ampenv.asEnv.at((2 - 0) / vRev.duration), 0, 0.02,
+		"bend-peakat: trimmed voice ampenv ZERO at the audible peak (wall position)");
+	assertClose.(vFwd.ampenv.asEnv.at((2 - onsetFwd) / vFwd.duration), 0, 0.02,
+		"bend-peakat: forward voice ampenv ZERO at the audible peak (wall position)");
+	assertClose.(vFwd.ampenv.asEnv.at(1), 3, 0.05,
+		"bend-peakat: forward voice ampenv ends at global end = 3");
+	bendWall = bendPairs.pairsAsEnv.copy.duration_(args.globalDur);
+	assertTrue.(simulatePeaks.(sorted, bendWall).every{|t| (t - 2).abs < 0.005},
+		"bend-peakat: peaks still aligned at target (timing untouched)");
+
+	// --- \keeplength (no trim; nominal peak at domain middle) ---
+	preps = [mockPrep.(0.5, 8.0, 1), mockPrep.(0.5, 8.0, -1)];
+	args = makeArgs.(preps, \keeplength, bendPairs);
+	args.set(ampenv: Env([3, 0, 3]), bendenv: bendPairs);  //set() resets omitted envs to defaults
+	sorted = SamplerQuery.getPlayTime(args);
+	bendWall = bendPairs.pairsAsEnv.copy.duration_(args.globalDur);
+	peakWall = simulatePeaks.(sorted, bendWall)[0];
+	assertClose.(sorted[0].ampenv.asEnv.at((peakWall - 0) / sorted[0].duration), 0, 0.02,
+		"bend-keeplength: first voice ampenv ZERO at the audible peak");
+	assertClose.(sorted[1].ampenv.asEnv.at((peakWall - sorted[1].wait) / sorted[1].duration), 0, 0.02,
+		"bend-keeplength: second voice ampenv ZERO at the audible peak");
 });
 
 "".postln;
