@@ -232,6 +232,15 @@ section.("Section 11: getSamplesByKeynum — distinct preps, in-tune original", 
 	assertTrue.(list.every{|pp| (pp.rate.abs >= (2 ** (-0.31/12))) and: {pp.rate.abs <= (2 ** (0.31/12))}},
 		"texture: detune bounded by ±0.3 semitones");
 
+	// textureDetune = 0 locks texture copies to the exact pitch
+	args = SamplerArguments.new;
+	args.set(keynums: [60], texture: 3);
+	sampler1[\textureDetune] = 0;
+	list = SamplerQuery.getSamplesByKeynum(sampler1, args);
+	assertTrue.(list.every{|pp| pp.rate == 1.0},
+		"textureDetune 0: every texture voice exactly in tune (got " ++ list.collect{|pp| pp.rate} ++ ")");
+	sampler1[\textureDetune] = nil;
+
 	// overlapping multi-section match keeps both sections
 	args = SamplerArguments.new;
 	args.set(keynums: [60], texture: 2);
