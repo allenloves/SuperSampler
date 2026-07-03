@@ -57,6 +57,15 @@ SamplerQuery {
 		^total;
 	}
 
+	//Absolute spawn times for a gesture's voices: one shared reference time plus
+	//each voice's cumulative wait. Scheduling against these (instead of relative
+	//.wait deltas) keeps per-gesture processing time out of the musical timeline.
+	*voiceOnsetTimes {|playSamples, refTime|
+		var cum = 0;
+		^playSamples.collect{|thisSample| cum = cum + thisSample.wait; refTime + cum};
+	}
+
+
 	//SynthDef envelope controls hold a fixed maximum of segments (Env.newClear(32)
 	//for amp/pan/bend, 8 for posenv). Sending a longer array makes scsynth print
 	//"envelope went past end of inputs" and read garbage beyond its wired inputs.

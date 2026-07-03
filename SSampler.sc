@@ -87,17 +87,17 @@ SSampler {
 	}
 
 	// args is a realization of SamplerArguments
-	*playArgs{|args|
+	// refTime (optional): shared absolute time origin — playEnv passes one origin to
+	// every gesture it spawns so per-gesture processing time never skews the timeline.
+	*playArgs{|args, refTime|
 		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
 
 		Routine.run{
+			var onsets = SamplerQuery.voiceOnsetTimes(args.playSamples, refTime ? thisThread.seconds);
 			args.playSamples.do{|thisSample, index| //thisSample are realizations of SamplerPrepare class
-				var bufRateScale = thisSample.bufServer.sampleRate / thisSample.sample.sampleRate;
-				var buf = thisSample.buffer;
-				var duration = args.dur ? ((thisSample.sample.activeDuration[thisSample.section]) / thisSample.rate.abs) * bufRateScale; // * (args.expand ? 1)
 				var synthID = UniqueID.next.asSymbol;
 
-				thisSample.wait.wait;
+				(onsets[index] - thisThread.seconds).max(0).wait;
 				thisSample.play(args, synthID);
 				};
 			}
@@ -375,8 +375,8 @@ SSampler {
 	}
 
 	// play a SampleArgument object
-	playArgs {|args|
-		this.class.playArgs(args);
+	playArgs {|args, refTime|
+		this.class.playArgs(args, refTime);
 	}
 
 
@@ -386,6 +386,10 @@ SSampler {
 	playEnv {arg env, keynums, dur, amp = 1, pan = 0, maxtexture = 5, ampenv, panenv, bendenv, out = this.class.voiceOutputBus, midiChannel = 0;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
 		var argslist= SamplerScore.new;
+		//single time origin for every gesture this call spawns: per-peak query work
+		//takes milliseconds each, and relative scheduling let that accumulate as
+		//audible timeline skew across the envelope's peaks
+		var t0 = thisThread.seconds;
 
 		case
 		// sound is short, repeat it to fill up the envelope
@@ -445,7 +449,7 @@ SSampler {
 					amp: amp,           // 振幅形狀交給 ampenv 切片, 不再用 env.at(peak) 點值
 					ampenv: slices[\ampenv], panenv: slices[\panenv], bendenv: slices[\bendenv],
 					pan: pan, texture: texture, expand: expand);
-				this.playArgs(args);
+				this.playArgs(args, t0);
 				argslist.add([args, 0])
 			}
 		};

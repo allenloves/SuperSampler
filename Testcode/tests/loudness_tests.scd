@@ -297,6 +297,19 @@ section.("Section 13: \\keynumOnly fallback plays the nearest sample UNtranspose
 	assertClose.(list[0].rate, 2 ** (20/12), 1e-6, "other strategies keep the historical transposing fallback");
 });
 
+section.("Section 14: voice onsets are absolute times from one origin", {
+	// playEnv spawns one gesture per envelope peak, each taking a few ms of query
+	// work — relative .wait scheduling let that processing time leak into the
+	// timeline (gestures drifted apart, and against the original recording).
+	// Onsets are now computed as absolute times from a single reference.
+	var mkPrep = {|wait| var pp = SamplerPrepare.new; pp.wait = wait; pp};
+	var preps = [mkPrep.(0), mkPrep.(1.5), mkPrep.(0.25)];
+	var onsets = SamplerQuery.voiceOnsetTimes(preps, 100);
+	assertTrue.(onsets == [100, 101.5, 101.75],
+		"onsets: t0 + cumulative waits (got " ++ onsets ++ ")");
+	assertTrue.(SamplerQuery.voiceOnsetTimes([], 5) == [], "onsets: empty list");
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;
