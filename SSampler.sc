@@ -91,7 +91,14 @@ SSampler {
 	// every gesture it spawns so per-gesture processing time never skews the timeline.
 	*playArgs{|args, refTime|
 		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
+		this.dispatchArgs(args, refTime);
+	}
 
+	//Schedule an ALREADY-organized args (playSamples prepared by getPlayTime).
+	//playEnv organizes every gesture first, then dispatches them all against one
+	//origin taken AFTER the heavy per-gesture work — otherwise that work (which
+	//can total 0.5s+ on dense analysis envelopes) leaks in as a uniform lead.
+	*dispatchArgs {|args, refTime|
 		Routine.run{
 			var onsets = SamplerQuery.voiceOnsetTimes(args.playSamples, refTime ? thisThread.seconds);
 			args.playSamples.do{|thisSample, index| //thisSample are realizations of SamplerPrepare class
@@ -386,10 +393,7 @@ SSampler {
 	playEnv {arg env, keynums, dur, amp = 1, pan = 0, maxtexture = 5, ampenv, panenv, bendenv, out = this.class.voiceOutputBus, midiChannel = 0;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
 		var argslist= SamplerScore.new;
-		//single time origin for every gesture this call spawns: per-peak query work
-		//takes milliseconds each, and relative scheduling let that accumulate as
-		//audible timeline skew across the envelope's peaks
-		var t0 = thisThread.seconds;
+		var t0;
 
 		case
 		// sound is short, repeat it to fill up the envelope
@@ -449,9 +453,15 @@ SSampler {
 					amp: amp,           // 振幅形狀交給 ampenv 切片, 不再用 env.at(peak) 點值
 					ampenv: slices[\ampenv], panenv: slices[\panenv], bendenv: slices[\bendenv],
 					pan: pan, texture: texture, expand: expand);
-				this.playArgs(args, t0);
+				args.playSamples = SamplerQuery.getPlayTime(args);  //organize now, dispatch below
 				argslist.add([args, 0])
-			}
+			};
+
+			//PHASE 2: all the heavy per-gesture work is done — take ONE origin now and
+			//dispatch every gesture against it, so the caller's next statements (e.g.
+			//playing the original recording alongside) share the same timeline.
+			t0 = thisThread.seconds;
+			argslist.do{|pair| SSampler.dispatchArgs(pair[0], t0)};
 		};
 
 		//end-of-envelope cleanup: gate off whatever this call spawned that is
