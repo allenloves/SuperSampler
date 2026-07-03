@@ -2,6 +2,59 @@
 SuperSampler is a sampler synthesizer project on SuperCollider.  The sampler is applying audio content analysis techniques to make decisions on sample processing.
 
 
+## What's new in 0.6.5 – 0.6.7
+
+### 0.6.7 — Windows compatibility (0.6.7 is the first version expected to work on Windows)
+
+- **Windows users could not load any sound file — fixed.** Two independent
+  bugs in the SCMIR analysis pipeline broke every Windows load:
+  - A broken platform check meant the non-realtime analysis was told to
+    write its (unused) audio output to `/dev/null`, which does not exist on
+    Windows — scsynth exited before analyzing anything. Windows now writes
+    to a real file in the temp directory.
+  - The code waiting for the analysis to finish polled the Unix `ps`
+    command, which Windows doesn't have — SuperSampler read the analysis
+    file back while it was still being written. The wait is now based on
+    the process's actual exit, on every platform.
+
+  If you tried SuperSampler on Windows before and it silently failed to
+  load samples, please update and try again.
+
+### 0.6.6 — `load` is reliable and repeatable
+
+- **`action:` fires once, when the sampler is actually ready.** Previously
+  the `load` completion action fired once *per file*, raced the sampler's
+  internal bookkeeping, and never fired at all when every file was already
+  loaded. It now fires exactly once, after all buffers are loaded and the
+  kd-tree/keyRanges are built — the sampler is fully playable inside it.
+  The action receives the sampler: `x.load(files, action: {|smp| smp.key(60)})`.
+- **Duplicate files are pre-checked.** Files repeated within one `load` call,
+  or already loaded with live server data, warn and are skipped before any
+  analysis runs.
+- **Re-loading no longer corrupts the corpus statistics.** The per-sampler
+  averages (and thus the kd-tree position used by `SamplerDB.playEnv`
+  diversity morphing) used to shrink every time the same files were loaded
+  again; they are now recomputed in full on every load.
+- **Lost server data is actually detected.** If the server rebooted (or the
+  buffers were freed) since a file was loaded, `load` now really asks the
+  server and re-reads the file — the old check trusted a stale client-side
+  value and could leave the sampler silently playing nothing.
+
+### 0.6.5 — lifecycle fixes
+
+- **`.free` now works.** `SSampler.free` used to throw on its first line and
+  release nothing. It now removes the sampler from its `SamplerDB`s (whose
+  kd-trees rebuild without it), frees every sample's server buffers (these
+  leaked before — buffer arrays were "freed" with a no-op), and clears the
+  global name registry.
+- **`SamplerDB` kd-trees no longer accumulate.** Every `load`/`add` used to
+  duplicate all tree nodes, and removed samplers stayed searchable forever.
+- **End-of-envelope voice release no longer prints server FAILUREs.** The
+  `playEnv` cleanup gate could land on a voice that had just finished by
+  itself; the harmless `/n_set Node not found` error is now suppressed for
+  exactly that message.
+
+
 ## What's new in 0.6.0
 
 - **Peak normalization (on by default).** Samples are now peak-normalized on
