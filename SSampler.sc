@@ -21,7 +21,6 @@ SSampler {
 	var <samples;  // samples are SampleDescript instances
 	var <bufServer;
 	var <> normalize = true;  //when true, getSamplesByKeynum stamps each SamplerPrepare's normGain to align sample peaks to headroomRef
-	var <> textureDetune = 0.3;  //max random detune (semitones) for texture-filling copies; 0 locks them to the exact pitch
 	//                                                                |- section -|   |- section -|
 	var <keyRanges;// Is a dictionary in format  (SampleDescrtipt -> [[lower, upper], [lower, upper],..], ..)
 	var <keyRangeStrategy;  //strategy last used by setKeyRanges; setKeynums reuses it, and the

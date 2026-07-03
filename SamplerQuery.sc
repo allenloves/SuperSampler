@@ -201,7 +201,7 @@ SamplerQuery {
 					var prepList = sampleList.wrapExtend(texture - sampleList.size);
 					prepList.do{|srcPrep, index|
 						var copyPrep = srcPrep.copy;
-						copyPrep.setRate(2**((keyNum + rand2(sampler.textureDetune ? 0.3) - copyPrep.sample.keynum[copyPrep.section]) / 12) * (keySign + 1 - keySign.abs));
+						copyPrep.setRate(2**((keyNum + rand2(0.3) - copyPrep.sample.keynum[copyPrep.section]) / 12) * (keySign + 1 - keySign.abs));
 						sampleList = sampleList.add(copyPrep);
 					}
 				}
