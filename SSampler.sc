@@ -226,13 +226,17 @@ SSampler {
 	}
 
 	//============================
-	//load and analyze sound files
+	//load and analyze sound files.
+	//action fires ONCE, after every file's buffers are loaded AND the sampler's
+	//post-processing (averages, kd-tree, keyRanges) is done — the sampler is
+	//fully playable inside it. Already-loaded files count as done immediately.
 	load {arg soundfiles, server = this.class.defaultLoadingServer, filenameAsKeynum = false, normalize = false, startThresh=0.01, endThresh=0.01, override = false, action = nil;
 		if(soundfiles.isArray.not){Error("Sound files has to be an array").throw};
 		averageMFCC = averageMFCC ? Array.fill(13, 0);
 		bufServer = server;
 		fork{
 			var sample;
+			var pending = [];  //one Condition per file whose buffers are still loading
 			var dict = Dictionary.newFrom([this.filenames, this.samples].flop.flat);
 			soundfiles.do{|filename, index|
 				if(dict[filename.asSymbol].isNil.not && override.not)
@@ -241,8 +245,10 @@ SSampler {
 					//dict[filename.asSymbol].free;
 					dict[filename.asSymbol].buffer[0].updateInfo;
 					if(dict[filename.asSymbol].buffer[0].numFrames == 0){
+						var cond = Condition(false);
 						"Can't find Buffer data, reloading....".warn;
-						sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: action);
+						sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: {cond.test = true; cond.signal});
+						pending = pending.add(cond);
 						dict.put(filename.asSymbol, sample);
 					}
 					{
@@ -250,7 +256,9 @@ SSampler {
 					}
 				}
 				{//load file
-					sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: action);
+					var cond = Condition(false);
+					sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: {cond.test = true; cond.signal});
+					pending = pending.add(cond);
 					numActiveBuffer = numActiveBuffer + sample.activeDuration.size;
 					averageDuration = averageDuration + sample.activeDuration.sum;
 					averageTemporalCentroid = averageTemporalCentroid + sample.temporalCentroid.sum;
@@ -258,6 +266,9 @@ SSampler {
 					dict.put(filename.asSymbol, sample);
 				};
 			};
+
+			//every file analyzed — now wait for all their buffer loads to land
+			pending.do{|cond| cond.wait};
 
 			averageDuration = averageDuration / numActiveBuffer;
 			averageTemporalCentroid = averageTemporalCentroid / numActiveBuffer;
@@ -271,7 +282,7 @@ SSampler {
 			dbs.do{|thisDB| thisDB.makeTree};
 
 			this.setKeyRanges;
-			//finalAction.value;
+			action.value(this);
 		}
 	}
 

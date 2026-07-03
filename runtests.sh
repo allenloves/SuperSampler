@@ -3,7 +3,8 @@
 # Usage: sh runtests.sh loudness | bendenv
 cd "$(dirname "$0")" || exit 2
 case "$1" in
-  loudness) exec /Applications/SuperCollider.app/Contents/MacOS/sclang Testcode/tests/loudness_tests.scd ;;
-  bendenv)  exec /Applications/SuperCollider.app/Contents/MacOS/sclang Testcode/tests/bendenv_align_tests.scd ;;
-  *) echo "usage: sh runtests.sh loudness|bendenv"; exit 2 ;;
+  loudness)   exec /Applications/SuperCollider.app/Contents/MacOS/sclang Testcode/tests/loudness_tests.scd ;;
+  bendenv)    exec /Applications/SuperCollider.app/Contents/MacOS/sclang Testcode/tests/bendenv_align_tests.scd ;;
+  loadaction) exec /Applications/SuperCollider.app/Contents/MacOS/sclang Testcode/tests/load_action_tests.scd ;;
+  *) echo "usage: sh runtests.sh loudness|bendenv|loadaction"; exit 2 ;;
 esac

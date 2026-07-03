@@ -291,10 +291,14 @@ SampleDescript{
 
 		server.waitForBoot{
 			Routine.run{
-				//load the sound file into a master buffer
+				//load the sound file into a master buffer.
+				//cond.test resets after every wait — a Condition stays true once
+				//signalled, so without the reset only the FIRST read was awaited
+				//and the final action fired while later reads were still in flight.
 				numChannels.do{|channel|
 					buffer = buffer.add(Buffer.readChannel(server, filename, channels: channel, action: {cond.test = true; cond.signal;}));
 					cond.wait;
+					cond.test = false;
 				};
 
 				//load each sections into sub buffers
@@ -309,6 +313,7 @@ SampleDescript{
 						monoBuf.path = (PathName(filename).pathOnly ++ PathName(filename).fileNameWithoutExtension ++ "_" ++ sectionIndex ++ "_[" ++ channel ++ "]." ++ PathName(filename).extension);
 						monoBufArray = monoBufArray.add(monoBuf);
 						cond.wait;
+						cond.test = false;
 					};
 
 					activeBuffer = activeBuffer.add(monoBufArray);
