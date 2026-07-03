@@ -121,26 +121,30 @@ SamplerArguments{
 	}
 
 	getGlobalDur {
-		var positiveArray;
-		var negativeArray;
 		var dursBeforePeak = [];
 		var dursAfterPeak = [];
-
-		positiveArray = playSamples.select({|thisSample| thisSample.rate.isPositive});
-		negativeArray = playSamples.select({|thisSample| thisSample.rate.isPositive.not});
 
 		//use the EFFECTIVE attack/release set by SamplerPrepare#setRate (capped by args.dur
 		//when given, equal to the sample's full values otherwise), so globalDur reflects the
 		//gesture as it will actually sound — the time domain of amp/pan/bend envelopes.
-		dursBeforePeak = dursBeforePeak.add(positiveArray.collect({|thisSample| thisSample.attackDur / thisSample.rate.abs}));
-		dursBeforePeak = dursBeforePeak.add(negativeArray.collect({|thisSample| thisSample.releaseDur / thisSample.rate.abs})).flat;
+		//duration is each voice's wall-clock playback budget; the source-domain attack/release
+		//divided by |rate| can exceed it when rate < 1 (e.g. a bell played far below its
+		//anchor key), so both parts are scaled down proportionally to fit that budget.
+		playSamples.do{|thisSample|
+			var pre, post, total, cap, scale;
+			if(thisSample.rate.isPositive)
+			{pre = thisSample.attackDur / thisSample.rate.abs; post = thisSample.releaseDur / thisSample.rate.abs}
+			{pre = thisSample.releaseDur / thisSample.rate.abs; post = thisSample.attackDur / thisSample.rate.abs};
+			total = (pre + post).max(1e-9);
+			cap = thisSample.duration ? total;
+			scale = (cap / total).min(1);
+			dursBeforePeak = dursBeforePeak.add(pre * scale);
+			dursAfterPeak = dursAfterPeak.add(post * scale);
+		};
 
-		dursAfterPeak = dursAfterPeak.add(positiveArray.collect({|thisSample| thisSample.releaseDur / thisSample.rate.abs}));
-		dursAfterPeak = dursAfterPeak.add(negativeArray.collect({|thisSample| thisSample.attackDur / thisSample.rate.abs})).flat;
-
-		globalAttackDur = dursBeforePeak.maxItem * (expand ? 1);
-		globalReleaseDur = dursAfterPeak.maxItem * (expand ? 1);
-		globalDur = (dursBeforePeak.maxItem + dursAfterPeak.maxItem) * (expand ? 1);
+		globalAttackDur = (dursBeforePeak.maxItem ? 0) * (expand ? 1);
+		globalReleaseDur = (dursAfterPeak.maxItem ? 0) * (expand ? 1);
+		globalDur = ((dursBeforePeak.maxItem ? 0) + (dursAfterPeak.maxItem ? 0)) * (expand ? 1);
 
 		^globalDur;
 	}

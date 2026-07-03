@@ -309,6 +309,28 @@ section.("Section 8: \\stretchshort two-segment stretch with mixed ± keys", {
 		"stretchshort: shorter voice gets a two-segment posenv");
 });
 
+section.("Section 9: dur cap with extreme rate spread (percussive bank)", {
+	// Tubular-bell case (listening test 6b, t.key([70,30,50,40,60], dur: 1, bendenv: ...)):
+	// tiny attacks, long rings, keys far below the sample keynum → rate << 1. The
+	// wall-clock budget is dur = 1s, but releaseDur/rate blows the naive envelope
+	// domain up to ~5s, so every voice only saw the flat first sliver of the bend.
+	var preps = [
+		mockPrep.(0.01, 5.0, 1, 1),
+		mockPrep.(0.01, 5.0, 2 ** (-11/12), 1),
+		mockPrep.(0.01, 5.0, 2 ** (-39/12), 1)
+	];
+	var args = makeArgs.(preps, \keeplength, [0, 1, 0.3, 1, 1, 0.3], 1);
+	var sorted = SamplerQuery.getPlayTime(args);
+
+	assertTrue.(args.globalDur < 1.2,
+		"rate-spread dur-cap: globalDur stays near the 1s wall budget (got " ++ args.globalDur ++ ")");
+	sorted.do{|p, i|
+		assertTrue.(p.bendenv.asEnv.levels.minItem < 0.6,
+			"rate-spread dur-cap: voice " ++ i ++ " bendenv not flat (min "
+				++ p.bendenv.asEnv.levels.minItem ++ ")");
+	};
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;
