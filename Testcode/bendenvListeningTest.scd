@@ -60,3 +60,73 @@ t.key(81, bendenv: [0, 0.5, 1, 2]);
 t.key([70, -81], \stretchshort);
 t.key([30, -40, 50, -60, 70], \stretchshort);
 t.key([70, -81], \stretchshort, bendenv: [0, 1, 1, 1.5]);  // contour sliced per voice too
+
+// =====================================================================
+// --- 10. Loudness management: normalize, predictive ducking, playEnv
+//          envelopes/cleanup, and the optional master limiter (0.6.0) ---
+// =====================================================================
+
+// --- 10a. normalize A/B: peak-normalized (default) vs. raw ---
+// 應該聽到什麼: with normalize true (default) all four keys come out at a
+// comparable peak loudness even though the source samples differ in level.
+t.normalize = true;
+t.key([30, 50, 70, 81]);
+
+// 應該聽到什麼: with normalize false the same chord plays back at each
+// sample's original (un-normalized) peak — some notes may sound louder or
+// quieter relative to the others than in 10a.
+t.normalize = false;
+t.key([30, 50, 70, 81]);
+t.normalize = true;  // restore default for the rest of the script
+
+// --- 10b. Dense repeated triggering: predictive ducking should kick in ---
+// 應該聽到什麼: rapid-fire repeated chords should NOT pile up into clipping
+// or an ever-louder wall of sound — each new gesture is scaled down
+// (ducked) based on the predicted summed level of what's already ringing,
+// so the overall loudness stays roughly capped even under dense triggering.
+(
+Routine.run{
+	12.do{
+		t.key([30, 50, 70, 81]);
+		0.12.wait;  // faster than the samples decay -> voices overlap heavily
+	};
+};
+)
+
+// --- 10c. playEnv with long-ringing samples: end-of-envelope cleanup ---
+// 應該聽到什麼: this envelope is short (2s) but samples are long/ringing;
+// listen for a clean stop shortly after the envelope ends (a fast release,
+// not an abrupt click) — no residual voices trailing on indefinitely.
+t.playEnv(Env([0, 1, 0], [1, 1]), [30, 50, 70, 81], dur: 2);
+
+// --- 10d. playEnv with ampenv/panenv/bendenv spanning the envelope ---
+// 應該聽到什麼: one shared amplitude swell (ampenv) shaping the whole
+// gesture on top of the main envelope, a pan sweep from left to right
+// across the whole duration (panenv), and a pitch glide across the whole
+// duration (bendenv) — all three read as ONE coherent gesture, not
+// per-voice independent contours.
+t.playEnv(Env([0, 1, 0], [2, 2]), [30, 50, 70, 81],
+	ampenv: Env([1, 2, 1]),
+	panenv: [0, -1, 0.5, 1, 1, -1],
+	bendenv: [0, 1, 1, 1.5]
+);
+
+// --- 10e. limiterOn/limiterOff A/B ---
+// 應該聽到什麼 (limiterOn): pushing a loud, dense chord should sound
+// controlled/clamped at the top — no harsh digital clipping even when
+// normalize is bypassed and many voices stack.
+(
+SSampler.limiterOn;
+t.normalize = false;
+t.key([30, 50, 70, 81]);
+t.key([30, 50, 70, 81]);
+)
+
+// 應該聽到什麼 (limiterOff): the same loud stacked chord now has no safety
+// net — compare against 10e above; this may clip/distort more harshly.
+(
+SSampler.limiterOff;
+t.key([30, 50, 70, 81]);
+t.key([30, 50, 70, 81]);
+t.normalize = true;  // restore default
+)

@@ -81,6 +81,12 @@
 				Out.ar(bus: out, channelsArray: Balance2.ar(outsig0, outsig1, pangen));
 			}).add;
 
+			//Optional master limiter (see SSampler.limiterOn / *limiterOff). Fixed stereo (2ch);
+			//placed at the tail of the default group so it catches everything ahead of it.
+			SynthDef(\sslimiter, {arg out = 0;
+				var sig = In.ar(out, 2);
+				ReplaceOut.ar(out, Limiter.ar(sig, 0.95, 0.01));
+			}).add;
 
 		})
 	}

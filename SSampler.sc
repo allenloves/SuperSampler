@@ -13,6 +13,8 @@ SSampler {
 	classvar <> defaultLoadingServer;
 	classvar <> headroomRef = 0.7;
 	classvar <> headroomTarget = 0.9;
+	classvar limiterSynth, <limiterEnabled = false, limiterBus = 0;
+	classvar limiterTreeRegistered = false;
 
 	var <dbs;  // an array of SamplerDB instances that this Sampler is registered to.
 	var <name;  //Name of this sampler
@@ -102,6 +104,29 @@ SSampler {
 				thisSample.play(args, synthID);
 				};
 			}
+	}
+
+	//Safety limiter at the tail of the default group (stereo, default OFF).
+	//Re-spawns itself after every ServerTree rebuild (e.g. Server.default.reboot / CmdPeriod
+	//in some workflows) as long as limiterEnabled is still true; the ServerTree action itself
+	//is only ever registered once, guarded by limiterTreeRegistered.
+	*limiterOn {|out = 0|
+		this.limiterOff;
+		limiterBus = out;
+		limiterEnabled = true;
+		limiterSynth = Synth(\sslimiter, [out: limiterBus], Server.default.defaultGroup, \addToTail);
+		if(limiterTreeRegistered.not) {
+			ServerTree.add({ if(limiterEnabled) {
+				limiterSynth = Synth(\sslimiter, [out: limiterBus], Server.default.defaultGroup, \addToTail);
+			}}, Server.default);
+			limiterTreeRegistered = true;
+		};
+	}
+
+	*limiterOff {
+		limiterEnabled = false;
+		limiterSynth.free;
+		limiterSynth = nil;
 	}
 
 

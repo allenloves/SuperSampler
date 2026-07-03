@@ -33,6 +33,15 @@ Play a SamplerArguments instance. Use this method if you want to play an exactly
 ARGUMENT:: args
 A SamplerArguments to play;
 
+METHOD:: limiterOn
+Starts an optional master safety limiter (code::Limiter.ar(sig, 0.95, 0.01)::) at the tail of the default group, catching everything played by any SSampler on the given output bus. Off by default; stereo (2-channel) only. Re-spawns itself after a ServerTree rebuild as long as it hasn't been turned off again.
+
+ARGUMENT:: out
+The (stereo) output bus to limit. Defaults to 0.
+
+METHOD:: limiterOff
+Stops and frees the master limiter started by limiterOn.
+
 INSTANCEMETHODS::
 
 
@@ -239,11 +248,28 @@ Panning, from -1 (left) to 1 (right).
 ARGUMENT:: maxtexture
 The maxinum number of sounds to be played simultaneously base on the amplitude value in the envelope.  More sounds would be played at the peak of the envelope.
 
+ARGUMENT:: ampenv
+An additional amplitude macro-contour, in normalized XY format (or an Env), spanning the full duration of env. It is applied on top of env itself (pointwise-multiplied), so it shapes the overall loudness contour of the whole gesture without changing the peak-alignment logic. Defaults to nil (no extra shaping).
+
+ARGUMENT:: panenv
+A panning contour spanning the full duration of env, in normalized XY format (or an Env). Each voice gets the slice of this envelope that corresponds to its own wall-clock window inside the gesture. Defaults to nil (uses pan for every voice).
+
+ARGUMENT:: bendenv
+A pitch-bending contour spanning the full duration of env, in normalized XY format (or an Env), sliced per voice the same way as panenv. Defaults to nil (no bend).
+
 ARGUMENT:: out
 Output Bus
 
 ARGUMENT:: midiChannel
 A midiChannel for storing the playing UGens in SamplerQuery class, supporting live response.
+
+note::
+When the envelope finishes (env.duration seconds after playEnv is called), any voices from this call that are still sounding are released automatically, so long-ringing samples do not linger indefinitely past the end of the envelope.
+::
+
+
+METHOD:: normalize
+When true (the default), each sample's amplitude is stamped at load/query time so its peak aligns to strong::headroomRef:: (default 0.7), and new gestures are automatically scaled down (predictive ducking) to keep the predicted summed peak level under strong::headroomTarget:: (default 0.9), using the amplitude envelopes analyzed at load time. Set this to false on a SSampler instance (e.g. code::~yourSampler.normalize = false::) to get the pre-0.6 behavior of unscaled playback.
 
 
 EXAMPLES::

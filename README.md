@@ -2,6 +2,21 @@
 SuperSampler is a sampler synthesizer project on SuperCollider.  The sampler is applying audio content analysis techniques to make decisions on sample processing.
 
 
+## What's new in 0.6.0
+
+- **Loudness management (on by default).** Samples are now peak-normalized on
+  playback (`headroomRef = 0.7`), and new gestures automatically duck to keep
+  the predicted summed level under `headroomTarget = 0.9`, using the amplitude
+  envelopes analyzed at load time. Set `~yourSampler.normalize = false` to get
+  the pre-0.6 behavior. An optional master limiter is available via
+  `SSampler.limiterOn` / `SSampler.limiterOff` (off by default).
+- **playEnv envelopes & cleanup.** `.playEnv` now accepts `ampenv:`, `panenv:`
+  and `bendenv:` (all spanning the target envelope's duration), and releases
+  any residual voices when the envelope ends.
+- `SamplerQuery.playing` entries are now lightweight `SamplerVoice` proxies;
+  `.set` / `.free` on them still reach the underlying `Synth` unchanged.
+
+
 ## IMPORTNAT!!! Changing name space.
 The Sampler class is now named SSampler in order to free the namespace for others who wish to write their own sampler synthesizer.
 Please search and replace all in your code.  Sorry for the inconvenience.
