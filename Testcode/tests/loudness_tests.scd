@@ -179,6 +179,27 @@ section.("Section 8: playEnv climax-anchored gesture slices", {
 		"slice: tail beyond the global env clamps to the end level");
 });
 
+section.("Section 10: setKeynums rebuilds keyRanges", {
+	// setKeynums passed the radius as setKeyRanges' STRATEGY argument, which
+	// matched no switch case — keyRanges silently never followed the new keynums.
+	var t = SSampler(\krTest10);
+	var s1 = (keynum: [60.0]), s2 = (keynum: [70.0]);
+	t.instVarPut(\samples, [s1, s2]);
+	t.setKeyRanges;
+
+	assertClose.(t.keyRanges[s1][0][0], 55, 1e-6, "keyRanges baseline: 60 - 5");
+	assertClose.(t.keyRanges[s2][0][1], 75, 1e-6, "keyRanges baseline: 70 + 5");
+
+	t.setKeynums([[64], [72]]);
+	assertClose.(s1.keynum[0], 64, 1e-6, "setKeynums updates the sample keynum");
+	assertClose.(t.keyRanges[s1][0][0], 59, 1e-6, "keyRanges follows setKeynums (64 - 5)");
+	assertClose.(t.keyRanges[s1][0][1], 69, 1e-6, "keyRanges follows setKeynums (64 + 5)");
+	assertClose.(t.keyRanges[s2][0][1], 77, 1e-6, "keyRanges follows setKeynums (72 + 5)");
+
+	t.setKeynums([[40]], [true, 2]);  // custom radius via resetKeyRanges[1]
+	assertClose.(t.keyRanges[s1][0][0], 38, 1e-6, "keyRanges honors the custom radius (40 - 2)");
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;

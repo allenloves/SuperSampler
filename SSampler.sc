@@ -286,9 +286,12 @@ SSampler {
 			var thiskeynum = keynumArray[index].asArray;
 			thisSample.keynum.do{|thiskey, idx|
 				thisSample.keynum[idx] = thiskeynum[idx] ? thisSample.keynum[idx];
-				if(resetKeyRanges[0]){this.setKeyRanges(resetKeyRanges[1])};
 			}
-		}
+		};
+		//rebuild the response ranges from the new keynums — once, after all updates.
+		//(The old code passed the radius as setKeyRanges' STRATEGY argument, which
+		//matched no switch case, so keyRanges silently never followed setKeynums.)
+		if(resetKeyRanges[0]) { this.setKeyRanges(\keynumRadious, resetKeyRanges[1]) };
 	}
 
 
