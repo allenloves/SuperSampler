@@ -22,7 +22,7 @@ var awaitFire = {|getCount, limit = 120|
 
 fork {
 	var fired = 0, state, sampler;
-	var db, treeSize, bufnums, err;
+	var db, treeSize, bufnums, err, kdBefore;
 	Server.default.bootSync;
 
 	sampler = SSampler(\loadActionTest);
@@ -47,10 +47,38 @@ fork {
 	assertTrue.(state.notNil and: {state[\buffersReady] == true}, "load action: every section buffer loaded at fire time (numFrames " ++ (state !? {state[\probe]}) ++ ")");
 
 	//reload the same files: the already-loaded branch must still complete the load
+	kdBefore = sampler.kdTreeNode.copy;
 	fired = 0;
 	sampler.load(files, action: { fired = fired + 1 });
 	awaitFire.({fired}, 30);
 	assertTrue.(fired == 1, "load action: re-loading already-loaded files still fires ONCE (got " ++ fired ++ ")");
+	//the old code re-divided the already-averaged stats by numActiveBuffer on
+	//every call, shrinking kdTreeNode each time the same files were re-loaded
+	assertTrue.(sampler.kdTreeNode == kdBefore,
+		"re-load: corpus statistics unchanged (kdTreeNode stays " ++ kdBefore ++ ", got " ++ sampler.kdTreeNode ++ ")");
+
+	//duplicate entries in ONE call: warn, skip, and leave everything intact
+	fired = 0;
+	sampler.load(files ++ [files[0]], action: { fired = fired + 1 });
+	awaitFire.({fired}, 30);
+	assertTrue.(fired == 1, "dup-list: action still fires once (got " ++ fired ++ ")");
+	assertTrue.(sampler.samples.size == 2, "dup-list: no extra samples registered (got " ++ sampler.samples.size ++ ")");
+	assertTrue.(sampler.kdTreeNode == kdBefore, "dup-list: corpus statistics unchanged");
+
+	//server data lost behind our back (e.g. a reboot): load must ASK the server
+	//(async /b_query) instead of trusting the stale client-side numFrames,
+	//and actually re-read the file
+	sampler.samples[0].buffer.do{|b| b.free};
+	sampler.samples[0].activeBuffer.flat.do{|b| b.free};
+	fired = 0;
+	sampler.load(files, action: { fired = fired + 1 });
+	awaitFire.({fired}, 60);
+	assertTrue.(fired == 1, "buffer-lost: reload fires action once (got " ++ fired ++ ")");
+	assertTrue.(sampler.samples.every{|smp|
+			(smp.buffer ++ smp.activeBuffer.flat).every{|b|
+				Buffer.cachedBufferAt(Server.default, b.bufnum).notNil and: {(b.numFrames ? 0) > 0}}},
+		"buffer-lost: every buffer is live on the server again");
+	assertTrue.(sampler.samples.size == 2, "buffer-lost: sample count unchanged (got " ++ sampler.samples.size ++ ")");
 
 	//=== SSampler.free must undo everything load registered ===
 	db = SamplerDB.dbs[\default];

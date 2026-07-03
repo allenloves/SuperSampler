@@ -238,53 +238,57 @@ SSampler {
 	//load and analyze sound files.
 	//action fires ONCE, after every file's buffers are loaded AND the sampler's
 	//post-processing (averages, kd-tree, keyRanges) is done — the sampler is
-	//fully playable inside it. Already-loaded files count as done immediately.
+	//fully playable inside it. Files that are duplicated in the list, or already
+	//loaded with live server data, warn and are skipped (they count as done).
 	load {arg soundfiles, server = this.class.defaultLoadingServer, filenameAsKeynum = false, normalize = false, startThresh=0.01, endThresh=0.01, override = false, action = nil;
 		if(soundfiles.isArray.not){Error("Sound files has to be an array").throw};
-		averageMFCC = averageMFCC ? Array.fill(13, 0);
 		bufServer = server;
 		fork{
-			var sample;
 			var pending = [];  //one Condition per file whose buffers are still loading
 			var dict = Dictionary.newFrom([this.filenames, this.samples].flop.flat);
-			soundfiles.do{|filename, index|
-				if(dict[filename.asSymbol].isNil.not && override.not)
+			var seen = IdentitySet.new;
+			var toLoad = [];
+
+			//pre-check the incoming list before any analysis
+			soundfiles.do{|filename|
+				var key = filename.asSymbol;
+				case
+				{seen.includes(key)}
+				{("SSampler.load: duplicate in file list, skipped: " ++ filename).warn}
+				{dict[key].notNil and: {override.not} and: {this.prBufferAlive(dict[key])}}
 				{
-					//"This file is already loaded, reloading".warn;
-					//dict[filename.asSymbol].free;
-					dict[filename.asSymbol].buffer[0].updateInfo;
-					if(dict[filename.asSymbol].buffer[0].numFrames == 0){
-						var cond = Condition(false);
-						"Can't find Buffer data, reloading....".warn;
-						sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: {cond.test = true; cond.signal});
-						pending = pending.add(cond);
-						dict.put(filename.asSymbol, sample);
-					}
-					{
-						"This file has already loaded.".warn;
-					}
+					seen.add(key);
+					"This file has already loaded.".warn;
 				}
-				{//load file
-					var cond = Condition(false);
-					sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: {cond.test = true; cond.signal});
-					pending = pending.add(cond);
-					numActiveBuffer = numActiveBuffer + sample.activeDuration.size;
-					averageDuration = averageDuration + sample.activeDuration.sum;
-					averageTemporalCentroid = averageTemporalCentroid + sample.temporalCentroid.sum;
-					averageMFCC = averageMFCC + sample.mfcc.sum;
-					dict.put(filename.asSymbol, sample);
+				{true}
+				{
+					if(dict[key].notNil) {"Can't find Buffer data, reloading....".warn};
+					seen.add(key);
+					toLoad = toLoad.add(filename);
 				};
+			};
+
+			toLoad.do{|filename|
+				var cond = Condition(false);
+				var sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: {cond.test = true; cond.signal});
+				pending = pending.add(cond);
+				dict.put(filename.asSymbol, sample);
 			};
 
 			//every file analyzed — now wait for all their buffer loads to land
 			pending.do{|cond| cond.wait};
 
-			averageDuration = averageDuration / numActiveBuffer;
-			averageTemporalCentroid = averageTemporalCentroid / numActiveBuffer;
-			averageMFCC = averageMFCC / numActiveBuffer;
 			dict = dict.asSortedArray.flop;
 			filenames = dict[0];
 			samples = dict[1];
+
+			//corpus statistics recomputed in full from ALL samples — the old
+			//incremental sums divided the already-averaged values again on every
+			//call, shrinking kdTreeNode each time the same files were re-loaded
+			numActiveBuffer = samples.sum{|smp| smp.activeDuration.size};
+			averageDuration = samples.sum{|smp| smp.activeDuration.sum} / numActiveBuffer;
+			averageTemporalCentroid = samples.sum{|smp| smp.temporalCentroid.sum} / numActiveBuffer;
+			averageMFCC = samples.sum{|smp| smp.mfcc.sum} / numActiveBuffer;
 
 			kdTreeNode = [averageDuration, averageTemporalCentroid, averageMFCC].flat;
 
@@ -293,6 +297,20 @@ SSampler {
 			this.setKeyRanges;
 			action.value(this);
 		}
+	}
+
+	//TRUE when the sample's master buffer still holds frames on the server.
+	//Asks the server (async /b_query) and WAITS for the reply — the client-side
+	//numFrames goes stale the moment the server reboots, and a freed Buffer
+	//object (bufnum nil) must not be queried at all. Call from a Routine.
+	prBufferAlive {|sample|
+		var master = sample.buffer.asArray[0];
+		var qcond;
+		if(master.isNil or: {master.bufnum.isNil} or: {master.server.serverRunning.not}) {^false};
+		qcond = Condition(false);
+		master.updateInfo({qcond.test = true; qcond.signal});
+		qcond.wait;
+		^(master.numFrames ? 0) > 0;
 	}
 
 
