@@ -23,6 +23,7 @@ var awaitFire = {|getCount, limit = 120|
 fork {
 	var fired = 0, state, sampler;
 	var db, treeSize, bufnums, err, kdBefore, t0;
+	var bsrc, sampler2, autoPath;
 	Server.default.bootSync;
 
 	sampler = SSampler(\loadActionTest);
@@ -79,6 +80,48 @@ fork {
 				Buffer.cachedBufferAt(Server.default, b.bufnum).notNil and: {(b.numFrames ? 0) > 0}}},
 		"buffer-lost: every buffer is live on the server again");
 	assertTrue.(sampler.samples.size == 2, "buffer-lost: sample count unchanged (got " ++ sampler.samples.size ++ ")");
+
+	//=== live-recorded Buffers load like files ===
+	//a Buffer in the list renders to a temp file (named after server+bufnum,
+	//so the filename dedup catches loading the same Buffer twice), then goes
+	//through the normal analysis path
+	bsrc = Buffer.read(Server.default, files[0]);
+	Server.default.sync;
+	sampler2 = SSampler(\loadBufTest);
+	fired = 0;
+	sampler2.load([bsrc], action: { fired = fired + 1 });
+	awaitFire.({fired}, 30);
+	autoPath = Platform.defaultTempDir ++ "supersampler_" ++ Server.default.name ++ "_b" ++ bsrc.bufnum ++ ".wav";
+	assertTrue.(fired == 1, "buffer load: action fires once (got " ++ fired ++ ")");
+	assertTrue.((sampler2.samples ? []).size == 1, "buffer load: one sample registered (got " ++ (sampler2.samples ? []).size ++ ")");
+	assertTrue.((sampler2.filenames ? []).collect(_.asString).includesEqual(autoPath),
+		"buffer load: auto-named after server+bufnum (" ++ autoPath ++ ")");
+	assertTrue.(File.exists(autoPath), "buffer load: temp file rendered to disk");
+
+	//same Buffer again: dedup via the stable auto-name
+	fired = 0;
+	sampler2.load([bsrc], action: { fired = fired + 1 });
+	awaitFire.({fired}, 30);
+	assertTrue.(fired == 1 and: {sampler2.samples.size == 1},
+		"buffer load: same Buffer skipped as duplicate (samples " ++ sampler2.samples.size ++ ")");
+
+	//named entry (Buffer -> name): a distinct sample under the given name
+	fired = 0;
+	sampler2.load([bsrc -> \riffA], action: { fired = fired + 1 });
+	awaitFire.({fired}, 30);
+	assertTrue.(fired == 1 and: {sampler2.samples.size == 2},
+		"buffer load: Buffer -> name loads under the given name (samples " ++ sampler2.samples.size ++ ")");
+	assertTrue.((sampler2.filenames ? []).collect(_.asString).includesEqual(Platform.defaultTempDir ++ "riffA.wav"),
+		"buffer load: named entry uses the requested temp filename");
+
+	//the user's source Buffer is untouched throughout
+	assertTrue.((bsrc.numFrames ? 0) > 0, "buffer load: source Buffer left intact");
+
+	//free removes the sampler AND its temp files
+	sampler2.free;
+	assertTrue.(File.exists(autoPath).not and: {File.exists(Platform.defaultTempDir ++ "riffA.wav").not},
+		"buffer free: temp files deleted with the sampler");
+	bsrc.free;
 
 	//waitOnUnixCmd must block until the spawned process exits — the analysis
 	//pipeline reads the NRT feature file right after it returns (the old

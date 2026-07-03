@@ -202,7 +202,23 @@ METHOD:: load
 Load sound files into a Sampler. All sound files will be analyzed and stored as SampleDescript class, and load into buffers.
 
 ARGUMENT:: soundfiles
-A list of soundfiles to load.
+A list of sound sources to load. Each entry can be:
+
+list::
+## a file path (String)
+## a link::Classes/Buffer:: — e.g. a live recording. It is rendered to a temp file (float WAV, auto-named after its server and bufnum) and then analyzed like any file. The stable auto-name means loading the same Buffer twice is skipped as a duplicate — if you re-recorded into the same Buffer, pass code::override: true:: to re-analyze. The temp file is deleted when the sampler (or sample) is freed.
+## a code::Buffer -> name:: association, to name the recording yourself: code::~sampler.load([b -> \riff]):: loads it as code::riff.wav:: in the temp directory.
+::
+
+code::
+b = Buffer.alloc(s, s.sampleRate * 4);
+//... record into b with RecordBuf, then:
+~sampler.load([b], action: {|smp| smp.key(60)});
+::
+
+note::
+Analysis takes a few seconds per recording — the workflow is "record, then load, then play", not simultaneous record-and-play.
+::
 
 ARGUMENT:: server
 The server to load all samples into buffers.

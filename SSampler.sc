@@ -250,29 +250,41 @@ SSampler {
 			var toLoad = [];
 
 			//pre-check the incoming list before any analysis
-			soundfiles.do{|filename|
-				var key = filename.asSymbol;
+			soundfiles.do{|entry|
+				var resolved = this.prResolveEntry(entry);
+				var key = resolved[\path].asSymbol;
 				case
+				{resolved[\srcBuffer].notNil and: {resolved[\srcBuffer].bufnum.isNil or: {(resolved[\srcBuffer].numFrames ? 0) == 0}}}
+				{("SSampler.load: empty or freed Buffer skipped: " ++ entry).warn}
 				{seen.includes(key)}
-				{("SSampler.load: duplicate in file list, skipped: " ++ filename).warn}
+				{("SSampler.load: duplicate in file list, skipped: " ++ entry).warn}
 				{dict[key].notNil and: {override.not} and: {this.prBufferAlive(dict[key])}}
 				{
 					seen.add(key);
-					"This file has already loaded.".warn;
+					if(resolved[\srcBuffer].notNil)
+					{"This Buffer has already loaded (re-recorded into it? use override: true).".warn}
+					{"This file has already loaded.".warn};
 				}
 				{true}
 				{
 					if(dict[key].notNil) {"Can't find Buffer data, reloading....".warn};
 					seen.add(key);
-					toLoad = toLoad.add(filename);
+					toLoad = toLoad.add(resolved);
 				};
 			};
 
-			toLoad.do{|filename|
+			toLoad.do{|resolved|
 				var cond = Condition(false);
-				var sample = SampleDescript(filename, loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: {cond.test = true; cond.signal});
+				var sample;
+				//live-recorded Buffers render to their temp file first — SCMIR
+				//analyzes from disk, so every source must be a file
+				resolved[\srcBuffer] !? {
+					resolved[\srcBuffer].write(resolved[\path], "wav", "float");
+					resolved[\srcBuffer].server.sync;
+				};
+				sample = SampleDescript(resolved[\path], loadToBuffer: true, filenameAsNote: filenameAsKeynum, normalize: normalize, server: server, action: {cond.test = true; cond.signal});
 				pending = pending.add(cond);
-				dict.put(filename.asSymbol, sample);
+				dict.put(resolved[\path].asSymbol, sample);
 			};
 
 			//every file analyzed — now wait for all their buffer loads to land
@@ -297,6 +309,21 @@ SSampler {
 			this.setKeyRanges;
 			action.value(this);
 		}
+	}
+
+	//Resolve one load entry. Strings/PathNames pass through as file paths.
+	//A Buffer renders to a temp file named after its server+bufnum — the name
+	//is STABLE, so the filename dedup naturally catches loading the same
+	//Buffer twice (re-recorded into it? pass override: true to re-analyze).
+	//A (Buffer -> name) association uses the given name for the temp file.
+	prResolveEntry {|entry|
+		^case
+		{entry.isKindOf(Buffer)}
+		{(path: Platform.defaultTempDir ++ "supersampler_" ++ entry.server.name ++ "_b" ++ entry.bufnum ++ ".wav", srcBuffer: entry)}
+		{entry.isKindOf(Association) and: {entry.key.isKindOf(Buffer)}}
+		{(path: Platform.defaultTempDir ++ entry.value.asString ++ ".wav", srcBuffer: entry.key)}
+		{true}
+		{(path: entry.asString, srcBuffer: nil)}
 	}
 
 	//TRUE when the sample's master buffer still holds frames on the server.
