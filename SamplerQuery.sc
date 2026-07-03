@@ -374,7 +374,7 @@ SamplerQuery {
 				}
 				{
 					playSamples.do{|thisSample, index|
-						var thisPeakTime, adjust;
+						var thisPeakTime, adjust, trimNominal, remainingPre, actualDur, nStart;
 
 						//find the peak time of playing sample
 						thisPeakTime = if(thisSample.rate.isPositive)
@@ -385,28 +385,33 @@ SamplerQuery {
 						adjust = previousPeakTime - thisPeakTime;
 						thisSample.wait = adjust.thresh(0) * expand;
 
-						//gesture-relative onset: the first (longest) voice anchors the gesture at 0;
-						//later voices accumulate their (already expanded) waits from there.
-						elapsed = if(index == 0){0}{elapsed + thisSample.wait};
+						//an early target trims the source start; the voice then plays only its
+						//remaining pre-peak portion plus everything after the peak
+						trimNominal = adjust.neg.thresh(0);
+						remainingPre = thisPeakTime - trimNominal;
+						actualDur = (thisSample.duration - trimNominal).max(0.001);
 
-						// normalized time for envelope adjustments
-						nElapsed = elapsed / globalDur;  //normalize elapsed time (0-1)
-						nDur = thisSample.duration * expand / globalDur;
+						//Envelopes are anchored on the NOMINAL gesture timeline (domain globalDur,
+						//aligned peak at globalAttackDur): a trimmed voice skips the same leading
+						//portion of the envelopes, so the gesture contour stays glued to the peak
+						//(e.g. Env([3,0,3])'s central zero lands exactly on the aligned peak when
+						//the nominal gesture is symmetric).
+						nStart = (((args.globalAttackDur ? 0) - (remainingPre * expand)) / globalDur).thresh(0);
+						nDur = actualDur * expand / globalDur;
 
 						thisSample.expand = args.expand;
+						thisSample.duration = actualDur;  //synth envelope length = what actually sounds
 
-						thisSample.ampenv = args.ampenv.asEnv.subEnv(nElapsed, nDur).stretch.asArray;
-						thisSample.panenv = args.panenv.asEnv.subEnv(nElapsed, nDur).stretch.asArray;
+						thisSample.ampenv = args.ampenv.asEnv.subEnv(nStart, nDur).stretch.asArray;
+						thisSample.panenv = args.panenv.asEnv.subEnv(nStart, nDur).stretch.asArray;
 						//granular (expand) playback: slice the gesture-level bend contour per voice.
 						thisSample.bendenv = if(args.bendenv != #[1, 1, -99, -99, 1, 1, 1, 0])
-						{args.bendenv.asEnv.subEnv(nElapsed, nDur).stretch.asArray}
+						{args.bendenv.asEnv.subEnv(nStart, nDur).stretch.asArray}
 						{args.bendenv};
 
-
-
 						thisSample.position = if(thisSample.rate.isPositive)
-						{adjust.neg.thresh(0) * thisSample.rate.abs}
-						{thisSample.buffer[0].duration - (adjust.neg.thresh(0) * thisSample.rate.abs)};
+						{trimNominal * thisSample.rate.abs}
+						{thisSample.buffer[0].duration - (trimNominal * thisSample.rate.abs)};
 
 						thisPeakTime = (thisPeakTime - adjust.neg.thresh(0)).thresh(0);
 

@@ -331,6 +331,42 @@ section.("Section 9: dur cap with extreme rate spread (percussive bank)", {
 	};
 });
 
+section.("Section 10: \\peakat trimming keeps envelopes on the nominal timeline", {
+	// Symmetric ± pair (Samplertestcode.scd:76 case): forward post-peak == reversed
+	// pre-peak, so the nominal gesture is symmetric and the aligned peak sits at the
+	// exact middle of the envelope domain. An early target trims the reversed
+	// voice's source start — the envelope window must skip the SAME leading
+	// portion, so Env([3,0,3])'s central zero still lands on the aligned peak.
+	//
+	// mocks: attack 0.5 / release 8 at rate ±1 → pre/post maxima both 8,
+	// globalDur 16, peak at nominal 8 (= domain middle). target 2 → reversed
+	// voice trimmed by 6 (pre 8 → 2), forward voice waits 1.5.
+	var preps = [mockPrep.(0.5, 8.0, 1), mockPrep.(0.5, 8.0, -1)];
+	var args = makeArgs.(preps, [\peakat, 2], nil);
+	var sorted, vRev, vFwd;
+	args.set(ampenv: Env([3, 0, 3]));
+	sorted = SamplerQuery.getPlayTime(args);
+	vRev = sorted[0];  // pre 8 — sorted first
+	vFwd = sorted[1];
+
+	assertClose.(args.globalDur, 16, 1e-6, "peakat-trim: symmetric nominal domain");
+	assertClose.(vRev.wait, 0, 1e-9, "peakat-trim: trimmed voice starts immediately");
+	assertClose.(vFwd.wait, 1.5, 1e-6, "peakat-trim: forward voice waits target - pre");
+	assertClose.(vRev.duration, 2.5, 1e-6, "peakat-trim: trimmed voice duration = remaining source");
+
+	// reversed voice: env window [6/16, +2.5/16]; its peak at local 0.8 → global 0.5 → 0
+	assertClose.(vRev.ampenv.asEnv.at(0.8), 0, 0.02,
+		"peakat-trim: trimmed voice ampenv is ZERO at the aligned peak");
+	assertClose.(vRev.ampenv.asEnv.at(0), 0.75, 0.02,
+		"peakat-trim: trimmed voice ampenv starts at global(0.375) = 0.75");
+
+	// forward voice: window [7.5/16, +8.5/16]; peak at local 0.5/8.5 → global 0.5 → 0
+	assertClose.(vFwd.ampenv.asEnv.at(0.5 / 8.5), 0, 0.02,
+		"peakat-trim: forward voice ampenv is ZERO at the aligned peak");
+	assertClose.(vFwd.ampenv.asEnv.at(1), 3, 0.02,
+		"peakat-trim: forward voice ampenv ends at global end = 3");
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;
