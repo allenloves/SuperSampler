@@ -269,7 +269,7 @@ When the envelope finishes (env.duration seconds after playEnv is called), any v
 
 
 METHOD:: normalize
-When true (the default), each sample's amplitude is stamped at load/query time so its peak aligns to strong::headroomRef:: (default 0.7), and new gestures are automatically scaled down (predictive ducking) to keep the predicted summed peak level under strong::headroomTarget:: (default 0.9), using the amplitude envelopes analyzed at load time. Set this to false on a SSampler instance (e.g. code::~yourSampler.normalize = false::) to get the pre-0.6 behavior of unscaled playback.
+When true (the default), each sample's playback gain is stamped at query time so its peak aligns to strong::headroomRef:: (default 0.7), making envelope and code::amp:: values consistent across differently-recorded samples. Set this to false on a SSampler instance (e.g. code::~yourSampler.normalize = false::) to get the pre-0.6 behavior of unscaled playback. Note that dense layering of normalized samples can sum above full scale — enable the master limiter (link::#*limiterOn::) as a safety net.
 
 
 EXAMPLES::

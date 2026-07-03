@@ -62,7 +62,7 @@ t.key([30, -40, 50, -60, 70], \stretchshort);
 t.key([70, -81], \stretchshort, bendenv: [0, 1, 1, 1.5]);  // contour sliced per voice too
 
 // =====================================================================
-// --- 10. Loudness management: normalize, predictive ducking, playEnv
+// --- 10. Loudness management: normalize + limiter safety net, playEnv
 //          envelopes/cleanup, and the optional master limiter (0.6.0) ---
 // =====================================================================
 
@@ -79,11 +79,11 @@ t.normalize = false;
 t.key([30, 50, 70, 81]);
 t.normalize = true;  // restore default for the rest of the script
 
-// --- 10b. Dense repeated triggering: predictive ducking should kick in ---
-// 應該聽到什麼: rapid-fire repeated chords should NOT pile up into clipping
-// or an ever-louder wall of sound — each new gesture is scaled down
-// (ducked) based on the predicted summed level of what's already ringing,
-// so the overall loudness stays roughly capped even under dense triggering.
+// --- 10b. Dense repeated triggering with the limiter as the safety net ---
+// 應該聽到什麼: normalize 之後密集疊加可能超出滿刻度 — 開著 limiter 時
+// 疊得再密也不會爆音(最多聽到高峰處被透明地壓一點); 關掉 limiter 對照,
+// 可能聽到削頂的粗糙感。每個聲音維持自己的自然音量關係,沒有自動讓位。
+SSampler.limiterOn;
 (
 Routine.run{
 	12.do{

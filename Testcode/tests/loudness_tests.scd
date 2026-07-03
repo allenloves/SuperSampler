@@ -140,14 +140,6 @@ section.("Section 5: ampShapeAt + prediction", {
 	SamplerQuery.playing[0].removeAt(\p1); SamplerQuery.playing[0].removeAt(\p2);
 });
 
-section.("Section 6: autoGain scaling in playArgs path", {
-	// 縮放公式封裝為 SamplerQuery.*autoGainScale {|lOld, lNew|} 以便純函式測試
-	assertClose.(SamplerQuery.autoGainScale(0.3, 1.0), (0.9 - 0.3) / 1.0, 1e-9, "scale: (target-old)/new");
-	assertClose.(SamplerQuery.autoGainScale(0.0, 0.5), 1.0, 1e-9, "scale: headroom enough -> clip at 1");
-	assertClose.(SamplerQuery.autoGainScale(0.89, 2.0), 0.05, 1e-9, "scale: floor clip 0.05");
-	assertClose.(SamplerQuery.autoGainScale(0.3, 0), 1.0, 1e-9, "scale: no new level -> 1");
-});
-
 section.("Section 7: playEnv gesture collection", {
 	var a1 = SamplerArguments.new, a2 = SamplerArguments.new;
 	var score = SamplerScore.new;

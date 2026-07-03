@@ -12,7 +12,6 @@ SSampler {
 	classvar <> defaultOutputBus = 0;
 	classvar <> defaultLoadingServer;
 	classvar <> headroomRef = 0.7;
-	classvar <> headroomTarget = 0.9;
 	classvar limiterSynth, <limiterEnabled = false, limiterBus = 0;
 	classvar limiterTreeRegistered = false;
 
@@ -81,17 +80,6 @@ SSampler {
 	// args is a realization of SamplerArguments
 	*playArgs{|args|
 		args.playSamples = SamplerQuery.getPlayTime(args); // organize play time by peak and stratges
-
-		//predictive gain management: keep the summed level at this gesture's peak
-		//moment within headroomTarget (only scales the NEW gesture -- running
-		//voices have their amp baked at EnvGen init and cannot be rescaled)
-		if(args.autoGain == true) {
-			var tAbs = thisThread.seconds + SamplerQuery.predictedPeakOffset(args);
-			var lOld = SamplerQuery.predictedLevelAt(tAbs);
-			var perVoicePeak = args.playSamples.collect{|p| args.amp * (p.normGain ? 1) * ((p.sample.peakAmp ? #[1])[p.section] ? 1)}.maxItem ? 0;
-			var lNew = args.playSamples.size.sqrt * perVoicePeak;
-			args.amp = args.amp * SamplerQuery.autoGainScale(lOld, lNew);
-		};
 
 		Routine.run{
 			args.playSamples.do{|thisSample, index| //thisSample are realizations of SamplerPrepare class
@@ -324,7 +312,6 @@ SSampler {
 	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
-		args.autoGain = normalize;
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 		args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));  //find play samples
 
@@ -335,7 +322,6 @@ SSampler {
 	setArgs {arg keynums = keynums ? {rrand(10.0, 100.0)}, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
-		args.autoGain = normalize;
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 
 		^args;
@@ -347,7 +333,6 @@ SSampler {
 	// etc. [[SampleDescript, 2], [SampleDescript, 0], ......]
 	playSample {arg samplesArray, syncmode = \keeplength, detune = 0, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
-		args.autoGain = normalize;
 		args.set(syncmode: syncmode, detune: detune, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 
 	}
@@ -401,8 +386,7 @@ SSampler {
 				var args = SamplerArguments.new;
 				var texture, expand, slices;
 
-				args.autoGain = normalize;
-				//put data into args
+						//put data into args
 				args.set(keynums: playkey.value.asArray, out: out, midiChannel: midiChannel);
 				args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
 

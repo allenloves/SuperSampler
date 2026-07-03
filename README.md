@@ -4,12 +4,13 @@ SuperSampler is a sampler synthesizer project on SuperCollider.  The sampler is 
 
 ## What's new in 0.6.0
 
-- **Loudness management (on by default).** Samples are now peak-normalized on
-  playback (`headroomRef = 0.7`), and new gestures automatically duck to keep
-  the predicted summed level under `headroomTarget = 0.9`, using the amplitude
-  envelopes analyzed at load time. Set `~yourSampler.normalize = false` to get
-  the pre-0.6 behavior. An optional master limiter is available via
-  `SSampler.limiterOn` / `SSampler.limiterOff` (off by default).
+- **Peak normalization (on by default).** Samples are now peak-normalized on
+  playback so every sample's peak aligns to `headroomRef` (default 0.7),
+  making envelope and `amp:` values consistent across differently-recorded
+  samples. Set `~yourSampler.normalize = false` to get the pre-0.6 behavior.
+  Dense layering can therefore sum above full scale — use the master limiter
+  as the safety net: `SSampler.limiterOn` / `SSampler.limiterOff` (off by
+  default).
 - **playEnv envelopes & cleanup.** `.playEnv` now accepts `ampenv:`, `panenv:`
   and `bendenv:` (all spanning the target envelope's duration), and releases
   any residual voices when the envelope ends.

@@ -44,8 +44,9 @@ SamplerQuery {
 		^(a + ((b - a) * frac)) / data.maxItem.max(1e-9);
 	}
 
-	//Estimated summed output amplitude of every playing voice at absolute time tAbs,
-	//using each voice's analyzed RMS shape (linear sum -- conservative).
+	//Introspection utility: estimated summed output amplitude of every playing voice
+	//at absolute time tAbs, using each voice's analyzed RMS shape (linear sum).
+	//Not wired into playback -- available for metering / composition logic.
 	*predictedLevelAt {|tAbs|
 		var total = 0;
 		playing.do{|channelDict|
@@ -70,11 +71,6 @@ SamplerQuery {
 		);
 	}
 
-	//Gain applied to a NEW gesture so predicted total stays within SSampler.headroomTarget.
-	*autoGainScale {|lOld, lNew|
-		if(lNew <= 0) {^1};
-		^((SSampler.headroomTarget - lOld) / lNew).clip(0.05, 1);
-	}
 
 
 
