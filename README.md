@@ -2,6 +2,35 @@
 SuperSampler is a sampler synthesizer project on SuperCollider.  The sampler is applying audio content analysis techniques to make decisions on sample processing.
 
 
+## What's new in 0.7.0
+
+### Load live-recorded Buffers
+
+`load` now accepts Buffers mixed into the file list — record something,
+then hand the Buffer straight to the sampler:
+
+```supercollider
+b = Buffer.alloc(s, s.sampleRate * 4);
+//... record into b with RecordBuf, then:
+~sampler.load([b], action: {|smp| smp.key(60)});
+```
+
+- The Buffer is rendered to a temp file (float WAV, so hot recordings
+  don't clip) and analyzed like any sound file. The workflow is
+  "record → load (a few seconds of analysis) → play".
+- The temp file is auto-named after the Buffer's server and bufnum, so
+  loading the same Buffer twice is skipped as a duplicate. Re-recorded
+  into the same Buffer? Pass `override: true` to re-analyze.
+- Name the recording yourself with an association:
+  `~sampler.load([b -> \riff])`.
+- Temp files are deleted when the sampler is freed. Your source Buffer
+  is never touched.
+
+The help files were also completed and modernized in this release cycle
+(new pages for SamplerVoice, SamplerQuery, SamplerArguments,
+SamplerScore; all pages brought up to date with 0.6.x behavior).
+
+
 ## What's new in 0.6.5 – 0.6.7
 
 ### 0.6.7 — Windows compatibility (0.6.7 is the first version expected to work on Windows)
