@@ -323,6 +323,35 @@ section.("Section 15: perceptual peak — first hop at 95% of the RMS max", {
 		"perceptual peak: percussive material unaffected (max is first)");
 });
 
+section.("Section 16: playEnv gestures carry NO automatic contour", {
+	// Multiplying each gesture by a slice of the main envelope backfired: the
+	// slice window (gesture nominal span, up to several seconds wide) contains
+	// NEIGHBORING envelope peaks, and voiceShape * contour then maxes BEFORE the
+	// gesture's target (realized peaks led the original by 0.5s+). Gestures are
+	// back to the point-value semantic (amp = env.at(peak)); user-supplied
+	// ampenv:/panenv:/bendenv: remain the explicit way to shape gestures.
+	var mkSample = {|keynums, attack, release|
+		(keynum: keynums,
+		 activeBuffer: keynums.collect{[(duration: attack + release)]},
+		 attackDur: keynums.collect{attack},
+		 releaseDur: keynums.collect{release},
+		 peakAmp: keynums.collect{1.0})
+	};
+	var t = SSampler(\contourTest16);
+	var smp = mkSample.([75.0], 0.4, 1.6);
+	var envv = Env([0, 0.5, 0, 1, 0], [1, 1, 1, 1]);  // peaks at 1s (0.5) and 3s (1.0)
+	var score;
+	t.instVarPut(\samples, [smp]);
+	t.instVarPut(\averageDuration, 2.0);
+	t.setKeyRanges;
+	score = t.playEnv(envv, 78, amp: 2);
+
+	assertClose.(score[0][0].amp, 0.5 * 2, 1e-6, "no-contour: gesture amp = env.at(peak) * amp");
+	assertClose.(score[1][0].amp, 1.0 * 2, 1e-6, "no-contour: second gesture amp likewise");
+	assertTrue.(score[0][0].ampenv == #[1, 1, -99, -99, 1, 1, 1, 0],
+		"no-contour: gesture ampenv stays the flat default when the user gives none");
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;

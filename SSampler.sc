@@ -447,10 +447,16 @@ SSampler {
 
 				args.setSamples(SamplerQuery.getSamplesByKeynum(this, args));
 				texture = env.range.at(thisPeakTime).linlin(0, 1, 1, maxtexture).asInteger;
-				slices = SSampler.globalEnvSlices(composite, panenv, bendenv,
+				//Gestures carry NO automatic contour: multiplying by a main-env slice made
+				//voiceShape * contour peak BEFORE the target whenever the (gesture-span-wide)
+				//window contained a louder neighboring envelope peak. The global shape is
+				//reconstructed by each gesture's point value at its own peak — the original
+				//semantic — while user-supplied ampenv:/panenv:/bendenv: remain the explicit
+				//climax-anchored gesture contours.
+				slices = SSampler.globalEnvSlices(ampenv, panenv, bendenv,
 					thisPeakTime, args.globalAttackDur ? 0, args.globalReleaseDur ? 0, env.duration);
 				args.set(syncmode: [\peakat, thisPeakTime],
-					amp: amp,           // 振幅形狀交給 ampenv 切片, 不再用 env.at(peak) 點值
+					amp: env.at(thisPeakTime) * amp,
 					ampenv: slices[\ampenv], panenv: slices[\panenv], bendenv: slices[\bendenv],
 					pan: pan, texture: texture, expand: expand);
 				args.playSamples = SamplerQuery.getPlayTime(args);  //organize now, dispatch below
