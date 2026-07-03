@@ -10,10 +10,11 @@ SuperSampler is a sampler synthesizer project on SuperCollider.  The sampler is 
   samples. Set `~yourSampler.normalize = false` to get the pre-0.6 behavior.
   Dense layering can therefore sum above full scale — a master limiter (on
   by default) acts as the safety net: SuperSampler voices route through a
-  dedicated internal audio bus into the limiter, which mixes into the
-  hardware output without touching other music on that bus. Disable with
-  `SSampler.limiterOff` (voices then output directly); retarget with
-  `SSampler.limiterOn(out)`.
+  dedicated internal audio bus into the limiter, which mixes into
+  `SSampler.defaultOutputBus` without touching other music on that bus.
+  `defaultOutputBus` stays yours: point it at your own FX-chain bus and the
+  limiter follows it live. Disable with `SSampler.limiterOff` (voices then
+  output straight to `defaultOutputBus`).
 - **playEnv envelopes & cleanup.** `.playEnv` now accepts `ampenv:`, `panenv:`
   and `bendenv:` (all spanning the target envelope's duration), and releases
   any residual voices when the envelope ends.

@@ -34,13 +34,10 @@ ARGUMENT:: args
 A SamplerArguments to play;
 
 METHOD:: limiterOn
-(Re)starts the master safety limiter (code::Limiter.ar(sig, 0.95, 0.01)::), which is strong::on by default::. SuperSampler voices default-route to a dedicated internal stereo bus; the limiter reads that bus at the tail of the default group and mixes the limited signal into the given hardware output (default 0) with a plain code::Out:: — other music on that bus is untouched. Call this only to re-enable after limiterOff or to retarget the hardware output. The internal bus is allocated per server boot and the synth re-spawns after every ServerTree rebuild. Voices given an explicit code::out::: argument bypass the limiter chain.
-
-ARGUMENT:: out
-The (stereo) output bus to limit. Defaults to 0.
+(Re)starts the master safety limiter (code::Limiter.ar(sig, 0.95, 0.01)::), which is strong::on by default::. SuperSampler voices default-route to a dedicated internal stereo bus; the limiter reads that bus at the tail of the default group and mixes the limited signal into strong::defaultOutputBus:: with a plain code::Out:: — other music on the destination bus is untouched. code::defaultOutputBus:: remains the user's routing decision: point it at your own FX-chain bus (code::SSampler.defaultOutputBus = ~fxBus::) and the limiter output follows it live. Call limiterOn only to re-enable after limiterOff. The internal bus is allocated per server boot and the synth re-spawns after every ServerTree rebuild. Voices given an explicit code::out::: argument bypass the limiter chain.
 
 METHOD:: limiterOff
-Bypasses the master limiter: frees the limiter synth and repoints code::defaultOutputBus:: straight at the hardware output.
+Bypasses the master limiter: frees the limiter synth; voices then default straight to code::defaultOutputBus:: (which is left untouched).
 
 INSTANCEMETHODS::
 

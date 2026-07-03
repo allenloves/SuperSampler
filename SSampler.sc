@@ -9,11 +9,10 @@ SSampler {
 
 	classvar < allSampler;
 	classvar <> defaultTexture;
-	classvar <> defaultOutputBus = 0;
+	classvar < defaultOutputBus = 0;  //USER setting: SuperSampler's final destination (e.g. your FX-chain bus); the limiter follows it — see *defaultOutputBus_
 	classvar <> defaultLoadingServer;
 	classvar <> headroomRef = 0.7;
 	classvar limiterSynth, <limiterEnabled = true, <limiterBus;  //dedicated internal stereo bus, allocated per server boot
-	classvar limiterOut = 0;                //final hardware output the limiter mixes into
 	classvar limiterHooksRegistered = false;
 
 	var <dbs;  // an array of SamplerDB instances that this Sampler is registered to.
@@ -95,12 +94,25 @@ SSampler {
 			}
 	}
 
-	//Master limiter (stereo, ON by default). SuperSampler voices default-route to a
-	//dedicated internal audio bus (never occupying hardware bus 0 directly); the
-	//limiter reads that bus at the tail of the default group and MIXES the limited
-	//signal into limiterOut (bus 0 unless changed via *limiterOn), so other music on
-	//the hardware bus is untouched. *limiterOff bypasses the chain: voices then
-	//default straight to limiterOut. Explicit out: arguments always bypass both.
+	//Setting defaultOutputBus is the USER's routing decision (e.g. point SuperSampler
+	//at your own FX-chain bus). The limiter output follows it live.
+	*defaultOutputBus_ {|bus|
+		defaultOutputBus = bus;
+		limiterSynth !? { limiterSynth.set(\out, bus) };
+	}
+
+	//Where voices actually write by default: through the internal limiter bus when
+	//the limiter is up, straight to defaultOutputBus otherwise. defaultOutputBus
+	//itself is never touched by the limiter chain — it stays the user's setting.
+	*voiceOutputBus {
+		^if(limiterEnabled and: {limiterBus.notNil}) {limiterBus.index} {defaultOutputBus};
+	}
+
+	//Master limiter (stereo, ON by default). Voices default-route to a dedicated
+	//internal audio bus; the limiter reads it at the tail of the default group and
+	//MIXES the limited signal into defaultOutputBus (plain Out — other music on the
+	//destination bus is untouched). *limiterOff bypasses the chain: voices then
+	//default straight to defaultOutputBus. Explicit out: arguments always bypass.
 	//Hooks: bus allocated fresh on every server boot (allocators reset there); the
 	//synth re-spawns after every ServerTree rebuild (boot and CmdPeriod).
 	*initLimiterHooks {
@@ -112,14 +124,12 @@ SSampler {
 
 	*prSpawnLimiter {
 		limiterBus = limiterBus ?? { Bus.audio(Server.default, 2) };
-		defaultOutputBus = limiterBus.index;
-		limiterSynth = Synth(\sslimiter, [in: limiterBus.index, out: limiterOut], Server.default.defaultGroup, \addToTail);
+		limiterSynth = Synth(\sslimiter, [in: limiterBus.index, out: defaultOutputBus], Server.default.defaultGroup, \addToTail);
 	}
 
-	*limiterOn {|out = 0|
+	*limiterOn {
 		limiterSynth.free;
 		limiterSynth = nil;
-		limiterOut = out;
 		limiterEnabled = true;
 		if(Server.default.serverRunning) { this.prSpawnLimiter };
 	}
@@ -128,7 +138,6 @@ SSampler {
 		limiterEnabled = false;
 		limiterSynth.free;
 		limiterSynth = nil;
-		defaultOutputBus = limiterOut;  //voices default straight to the hardware bus
 	}
 
 
@@ -323,7 +332,7 @@ SSampler {
 	//Play samples by giving key numbers
 	//Defaults are also provided by SamplerArguments
 	//Negative key numbers reverses the buffer to play.
-	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
+	key {arg keynums, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.voiceOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
@@ -333,7 +342,7 @@ SSampler {
 		^args;
 	}
 
-	setArgs {arg keynums = keynums ? {rrand(10.0, 100.0)}, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
+	setArgs {arg keynums = keynums ? {rrand(10.0, 100.0)}, syncmode = \keeplength, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.voiceOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
@@ -345,7 +354,7 @@ SSampler {
 	//play samples by giving an array of samples to play
 	//the members of samplesArray contains two members: a SampleDescript object, and section index
 	// etc. [[SampleDescript, 2], [SampleDescript, 0], ......]
-	playSample {arg samplesArray, syncmode = \keeplength, detune = 0, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.defaultOutputBus, midiChannel = 0, play = true;
+	playSample {arg samplesArray, syncmode = \keeplength, detune = 0, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = defaultTexture, expand = nil, grainRate = 20, grainDur = 0.15, out = this.class.voiceOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		args.set(syncmode: syncmode, detune: detune, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
 
@@ -360,7 +369,7 @@ SSampler {
 
 
 	//==============================================================
-	playEnv {arg env, keynums, dur, amp = 1, pan = 0, maxtexture = 5, ampenv, panenv, bendenv, out = this.class.defaultOutputBus, midiChannel = 0;
+	playEnv {arg env, keynums, dur, amp = 1, pan = 0, maxtexture = 5, ampenv, panenv, bendenv, out = this.class.voiceOutputBus, midiChannel = 0;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
 		var argslist= SamplerScore.new;
 
