@@ -1,7 +1,7 @@
 TITLE:: SampleDescript
 summary:: Represents a sample file or a buffer with descriptive qualities.
-categories:: VKey
-related:: Classes/SCMIR
+categories:: SuperSampler
+related:: Classes/SSampler, Classes/SamplerDB
 
 DESCRIPTION::
 By Allen Wu
@@ -54,7 +54,7 @@ INSTANCEMETHODS::
 subsection:: For management:
 
 method:: free
-Free the instance and buffer.
+Free the instance: clears all analysis data and releases every server buffer (the whole-file per-channel buffers and every section's buffers).
 
 METHOD:: play
 Play the sound sample for audition.

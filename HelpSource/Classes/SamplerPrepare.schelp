@@ -1,0 +1,9 @@
+TITLE:: SamplerPrepare
+summary:: Internal per-voice preparation data for SuperSampler playback.
+categories:: SuperSampler
+related:: Classes/SamplerQuery, Classes/SSampler
+
+DESCRIPTION::
+Internal class. link::Classes/SamplerQuery:: builds one SamplerPrepare per voice when organizing a gesture: which sample and section to play, at what rate, from which position, when (wait time), with which envelope windows and normalization gain. They are stored on the gesture's link::Classes/SamplerArguments#-playSamples:: and consumed by the playback dispatch.
+
+You normally never touch this class directly — control playback through link::Classes/SSampler#-key:: arguments instead.

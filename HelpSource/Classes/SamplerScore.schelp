@@ -1,0 +1,20 @@
+TITLE:: SamplerScore
+summary:: A replayable score of SuperSampler gestures, returned by playEnv.
+categories:: SuperSampler
+related:: Classes/SSampler, Classes/SamplerArguments
+
+DESCRIPTION::
+link::Classes/SSampler#-playEnv:: plays immediately and also returns its organization as a SamplerScore: a link::Classes/List:: of code::[arguments, waitTime]:: pairs, where each arguments is a link::Classes/SamplerArguments::. Call code::.play:: on it to perform the same realization again.
+
+code::
+~score = SSampler(\cage).playEnv(~cageenv);
+//... later
+~score.play;
+::
+
+link::Classes/SamplerDB#-playEnv:: returns the analogous SamplerDBScore (a list of SamplerScores per envelope segment), which replays the same way.
+
+INSTANCEMETHODS::
+
+METHOD:: play
+Replay every gesture in the score with its recorded timing.

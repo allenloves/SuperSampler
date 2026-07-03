@@ -39,6 +39,12 @@ METHOD:: limiterOn
 METHOD:: limiterOff
 Bypasses the master limiter: frees the limiter synth; voices then default straight to code::defaultOutputBus:: (which is left untouched).
 
+METHOD:: defaultOutputBus
+The user's routing decision: the bus SuperSampler's final output goes to (default 0, the hardware output). Point it at your own FX-chain bus (code::SSampler.defaultOutputBus = ~fxBus::) and the running limiter follows it live.
+
+METHOD:: headroomRef
+The peak level (default 0.7) that normalized samples are aligned to. See link::#-normalize::.
+
 INSTANCEMETHODS::
 
 
@@ -68,13 +74,15 @@ The strategy to syncronize different samples:
 
 \keeplength: keep the length of all playing sound, align all at peak point of the sample with the longest attack time.  This is the default strategy.
 
-\percussive: make a percussive sound, starts all sounds from peak point.
+\percussive: make a percussive sound, starts all sounds from peak point.  Reversed (negative) keys keep a minimum audible snippet of about 0.03 seconds.
 
-[\parkat, time]: the peak point of the sound will be set to the scheduled time.
+[\peakat, time]: the peaks of all sounds are aligned to the given time, in wall-clock seconds after the call (also under code::expand::).
 
-\stretchshort: stretch each shorter samples to fit the longest sample duration.
+\stretchshort: stretch each shorter samples to fit the longest sample duration.  The stretch is two-segment (before and after the peak), so mixed positive/negative keys still land their peaks together.
 
 \nosorting:  just play every sample as it is, like conventional sampler synthesizer.
+
+All peak-aligning strategies work with code::bendenv::: the onset of every voice is compensated through the bend curve's cumulative integral, so peaks stay together while the pitch bends.
 
 ARGUMENT:: dur
 Duration
@@ -151,7 +159,7 @@ Determine the method to arrange the responded MIDI key numbers for each sample:
 
 \fullrange: Every sample is responded in full range of midi key number.
 
-\keynumOnly: Only respond to the anchored key number.
+\keynumOnly: Only respond to the anchored key numbers. Keys outside the mapping fall back to the nearest sample played untransposed (at its original pitch), so no out-of-tune transpositions can occur.
 
 ARGUMENT:: infoArray
 Information array provided to respond to the strategy.
@@ -160,6 +168,18 @@ METHOD:: keynums
 Anchor key numbers for each sample.
 
 returns:: An array of key numbers setted as anchor for each sample in the list.
+
+METHOD:: setKeynums
+Re-anchor the samples to new MIDI key numbers. The key ranges are rebuilt afterwards, reusing the current strategy (a \keynumOnly mapping stays \keynumOnly).
+
+ARGUMENT:: keynumArray
+An array of key numbers (one sub-array per sample, one entry per section).
+
+ARGUMENT:: resetKeyRanges
+code::[rebuild?, radius]:: — whether to rebuild the key ranges, and the radius used by the \keynumRadious strategy.
+
+METHOD:: free
+Release everything code::load:: created: removes this sampler from its link::Classes/SamplerDB::s (their kd-trees rebuild without it), frees every sample's server buffers, and clears the global name registry — code::SSampler(\name):: afterwards starts from a clean slate.
 
 METHOD:: gui
 Opens a gui window, for now you can listen to each sample in the sampler independently, set the anchor key number and response range of each sample.
@@ -203,7 +223,15 @@ ARGUMENT:: override
 A boolean that determines whether to override samples that has loaded before with the same filename.
 
 ARGUMENT:: action
-A function that triggers after the sampler is loaded.
+A function evaluated strong::once::, after every file's buffers are loaded and the sampler's bookkeeping (averages, kd-tree, key ranges) is rebuilt — the sampler is fully playable inside it. It receives the sampler:
+code::
+~piano = SSampler(\piano);
+~piano.load(files, action: {|smp| smp.key(60)});
+::
+
+note::
+The incoming file list is pre-checked before any analysis: files repeated within the list, or already loaded with live server data, post a warning and are skipped (they still count as done for code::action::). If a file was loaded before but its server data is gone — e.g. the server rebooted — code::load:: detects that and re-reads the file.
+::
 
 
 METHOD:: keyRanges
@@ -246,13 +274,13 @@ ARGUMENT:: maxtexture
 The maxinum number of sounds to be played simultaneously base on the amplitude value in the envelope.  More sounds would be played at the peak of the envelope.
 
 ARGUMENT:: ampenv
-An additional amplitude macro-contour, in normalized XY format (or an Env), spanning the full duration of env. It is applied on top of env itself (pointwise-multiplied), so it shapes the overall loudness contour of the whole gesture without changing the peak-alignment logic. Defaults to nil (no extra shaping).
+An additional amplitude macro-contour, in normalized XY format (or an Env), spanning the full duration of env. Each gesture receives the slice of this contour around its own climax. Defaults to nil (each gesture's loudness is simply the value of env at its peak — gestures carry no automatic contour of their own).
 
 ARGUMENT:: panenv
-A panning contour spanning the full duration of env, in normalized XY format (or an Env). Each voice gets the slice of this envelope that corresponds to its own wall-clock window inside the gesture. Defaults to nil (uses pan for every voice).
+A panning contour spanning the full duration of env, in normalized XY format (or an Env). Each gesture gets the slice of this envelope around its own climax. Defaults to nil (uses pan for every voice).
 
 ARGUMENT:: bendenv
-A pitch-bending contour spanning the full duration of env, in normalized XY format (or an Env), sliced per voice the same way as panenv. Defaults to nil (no bend).
+A pitch-bending contour spanning the full duration of env, in normalized XY format (or an Env), sliced per gesture the same way as panenv. Defaults to nil (no bend).
 
 ARGUMENT:: out
 Output Bus
@@ -336,7 +364,7 @@ SSampler(\cage).setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
 SSampler(\cage).key;
 
 // retrive envelop from John Cage speaking
-~cageenv = Sampler(\cage).samples[0].env.normalize(1);
+~cageenv = SSampler(\cage).samples[0].env.normalize(1);
 ~cageenv.plot;
 ~cageenv.test;
 //invert and reverse envelop for composition purpose
@@ -346,7 +374,7 @@ SSampler(\cage).key;
 
 (
 s.waitForBoot{
-	Sampler(\nickel).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Nickel 2.wav"]);
+	SSampler(\nickel).load([Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Nickel 2.wav"]);
 }
 )
 

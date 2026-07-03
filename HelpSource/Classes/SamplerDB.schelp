@@ -1,7 +1,7 @@
 TITLE:: SamplerDB
 summary:: Database or ensemble of Sampler class, available to play
 categories:: SuperSampler
-related:: Classes/SampleDescript, Classes/Sampler
+related:: Classes/SampleDescript, Classes/SSampler
 
 DESCRIPTION::
 
@@ -81,7 +81,7 @@ METHOD:: kdTree
 Returns a KDTree objects that represents a kd-tree database of all the SSampler objects.  The kdTree stored average duration, temporal centroid, and average MFCC data around the peak of a sound.  You can use the .kdTreeNode method in the SSampler to locate the nearest sound quality of this SSampler in the database.
 
 METHOD:: makeTree
-A KDTree is a specific data type which can become unstable or unefficient when you add or remove a node from the tree. Therefore, this method is called whenever .add, or .remove is called in this class.  If you used .put to add a SSampler object into a SamplerDB, you will need to call makeTree after all your samples are reset.
+Rebuilds the kd-tree from the current sampler registry. It is called automatically by .add, .remove and by SSampler's load. If you used .put to add a SSampler object into a SamplerDB, you will need to call makeTree yourself afterwards. Calling it repeatedly is safe — the tree is rebuilt from scratch each time, never accumulated.
 
 METHOD:: key
 Play this SamplerDB with a choice of SSamplers in the database collection.
@@ -97,7 +97,7 @@ The strategy to syncronize different samples:
 
 \percussive: make a percussive sound, starts all sounds from peak point.
 
-[\parkat, time]: the peak point of the sound will be set to the scheduled time.
+[\peakat, time]: the peaks of all sounds are aligned to the given time, in wall-clock seconds after the call.
 
 \nosorting:  just play every sample as it is, like conventional sampler synthesizer.
 
@@ -170,7 +170,7 @@ Panning, from -1 (left) to 1 (right).
 ARGUMENT:: dur
 Duration of the sound to play.  The sound will start from 1/2 of this value before the peak of the sample, not the beginning of the sound file.
 
-ARGUMENT:: numSmpler
+ARGUMENT:: numSampler
 The number of SSamplers to be used in the same time playing this envelope, as long as you have more SSamplers loaded.
 
 ARGUMENT:: samplerThickness
@@ -202,6 +202,14 @@ When morph is activated, how different the next SSampler sets would be.  It is p
 
 If diversity is Nil, SSampler sets will be randomly choosen.
 
+ARGUMENT:: ampenv
+An additional amplitude macro-contour spanning the full duration of env, in normalized XY format (or an Env). Passed through to every chosen SSampler's playEnv — see link::Classes/SSampler#-playEnv::.
+
+ARGUMENT:: panenv
+A panning contour spanning the full duration of env, passed through to every chosen SSampler's playEnv.
+
+ARGUMENT:: bendenv
+A pitch-bending contour spanning the full duration of env, passed through to every chosen SSampler's playEnv.
 
 ARGUMENT:: out
 Output Bus

@@ -1,0 +1,59 @@
+TITLE:: SamplerVoice
+summary:: A playing SuperSampler voice: a Synth wrapped with its metadata.
+categories:: SuperSampler
+related:: Classes/SamplerQuery, Classes/SSampler
+
+DESCRIPTION::
+Every voice SuperSampler spawns is registered in link::Classes/SamplerQuery#*playing:: as a SamplerVoice: a lightweight proxy holding the underlying link::Classes/Synth:: together with the metadata of what it is playing. Voices remove themselves from the registry when their synth ends.
+
+Unknown messages forward to the synth, so code written against raw Synths — typically MIDI-CC control over playing sounds — keeps working unchanged:
+
+code::
+//nudge every currently-playing voice on MIDI channel 0
+SamplerQuery.playing[0].do{|voice| voice.set(\amp, 0.5)};
+::
+
+code::.set(\amp, ...):: and code::.set(\pan, ...):: on a playing voice take effect immediately (lagged 50 ms). code::.set(\gate, 0):: fades the voice out in 0.1 s and frees it.
+
+CLASSMETHODS::
+
+METHOD:: new
+Used internally when a voice is spawned.
+
+INSTANCEMETHODS::
+
+METHOD:: synth
+The underlying link::Classes/Synth::.
+
+METHOD:: ampScale
+The voice's total amplitude factor in output units (the caller's amp × normalization gain × the section's recorded peak).
+
+METHOD:: onsetAbs
+The absolute logical time the voice started.
+
+METHOD:: sample
+The link::Classes/SampleDescript:: being played.
+
+METHOD:: section
+The section index within the sample.
+
+METHOD:: rate
+Playback rate (negative when reversed).
+
+METHOD:: wallDur
+The voice's expected wall-clock duration in seconds.
+
+METHOD:: gestureID
+Identifies which code::.key:: / code::.playEnv:: call (gesture) this voice belongs to. See link::Classes/SamplerQuery#*releaseGesture::.
+
+METHOD:: free
+Forwards to the synth (frees it immediately).
+
+METHOD:: release
+Forwards to the synth.
+
+ARGUMENT:: releaseTime
+Fade time.
+
+METHOD:: gateOff
+Gate the voice off through the kill-gate (0.1 s fade, then the synth frees itself). The message travels with server error posting suppressed for that bundle, so gating a voice that just ended by itself does not print a "Node not found" FAILURE.

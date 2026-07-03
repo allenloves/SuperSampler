@@ -1,0 +1,39 @@
+TITLE:: SamplerArguments
+summary:: The argument set of one SuperSampler gesture.
+categories:: SuperSampler
+related:: Classes/SSampler, Classes/SamplerQuery
+
+DESCRIPTION::
+Every link::Classes/SSampler#-key:: call collects its arguments (key numbers, sync mode, envelopes, texture, output...) into a SamplerArguments instance, and returns it. Keep it to replay the exact same organized sound later with link::Classes/SSampler#*playArgs::, or to stop it with link::Classes/SamplerQuery#*releaseGesture::.
+
+code::
+a = SSampler(\piano).key([60, 64, 67], \percussive);
+
+SSampler.playArgs(a);                    //replay the identical gesture
+SamplerQuery.releaseGesture(a.gestureID); //or stop it
+::
+
+Most accessors mirror the arguments of code::.key:: and are set through code::.set::. The fields below are the ones useful from outside.
+
+INSTANCEMETHODS::
+
+METHOD:: gestureID
+A unique ID naming this gesture, auto-assigned at creation. Every voice spawned by this gesture carries it — see link::Classes/SamplerQuery#*releaseGesture::.
+
+METHOD:: keynums
+The key numbers played.
+
+METHOD:: syncmode
+The synchronization strategy used (see link::Classes/SSampler#-key::).
+
+METHOD:: playSamples
+The organized per-voice preparation data (internal).
+
+METHOD:: globalDur
+The gesture's overall duration, computed by getGlobalDur.
+
+METHOD:: globalAttackDur
+Time from the gesture's start to its aligned peak.
+
+METHOD:: globalReleaseDur
+Time from the aligned peak to the gesture's end.

@@ -1,0 +1,30 @@
+TITLE:: SamplerQuery
+summary:: Sample-choosing and scheduling engine of SuperSampler; registry of playing voices.
+categories:: SuperSampler
+related:: Classes/SSampler, Classes/SamplerVoice
+
+DESCRIPTION::
+SamplerQuery does the internal work behind link::Classes/SSampler#-key::: choosing samples for a key number, and computing every voice's onset time, playback window and envelopes for the chosen sync strategy. Those query methods are internal — what is useful directly is the registry of playing voices and the gesture release below.
+
+CLASSMETHODS::
+
+METHOD:: playing
+An array of 17 Dictionaries — one per MIDI channel (the code::midiChannel:: argument of code::.key:: / code::.playEnv::) — holding every currently playing voice as a link::Classes/SamplerVoice::. Use it to reach playing sounds live, e.g. from MIDI CC callbacks:
+
+code::
+SamplerQuery.playing[0].do{|voice| voice.set(\amp, ~cc7.linlin(0, 127, 0, 1))};
+::
+
+Voices remove themselves when they end.
+
+METHOD:: releaseGesture
+Gate off every playing voice tagged with one of the given gesture IDs (0.1 s fade). A gesture is one code::.key:: or code::.playEnv:: call; its ID is on the returned link::Classes/SamplerArguments:: and on each link::Classes/SamplerVoice::.
+
+ARGUMENT:: gestureIDs
+One gesture ID or an array of them.
+
+code::
+a = SSampler(\piano).key([60, 64, 67]);
+//... later: stop just that chord, leaving other sounds untouched
+SamplerQuery.releaseGesture(a.gestureID);
+::
