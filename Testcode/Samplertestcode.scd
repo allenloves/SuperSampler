@@ -78,7 +78,7 @@ t.key([-30, 30, -50, 50, -60, 60], [\peakat, 5], ampenv: Env([3,0,3]))
 
 t.key([70, 81], \stretchshort);
 t.key([70, 81], \percussive);
-t.key([-81], \percussive);  //Should be no sound.
+t.key([-81], \percussive);  //~0.03s reversed transient tick (was: silence)
 t.key([30, 81], [\percussive, 1]);
 t.key([30, 81], \stretchshort);
 t.key([30, 81], [\nosorting, 1]);

@@ -413,6 +413,33 @@ section.("Section 11: bend branches anchor + WARP envelopes to the nominal timel
 		"bend-keeplength: second voice ampenv ZERO at the audible peak");
 });
 
+section.("Section 12: \\percussive with negative keys gives a minimum audible snippet", {
+	// Reversed \\percussive used to be effectively silent: playback starts at the
+	// peak (attackDur - 0.01) and runs backward into a few-ms attack. Now the
+	// start position is floored so at least ~0.03s (in AUDIBLE seconds, i.e.
+	// scaled by |rate|) of reversed transient sounds. Natural behavior is kept
+	// when the attack is already long enough, and forward voices are untouched.
+	var preps = [
+		mockPrep.(0.01, 2.0, 1),     // forward percussive — untouched
+		mockPrep.(0.01, 2.0, -2),    // reversed, tiny attack, transposed up
+		mockPrep.(0.01, 2.0, -0.5),  // reversed, tiny attack, transposed down
+		mockPrep.(1.0, 2.0, -1)      // reversed, attack already long — natural
+	];
+	var args = makeArgs.(preps, \percussive, nil);
+	var sorted = SamplerQuery.getPlayTime(args);
+	var fwd = sorted.detect{|p| p.rate.isPositive};
+	var revHi = sorted.detect{|p| p.rate == -2};
+	var revLo = sorted.detect{|p| p.rate == -0.5};
+	var revNat = sorted.detect{|p| p.rate == -1 and: {p.attackDur == 1.0}};
+
+	assertClose.(fwd.position, 0.0, 1e-6, "percussive: forward tiny-attack position unchanged (attackDur-0.01 -> 0)");
+	assertClose.(revHi.position / 2, 0.03, 1e-6, "percussive: reversed (rate -2) audible length floored at 0.03s");
+	assertClose.(revLo.position / 0.5, 0.03, 1e-6, "percussive: reversed (rate -0.5) audible length floored at 0.03s");
+	assertClose.(revNat.position, 0.99, 1e-6, "percussive: reversed long attack keeps natural start (attackDur-0.01)");
+	assertClose.(revHi.duration, 0.03, 1e-6, "percussive: reversed voice duration = audible snippet length");
+	assertClose.(revNat.duration, 0.99, 1e-6, "percussive: reversed natural voice duration = attack playback time");
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;
