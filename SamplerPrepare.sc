@@ -11,10 +11,10 @@ SamplerPrepare {
 	var <> midiChannel;
 
 	var <> duration;  //play duration after pitch adjustment, before pitch bendenv
-	var <> bendenv;   //bend envelope
-	var <> ampenv;    // Amplitude Envelope
-	var <> panenv;    // panning envelope
-	var <> posenv;    // grain position envelope for \ssexpand (normalized buffer position over
+	var < bendenv;   //bend envelope (setter caps to 32 segments — see *fitEnvArray)
+	var < ampenv;    // Amplitude Envelope (setter caps to 32 segments)
+	var < panenv;    // panning envelope (setter caps to 32 segments)
+	var < posenv;    // grain position envelope for \ssexpand (normalized buffer position over
 	                  // normalized time). nil = constant-speed sweep (classic Line behavior);
 	                  // \stretchshort sets a two-segment env to align pre/post-peak separately.
 	var <> normGain;  //Set by later task; predictive-gain normalization multiplier applied to amp.
@@ -33,6 +33,13 @@ SamplerPrepare {
 		position = 0;
 		expand = nil;
 	}
+
+	//SynthDef env controls are fixed-size; oversized arrays make scsynth read
+	//garbage ("envelope went past end of inputs") — resample on the way in.
+	ampenv_ {|envArray| ampenv = SamplerQuery.fitEnvArray(envArray)}
+	panenv_ {|envArray| panenv = SamplerQuery.fitEnvArray(envArray)}
+	bendenv_ {|envArray| bendenv = SamplerQuery.fitEnvArray(envArray)}
+	posenv_ {|envArray| posenv = SamplerQuery.fitEnvArray(envArray, 8)}
 
 	setRate {|r|
 		rate = r;

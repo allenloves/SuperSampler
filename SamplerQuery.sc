@@ -57,6 +57,20 @@ SamplerQuery {
 		^total;
 	}
 
+	//SynthDef envelope controls hold a fixed maximum of segments (Env.newClear(32)
+	//for amp/pan/bend, 8 for posenv). Sending a longer array makes scsynth print
+	//"envelope went past end of inputs" and read garbage beyond its wired inputs.
+	//Oversized envelopes are resampled uniformly to fit; anything else passes through.
+	*fitEnvArray {|envArray, maxSegs = 32|
+		var env, dt;
+		if(envArray.isKindOf(SequenceableCollection).not) {^envArray};
+		if(((envArray.size - 4) / 4) <= maxSegs) {^envArray};
+		env = envArray.asEnv;
+		dt = env.duration / maxSegs;
+		^Env((0..maxSegs).collect{|i| env.at(i * dt)}, Array.fill(maxSegs, dt)).asArray;
+	}
+
+
 	//Build one voice's local gesture-envelope: slice the normalized contour gEnv on
 	//the NOMINAL timeline (window s0..s0+len, peak at s0+peakOffset — trim-aware, so
 	//the contour stays glued to the aligned peak), then warp each breakpoint through
@@ -106,17 +120,20 @@ SamplerQuery {
 		keyNums.asArray.do{|keyNum, keynumIndex|
 			var sampleList = [];
 			var keySign = keyNum.sign;
-			var samplePrep = SamplerPrepare.new;
 
-			samplePrep.bufServer = sampler.bufServer;
 			keyNum = keyNum.abs;
 
-			//find keyNums in the keyRanges of each sample sections, send the sample section information
+			//find keyNums in the keyRanges of each sample sections, send the sample section information.
+			//A FRESH SamplerPrepare per matching section — the old code mutated and re-added one
+			//shared object, so overlapping matches collapsed onto the last section and the
+			//texture detune below retuned every voice.
 			sampler.keyRanges.keysValuesDo{|thisSample, thisKeyRange|
 				// for each section in the sample
 				thisKeyRange.do{|thisSection, idx| //idx is the section indes within the sample
 					if((keyNum <= thisSection[1]) && (keyNum >= thisSection[0]))
 					{
+						var samplePrep = SamplerPrepare.new;
+						samplePrep.bufServer = sampler.bufServer;
 						samplePrep.sample = thisSample;
 						samplePrep.samplerName = sampler.name;
 						samplePrep.duration = args.dur;
@@ -133,6 +150,7 @@ SamplerQuery {
 			//When nothing is found in the keyRange, find the closest keynum to be the buffer.
 			if(sampleList.isEmpty)
 			{
+				var samplePrep = SamplerPrepare.new;
 				var sortIndexes = Dictionary.new;
 
 				sampler.samples.do{|thisSample, index|
@@ -148,6 +166,7 @@ SamplerQuery {
 				// sortIndexes[1] == Index arrays in sorted order
 				// address for the closest keynum will be:
 				// sortIndexes[1][sortIndexes[0].indexIn(keyNum)]
+				samplePrep.bufServer = sampler.bufServer;
 				samplePrep.sample = sampler.samples[sortIndexes[1][sortIndexes[0].indexIn(keyNum)][0]];
 				samplePrep.samplerName = sampler.name;
 				samplePrep.duration = args.dur;
@@ -168,12 +187,15 @@ SamplerQuery {
 			sampleList = sampleList.sort({|a,b| (a.sample.keynum[a.section]-keyNum).abs < (b.sample.keynum[b.section]-keyNum).abs})[0..(texture !? {texture-1})];
 
 			//make textures with minor pitch diviation if the size of samples doesn't reach the texture value.
+			//COPY each source prep (wrapExtend yields references) and detune the copy against its
+			//OWN sample/section — the original voices keep their exact rates.
 			if(texture.isNumber){
 				if(sampleList.size < texture) {
 					var prepList = sampleList.wrapExtend(texture - sampleList.size);
-					prepList.do{|thisSamplePrep, index|
-						thisSamplePrep.setRate(2**((keyNum + rand2(0.3) - samplePrep.sample.keynum[samplePrep.section]) / 12) * (keySign + 1 - keySign.abs));
-						sampleList = sampleList.add(thisSamplePrep);
+					prepList.do{|srcPrep, index|
+						var copyPrep = srcPrep.copy;
+						copyPrep.setRate(2**((keyNum + rand2(0.3) - copyPrep.sample.keynum[copyPrep.section]) / 12) * (keySign + 1 - keySign.abs));
+						sampleList = sampleList.add(copyPrep);
 					}
 				}
 			};

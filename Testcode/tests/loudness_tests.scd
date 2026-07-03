@@ -200,6 +200,67 @@ section.("Section 10: setKeynums rebuilds keyRanges", {
 	assertClose.(t.keyRanges[s1][0][0], 38, 1e-6, "keyRanges honors the custom radius (40 - 2)");
 });
 
+section.("Section 11: getSamplesByKeynum — distinct preps, in-tune original", {
+	// The keyRange loop mutated and re-added ONE shared SamplerPrepare, and the
+	// texture wrapExtend "copies" were references to that same object — so the
+	// final rand2(0.3) detune retuned EVERY voice (no in-tune original left),
+	// and overlapping range matches collapsed onto the last section.
+	var mkSample = {|keynums|
+		(keynum: keynums,
+		 activeBuffer: keynums.collect{[(duration: 1.0)]},
+		 attackDur: keynums.collect{0.2},
+		 releaseDur: keynums.collect{0.8},
+		 peakAmp: keynums.collect{1.0})
+	};
+	var sample1 = mkSample.([60.0]);
+	var sampler1 = (keyRanges: Dictionary[sample1 -> [[60, 60]]],
+		name: \mockSampler11a, bufServer: nil, normalize: false, samples: [sample1]);
+	var sample2 = mkSample.([60.0, 60.0]);
+	var sampler2 = (keyRanges: Dictionary[sample2 -> [[55, 65], [55, 65]]],
+		name: \mockSampler11b, bufServer: nil, normalize: false, samples: [sample2]);
+	var args, list;
+
+	// texture filling from a single \keynumOnly match
+	args = SamplerArguments.new;
+	args.set(keynums: [60], texture: 3);
+	list = SamplerQuery.getSamplesByKeynum(sampler1, args);
+	assertTrue.(list.size == 3, "texture: fills to 3 voices (got " ++ list.size ++ ")");
+	assertTrue.(list.collect{|pp| pp.identityHash}.asSet.size == 3,
+		"texture: three DISTINCT prep objects (no aliasing)");
+	assertTrue.(list.any{|pp| pp.rate == 1.0},
+		"texture: the original voice stays exactly in tune (rate 1)");
+	assertTrue.(list.every{|pp| (pp.rate.abs >= (2 ** (-0.31/12))) and: {pp.rate.abs <= (2 ** (0.31/12))}},
+		"texture: detune bounded by ±0.3 semitones");
+
+	// overlapping multi-section match keeps both sections
+	args = SamplerArguments.new;
+	args.set(keynums: [60], texture: 2);
+	list = SamplerQuery.getSamplesByKeynum(sampler2, args);
+	assertTrue.(list.collect{|pp| pp.section}.asSet == Set[0, 1],
+		"overlap: both matching sections survive (got sections " ++ list.collect{|pp| pp.section} ++ ")");
+});
+
+section.("Section 12: oversized envelopes are resampled to fit SynthDef controls", {
+	// scsynth prints "envelope went past end of inputs" and reads garbage when an
+	// env array exceeds the control size (32 segs for amp/pan/bend, 8 for posenv).
+	var big = Env(Array.series(101, 0.0, 0.01), Array.fill(100, 0.01)).asArray;
+	var small = Env([1, 1], [1]).asArray;
+	var prep = SamplerPrepare.new;
+
+	prep.ampenv = big;
+	assertTrue.(((prep.ampenv.size - 4) / 4) <= 32, "cap: oversized ampenv resampled to <= 32 segments");
+	assertClose.(prep.ampenv.asEnv.duration, 1.0, 1e-6, "cap: resampling preserves the duration");
+	assertClose.(prep.ampenv.asEnv.at(0.5), 0.5, 0.02, "cap: resampling preserves the shape (midpoint)");
+
+	prep.bendenv = small;
+	assertTrue.(prep.bendenv == small, "cap: small envs pass through unchanged");
+	prep.panenv = nil;
+	assertTrue.(prep.panenv.isNil, "cap: nil passes through");
+
+	prep.posenv = Env(Array.series(21, 0.0, 0.05), Array.fill(20, 0.05)).asArray;
+	assertTrue.(((prep.posenv.size - 4) / 4) <= 8, "cap: posenv fits its 8-segment control");
+});
+
 "".postln;
 if(failures == 0) {
 	"TESTS_PASSED".postln;
