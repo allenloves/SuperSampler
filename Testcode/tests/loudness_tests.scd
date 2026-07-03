@@ -70,6 +70,7 @@ section.("Section 2: registerVoice bookkeeping", {
 	prep.registerVoice(mockSynth, args, \testID);
 	assertTrue.(SamplerQuery.playing[3][\testID].isKindOf(SamplerVoice), "register: entry is SamplerVoice");
 	assertClose.(SamplerQuery.playing[3][\testID].wallDur, 2.0, 1e-6, "register: wallDur from duration");
+	assertClose.(SamplerQuery.playing[3][\testID].ampScale, 0.4, 1e-9, "register: ampScale includes section peakAmp (true output units)");
 	onFreeFn.value;   // 模擬 node free
 	assertTrue.(SamplerQuery.playing[3][\testID].isNil, "register: onFree removes entry");
 });

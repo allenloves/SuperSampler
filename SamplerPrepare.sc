@@ -69,7 +69,7 @@ SamplerPrepare {
 	registerVoice {|synth, args, synthID|
 		var voice = SamplerVoice(
 			synth,
-			args.amp * (this.normGain ? 1),
+			args.amp * (this.normGain ? 1) * ((sample.peakAmp ? #[1])[section] ? 1),
 			thisThread.seconds,
 			sample, section, rate,
 			duration ? 1,

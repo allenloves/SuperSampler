@@ -88,7 +88,7 @@ SSampler {
 		if(args.autoGain == true) {
 			var tAbs = thisThread.seconds + SamplerQuery.predictedPeakOffset(args);
 			var lOld = SamplerQuery.predictedLevelAt(tAbs);
-			var perVoicePeak = args.playSamples.collect{|p| args.amp * (p.normGain ? 1)}.maxItem ? 0;
+			var perVoicePeak = args.playSamples.collect{|p| args.amp * (p.normGain ? 1) * ((p.sample.peakAmp ? #[1])[p.section] ? 1)}.maxItem ? 0;
 			var lNew = args.playSamples.size.sqrt * perVoicePeak;
 			args.amp = args.amp * SamplerQuery.autoGainScale(lOld, lNew);
 		};
@@ -361,7 +361,6 @@ SSampler {
 
 
 	//==============================================================
-	//TODO: Play a sample with the influence of a global envelope
 	playEnv {arg env, keynums, dur, amp = 1, pan = 0, maxtexture = 5, ampenv, panenv, bendenv, out = this.class.defaultOutputBus, midiChannel = 0;
 		var playkey = keynums ? {rrand(10.0, 100.0)};
 		var argslist= SamplerScore.new;

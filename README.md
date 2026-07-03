@@ -15,6 +15,11 @@ SuperSampler is a sampler synthesizer project on SuperCollider.  The sampler is 
   any residual voices when the envelope ends.
 - `SamplerQuery.playing` entries are now lightweight `SamplerVoice` proxies;
   `.set` / `.free` on them still reach the underlying `Synth` unchanged.
+- **Breaking (minor):** `.playEnv` gained `ampenv:`, `panenv:`, `bendenv:` parameters
+  inserted before `out:`/`midiChannel:` — callers passing those positionally must
+  switch to keyword arguments. Same for `SamplerDB.playEnv`.
+- Playback gain is now applied linearly on all paths (it was effectively squared on
+  the non-granular path before), so `amp:` values behave consistently.
 
 
 ## IMPORTNAT!!! Changing name space.
