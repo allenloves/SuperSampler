@@ -53,6 +53,10 @@ t.playEnv(Env());
 // show playing samplers
 SamplerQuery.playing[0];
 
+// reset sound parameters of playing sounds
+t.key([30, 40, 50, 60, 70, 80]);
+SamplerQuery.playing[0].do{|voice| voice.set(\pan, -1, \amp, 0.5)};  // run this immediately after previous line
+
 
 // Combining positive and negative key number for a gesture
 t.key([-60, 60]);
@@ -69,7 +73,7 @@ t.key([-60, 60], [\peakat, 1], panenv: Env([-1, 1, -1]));
 
 t.key([-60, 60], [\peakat, 5], bendenv: [0, 1, 0.2, 1, 0.5, 3, 1, 0.5], panenv: Env([-1, 1, -1]));
 
-t.key([30, 40, -50, 50, -60, 60, 70, 80], [\peakat, 5], ampenv: Env([3,0,3]))
+t.key([-30, 30, -50, 50, -60, 60], [\peakat, 5], ampenv: Env([3,0,3]))
 
 
 t.key([70, 81], \stretchshort);
