@@ -752,9 +752,11 @@ SampleDescript{
 				{buf = activeBuffer[activeBuffer.size.rand]}
 			};
 
+			//pre-built preview defs (see SamplerInstruments) — plain Synth() latency,
+			//instead of compiling a throwaway SynthDef per call via {}.play
 			if(buf.size == 1)
-			{{Pan2.ar(PlayBuf.ar(1, buf[0], doneAction: 2, rate: BufRateScale.ir(buf[0]) * rate), pan, level)}.play(outbus: out)}
-			{{Balance2.ar(PlayBuf.ar(1, buf[0], doneAction: 2, rate: BufRateScale.ir(buf[0]) * rate), PlayBuf.ar(1, buf[1], doneAction: 2, rate: BufRateScale.kr(buf[1]) * rate), pan, level)}.play(outbus: out)};
+			{Synth(\sspreview1, [buf: buf[0], rate: rate, pan: pan, level: level, out: out])}
+			{Synth(\sspreview2, [buf0: buf[0], buf1: buf[1], rate: rate, pan: pan, level: level, out: out])};
 		}
 	}
 

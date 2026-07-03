@@ -97,6 +97,20 @@
 				Out.ar(bus: out, channelsArray: Balance2.ar(outsig0, outsig1, pangen));
 			}).add;
 
+			//Preview players for SampleDescript.play. Pre-built here so auditioning a
+			//sample starts with plain-Synth latency — the old per-call {}.play compiled
+			//a fresh SynthDef every time, starting tens of ms late (audible as a
+			//constant flam when comparing against playEnv gestures).
+			SynthDef(\sspreview1, {arg buf, rate = 1, pan = 0, level = 1, out = 0;
+				Out.ar(out, Pan2.ar(PlayBuf.ar(1, buf, rate: BufRateScale.kr(buf) * rate, doneAction: 2), pan, level));
+			}).add;
+			SynthDef(\sspreview2, {arg buf0, buf1, rate = 1, pan = 0, level = 1, out = 0;
+				Out.ar(out, Balance2.ar(
+					PlayBuf.ar(1, buf0, rate: BufRateScale.kr(buf0) * rate, doneAction: 2),
+					PlayBuf.ar(1, buf1, rate: BufRateScale.kr(buf1) * rate, doneAction: 2),
+					pan, level));
+			}).add;
+
 			//Master limiter (see SSampler.limiterOn / *limiterOff). Fixed stereo (2ch);
 			//reads the dedicated internal SuperSampler bus and MIXES the limited signal
 			//into the hardware output (plain Out — other music on that bus is untouched).
