@@ -555,7 +555,16 @@ SampleDescript{
 	}
 
 
-	//find local peaks in the sectionBreakPoint
+	//Perceptual peak: the first analysis hop reaching 95% of the section's RMS
+	//maximum. Sustained/plateau sounds put their absolute RMS max deep into the
+	//plateau while the ear locks onto where the loudness ARRIVES — peak-alignment
+	//strategies follow that. Percussive material is unaffected (its max comes first).
+	*perceptualPeakHop {|rmsArray|
+		var thresh = rmsArray.maxItem * 0.95;
+		^rmsArray.detectIndex({|v| v >= thresh});
+	}
+
+		//find local peaks in the sectionBreakPoint
 	findPeaksByOnsets {
 		var peakArray = [], peakAmpArray = [];
 		var soundArrayByChannels;
@@ -566,7 +575,7 @@ SampleDescript{
 
 		sectionBreakPoint.do{|thisSection, index|
 			var nextSection = sectionBreakPoint[index + 1];
-			var peakhop = rmsDataBySection[index].maxIndex + thisSection; //find the biggest rms session
+			var peakhop = SampleDescript.perceptualPeakHop(rmsDataBySection[index]) + thisSection; //first hop at 95% of the section's RMS max (perceptual peak)
 			var peaksInTheHop = [];
 			//find detailed peak time and level
 			numChannels.do{|channel|
