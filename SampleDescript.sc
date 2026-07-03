@@ -222,10 +222,11 @@ SampleDescript{
 		activeNoiseData = nil;
 		// activeSpecFlatness = nil;
 
-		buffer.free;
-		activeBuffer.do({|thisBuffer, index|
-			thisBuffer.free;
-		});
+		//buffer holds one Buffer PER CHANNEL and activeBuffer one [chan, ...]
+		//array per section — flatten before freeing, or Array's inherited no-op
+		//Object.free silently releases nothing on the server.
+		buffer.asArray.flat.do{|b| b.free};
+		activeBuffer.asArray.flat.do{|b| b.free};
 		buffer = nil;
 		activeBuffer = [];
 		if(PathName(filename).pathOnly == Platform.defaultTempDir)
@@ -326,19 +327,12 @@ SampleDescript{
 
 
 	freeBuffer{
-		buffer.free;
-		Routine{
-			activeBuffer.do
-			{
-				|multipleChannelBuffer, index|
-				multipleChannelBuffer.do
-				{
-					|monoBuffer|
-					monoBuffer.free;
-				};
-				if(index == (activeBuffer.size - 1)){activeBuffer = []};
-			};
-		}.play;
+		//same flattening as free above — the per-channel master buffers were
+		//never released here (Array's Object.free is a no-op)
+		buffer.asArray.flat.do{|b| b.free};
+		activeBuffer.asArray.flat.do{|b| b.free};
+		buffer = [];  //empty, not nil — loadToBuffer re-populates with buffer.add
+		activeBuffer = [];
 	}
 
 	getKeynum {arg filenameAsNote = false, pitchShift = 0;

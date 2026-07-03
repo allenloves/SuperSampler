@@ -74,45 +74,24 @@ SamplerDB{
 		^copy;
 	}
 
+	//Rebuild the kd-tree from the CURRENT sampler registry. (The old version
+	//seeded the prep with the existing tree's contents and re-added every
+	//sampler on top: each call duplicated all nodes, and removed samplers
+	//stayed searchable forever.)
 	makeTree {
-		// var shapeTreePrep;
-		// var mfccTreePrep;
-		var kdTreePrep;
-
-		// if(shapeTree.isNil)
-		// {shapeTreePrep = []}
-		// {shapeTreePrep = shapeTree.asArray(incLabels: true)};
-		//
-		// if(mfccTree.isNil)
-		// {mfccTreePrep = []}
-		// {mfccTreePrep = mfccTree.asArray(incLabels: true)};
-
-		if(kdTree.isNil)
-		{kdTreePrep = []}
-		{kdTreePrep = kdTree.asArray(incLabels: true)};
-
+		var kdTreePrep = [];
 		samplers.do{|sampler|
-			var thisKDTreeNode = sampler.kdTreeNode;
-			// var thisTemporalCentroid = sampler.averageTemporalCentroid;
-			// var thisDuration = sampler.averageDuration;
-			// var thisMFCC = sampler.averageMFCC;
-
-			// shapeTreePrep = shapeTreePrep.add([thisDuration, thisTemporalCentroid, sampler]);
-			// mfccTreePrep = mfccTreePrep.add([thisMFCC, sampler].flat);
-			kdTreePrep = kdTreePrep.add([thisKDTreeNode, sampler].flat);
-
+			kdTreePrep = kdTreePrep.add([sampler.kdTreeNode, sampler].flat);
 		};
-
-		// shapeTree = KDTree.new(shapeTreePrep, lastIsLabel: true);
-		// mfccTree = KDTree.new(mfccTreePrep, lastIsLabel: true);
-		kdTree = KDTree.new(kdTreePrep, lastIsLabel: true);
+		//KDTree.new([]) recurses on array[0].size of nil — an empty db has no tree
+		kdTree = if(kdTreePrep.isEmpty) {nil} {KDTree.new(kdTreePrep, lastIsLabel: true)};
 	}
 
 
-	//TODO: Free all Samplers in the database.
 	free {arg freeSamplers = true;
 		dbs.removeAt(label);
-		if(freeSamplers){samplers.do{|thisSampler| thisSampler.free;}};
+		//iterate a copy: each sampler.free calls this.remove, which mutates samplers
+		if(freeSamplers){samplers.copy.do{|thisSampler| thisSampler.free;}};
 		samplers = nil;
 	}
 

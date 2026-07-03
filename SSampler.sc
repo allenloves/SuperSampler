@@ -215,13 +215,22 @@ SSampler {
 
 
 	//==============================
-	//TODO: Check freeing sampler
+	//Undo everything load registered: the SamplerDB registrations (each db's
+	//kd-tree rebuilds without this sampler), every sample's server buffers,
+	//and the global name registry. (The old first line indexed SamplerDB.dbs
+	//by the SAMPLER's name — the keys are DB labels — so nil.removeAt threw
+	//and nothing below it ever ran.)
 	free {
-		SamplerDB.dbs[name].removeAt(name);
+		dbs.do{|db| db.remove(name)};
 		samples.do{|thisSample|
 			thisSample.free;
 		};
-		allSampler[name] = nil;
+		samples = nil;
+		filenames = nil;
+		keyRanges = nil;
+		kdTreeNode = nil;
+		dbs = Dictionary.new;
+		allSampler.removeAt(name);
 		^super.free;
 	}
 

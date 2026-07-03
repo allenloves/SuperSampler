@@ -22,6 +22,7 @@ var awaitFire = {|getCount, limit = 120|
 
 fork {
 	var fired = 0, state, sampler;
+	var db, treeSize, bufnums, err;
 	Server.default.bootSync;
 
 	sampler = SSampler(\loadActionTest);
@@ -50,6 +51,26 @@ fork {
 	sampler.load(files, action: { fired = fired + 1 });
 	awaitFire.({fired}, 30);
 	assertTrue.(fired == 1, "load action: re-loading already-loaded files still fires ONCE (got " ++ fired ++ ")");
+
+	//=== SSampler.free must undo everything load registered ===
+	db = SamplerDB.dbs[\default];
+
+	//the kd-tree must rebuild from the sampler registry, not accumulate onto itself
+	db.makeTree;
+	treeSize = (db.kdTree.tryPerform(\asArray, true) ? []).size;
+	db.makeTree;
+	assertTrue.((db.kdTree.tryPerform(\asArray, true) ? []).size == treeSize,
+		"makeTree: rebuilds from the registry instead of accumulating (size stays " ++ treeSize ++ ")");
+
+	bufnums = sampler.samples.collect{|smp| (smp.buffer ++ smp.activeBuffer.flat).collect{|b| b.bufnum}}.flat;
+	err = try { sampler.free; nil } {|e| e};
+	assertTrue.(err.isNil, "free: completes without throwing (got " ++ (err !? {err.class}) ++ ")");
+	assertTrue.(db.samplers[\loadActionTest].isNil, "free: sampler removed from its SamplerDB");
+	assertTrue.(SSampler.allSampler[\loadActionTest].isNil, "free: sampler removed from SSampler.allSampler");
+	assertTrue.((db.kdTree.tryPerform(\asArray, true) ? []).every{|entry| entry.last !== sampler},
+		"free: kd-tree holds no reference to the freed sampler");
+	assertTrue.(bufnums.size > 0 and: {bufnums.every{|n| Buffer.cachedBufferAt(Server.default, n).isNil}},
+		"free: every server buffer released (" ++ bufnums.size ++ " bufnums uncached)");
 
 	"".postln;
 	Server.default.quit;
