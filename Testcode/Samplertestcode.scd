@@ -1,7 +1,7 @@
 (
 s.waitForBoot{
 	a = (Quarks.folder ++ "/SuperSampler/Testcode/Sounds/Tubular/*.aiff").pathMatch;
-	t = SSampler(\tublar).load(a, filenameAsKeynum: true);
+	t = SSampler(\tublar).load(a, filenameAsKeynum: true, action:{|tub| tub.key(81)});
 }
 )
 
@@ -122,7 +122,7 @@ t.db;
 t.keyRanges;
 t.setKeyRanges(\keynumRadious, 5)
 
-~test = t.playEnv(Env(), [70, 80, 90], dur: 0.1);
+~test = t.playEnv(Env(), [70, 80, 90], dur: 0.3);
 ~test.play;
 
 ~test.postln;
@@ -130,7 +130,7 @@ t.setKeyRanges(\keynumRadious, 5)
 
 t.playEnv(Env(), {rrand(70, 90)});
 t.playEnv(Env(), {rrand(70, 90)}, dur: 0.05);
-
+t.playEnv(Env([0,1], [1]) , {rrand(70, 90)});
 t.playEnv(Env([1,0,1], [1,1]), {rrand(70, 90)});
 
 t.playEnv(~cageenv, {rrand(100, 127.0)});
@@ -148,9 +148,11 @@ f = SSampler(\cage, \speak).load([Quarks.folder ++ "/SuperSampler/Testcode/Sound
 
 f.keynums;
 f.setKeynums([[20, 30, 40, 50, 60, 70, 80, 90, 100]]);
+f.keyRanges;
+f.setKeyRanges(\keynumOnly);
 f.gui;
 
-~cageenv = f.samples[0].env.normalize(1);
+~cageenv = f.samples[0].env.normalize(1);  // get the envelope of the sound as gesture source
 ~cageenv.plot;
 
 ~cageenv.invert.test;
@@ -192,9 +194,9 @@ f.key([70, 30, 60], [\peakat, 3], expand: 10, amp: 0.5);
 f.key([70, 30, 60], \percussive);
 f.key([70, 30, 60], \nosorting)
 
-f.samples[0].play(pan: 0);
+f.samples[0].play(pan: 0); // original sound sample
 
-
+f.textureDetune = 0;
 f.playEnv(~cageenv, {[20, 30, 40, 50, 60, 70, 80, 90, 100].choose});
 
 /////////////////////////////////////////////////////////////////////////////
@@ -255,6 +257,7 @@ g.playEnv(Env([1,0,1,0,1]), {rrand(30, 50)});
 
 (
 g.playEnv(~cageenv, {rrand(70,90)});
+~cageenv.test;
 f.samples[0].play;
 )
 
@@ -340,3 +343,16 @@ SSampler(\cage).samples[0].play;
 ~test.play;
 SSampler(\cage).samples[0].play;
 )
+
+
+//////////////////////////////////////////////////////////////////////////////////
+// load Buffer into SSampler
+b = Buffer.alloc(s, s.sampleRate * 4);  //4 second buffers
+
+/*
+{RecordBuf.ar(SoundIn.ar(0), b, doneAction: 2)}.play;
+*/
+
+b.play;
+n = SSampler(\me, \speak).load([b], action:{|me| me.key(80)});
+n.key;
