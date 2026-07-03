@@ -12,8 +12,9 @@ SSampler {
 	classvar <> defaultOutputBus = 0;
 	classvar <> defaultLoadingServer;
 	classvar <> headroomRef = 0.7;
-	classvar limiterSynth, <limiterEnabled = false, limiterBus = 0;
-	classvar limiterTreeRegistered = false;
+	classvar limiterSynth, <limiterEnabled = true, <limiterBus;  //dedicated internal stereo bus, allocated per server boot
+	classvar limiterOut = 0;                //final hardware output the limiter mixes into
+	classvar limiterHooksRegistered = false;
 
 	var <dbs;  // an array of SamplerDB instances that this Sampler is registered to.
 	var <name;  //Name of this sampler
@@ -94,27 +95,40 @@ SSampler {
 			}
 	}
 
-	//Safety limiter at the tail of the default group (stereo, default OFF).
-	//Re-spawns itself after every ServerTree rebuild (e.g. Server.default.reboot / CmdPeriod
-	//in some workflows) as long as limiterEnabled is still true; the ServerTree action itself
-	//is only ever registered once, guarded by limiterTreeRegistered.
+	//Master limiter (stereo, ON by default). SuperSampler voices default-route to a
+	//dedicated internal audio bus (never occupying hardware bus 0 directly); the
+	//limiter reads that bus at the tail of the default group and MIXES the limited
+	//signal into limiterOut (bus 0 unless changed via *limiterOn), so other music on
+	//the hardware bus is untouched. *limiterOff bypasses the chain: voices then
+	//default straight to limiterOut. Explicit out: arguments always bypass both.
+	//Hooks: bus allocated fresh on every server boot (allocators reset there); the
+	//synth re-spawns after every ServerTree rebuild (boot and CmdPeriod).
+	*initLimiterHooks {
+		if(limiterHooksRegistered) {^this};
+		limiterHooksRegistered = true;
+		ServerBoot.add({ limiterBus = Bus.audio(Server.default, 2) }, Server.default);
+		ServerTree.add({ if(limiterEnabled) { this.prSpawnLimiter } }, Server.default);
+	}
+
+	*prSpawnLimiter {
+		limiterBus = limiterBus ?? { Bus.audio(Server.default, 2) };
+		defaultOutputBus = limiterBus.index;
+		limiterSynth = Synth(\sslimiter, [in: limiterBus.index, out: limiterOut], Server.default.defaultGroup, \addToTail);
+	}
+
 	*limiterOn {|out = 0|
-		this.limiterOff;
-		limiterBus = out;
+		limiterSynth.free;
+		limiterSynth = nil;
+		limiterOut = out;
 		limiterEnabled = true;
-		limiterSynth = Synth(\sslimiter, [out: limiterBus], Server.default.defaultGroup, \addToTail);
-		if(limiterTreeRegistered.not) {
-			ServerTree.add({ if(limiterEnabled) {
-				limiterSynth = Synth(\sslimiter, [out: limiterBus], Server.default.defaultGroup, \addToTail);
-			}}, Server.default);
-			limiterTreeRegistered = true;
-		};
+		if(Server.default.serverRunning) { this.prSpawnLimiter };
 	}
 
 	*limiterOff {
 		limiterEnabled = false;
 		limiterSynth.free;
 		limiterSynth = nil;
+		defaultOutputBus = limiterOut;  //voices default straight to the hardware bus
 	}
 
 

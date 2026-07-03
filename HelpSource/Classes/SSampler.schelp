@@ -34,13 +34,13 @@ ARGUMENT:: args
 A SamplerArguments to play;
 
 METHOD:: limiterOn
-Starts an optional master safety limiter (code::Limiter.ar(sig, 0.95, 0.01)::) at the tail of the default group, catching everything played by any SSampler on the given output bus. Off by default; stereo (2-channel) only. Re-spawns itself after a ServerTree rebuild as long as it hasn't been turned off again.
+(Re)starts the master safety limiter (code::Limiter.ar(sig, 0.95, 0.01)::), which is strong::on by default::. SuperSampler voices default-route to a dedicated internal stereo bus; the limiter reads that bus at the tail of the default group and mixes the limited signal into the given hardware output (default 0) with a plain code::Out:: — other music on that bus is untouched. Call this only to re-enable after limiterOff or to retarget the hardware output. The internal bus is allocated per server boot and the synth re-spawns after every ServerTree rebuild. Voices given an explicit code::out::: argument bypass the limiter chain.
 
 ARGUMENT:: out
 The (stereo) output bus to limit. Defaults to 0.
 
 METHOD:: limiterOff
-Stops and frees the master limiter started by limiterOn.
+Bypasses the master limiter: frees the limiter synth and repoints code::defaultOutputBus:: straight at the hardware output.
 
 INSTANCEMETHODS::
 
@@ -269,7 +269,7 @@ When the envelope finishes (env.duration seconds after playEnv is called), any v
 
 
 METHOD:: normalize
-When true (the default), each sample's playback gain is stamped at query time so its peak aligns to strong::headroomRef:: (default 0.7), making envelope and code::amp:: values consistent across differently-recorded samples. Set this to false on a SSampler instance (e.g. code::~yourSampler.normalize = false::) to get the pre-0.6 behavior of unscaled playback. Note that dense layering of normalized samples can sum above full scale — enable the master limiter (link::#*limiterOn::) as a safety net.
+When true (the default), each sample's playback gain is stamped at query time so its peak aligns to strong::headroomRef:: (default 0.7), making envelope and code::amp:: values consistent across differently-recorded samples. Set this to false on a SSampler instance (e.g. code::~yourSampler.normalize = false::) to get the pre-0.6 behavior of unscaled playback. Note that dense layering of normalized samples can sum above full scale — the master limiter (on by default, see link::#*limiterOn::) acts as the safety net.
 
 
 EXAMPLES::

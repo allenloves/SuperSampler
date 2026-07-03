@@ -80,10 +80,10 @@ t.key([30, 50, 70, 81]);
 t.normalize = true;  // restore default for the rest of the script
 
 // --- 10b. Dense repeated triggering with the limiter as the safety net ---
-// 應該聽到什麼: normalize 之後密集疊加可能超出滿刻度 — 開著 limiter 時
-// 疊得再密也不會爆音(最多聽到高峰處被透明地壓一點); 關掉 limiter 對照,
-// 可能聽到削頂的粗糙感。每個聲音維持自己的自然音量關係,沒有自動讓位。
-SSampler.limiterOn;
+// 應該聽到什麼: limiter 預設已開(voices 走專用內部 bus -> limiter -> 硬體輸出),
+// 疊得再密也不會爆音(最多聽到高峰處被透明地壓一點)。想對照的話先執行
+// SSampler.limiterOff 再跑一次, 可能聽到削頂的粗糙感; 聽完 SSampler.limiterOn 復原。
+// 每個聲音維持自己的自然音量關係, 沒有自動讓位。
 (
 Routine.run{
 	12.do{

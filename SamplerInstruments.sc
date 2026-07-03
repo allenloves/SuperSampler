@@ -81,12 +81,16 @@
 				Out.ar(bus: out, channelsArray: Balance2.ar(outsig0, outsig1, pangen));
 			}).add;
 
-			//Optional master limiter (see SSampler.limiterOn / *limiterOff). Fixed stereo (2ch);
-			//placed at the tail of the default group so it catches everything ahead of it.
-			SynthDef(\sslimiter, {arg out = 0;
-				var sig = In.ar(out, 2);
-				ReplaceOut.ar(out, Limiter.ar(sig, 0.95, 0.01));
+			//Master limiter (see SSampler.limiterOn / *limiterOff). Fixed stereo (2ch);
+			//reads the dedicated internal SuperSampler bus and MIXES the limited signal
+			//into the hardware output (plain Out — other music on that bus is untouched).
+			SynthDef(\sslimiter, {arg in, out = 0;
+				Out.ar(out, Limiter.ar(In.ar(in, 2), 0.95, 0.01));
 			}).add;
+
+			//limiter is ON by default: register the per-boot bus allocation and the
+			//per-ServerTree respawn (see SSampler.initLimiterHooks).
+			SSampler.initLimiterHooks;
 
 		})
 	}

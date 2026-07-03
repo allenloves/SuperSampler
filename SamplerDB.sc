@@ -120,7 +120,7 @@ SamplerDB{
 	//morph is an array contains three elements: number of segments, crossfade, strategy.  See documentation of Env class.
 	//texture indicates the number of sampler instruments played in the same time if possible.
 	//samplerThickness is the number of sounds in a sampler instrument played in the same time.
-	playEnv {arg env, keynums, amp = 1, pan = 0, dur = nil, numSampler = 2, samplerThickness = 2, morph = [0, 0, \atpeak], diversity = nil, ampenv, panenv, bendenv, out = 0, midiChannel = 0;
+	playEnv {arg env, keynums, amp = 1, pan = 0, dur = nil, numSampler = 2, samplerThickness = 2, morph = [0, 0, \atpeak], diversity = nil, ampenv, panenv, bendenv, out = SSampler.defaultOutputBus, midiChannel = 0;
 		var morphEnvs = env.segment(numSegs: morph.asArray[0] ? 1, crossfade: morph.asArray[1] ? 0, strategy: morph.asArray[2] ? \atpeak);
 		var playingSamplers;
 		var argsArray = [];
@@ -176,7 +176,7 @@ SamplerDB{
 	}
 
 
-	key {arg keynums, syncmode = \keeplength, numSampler = 3, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = 0, midiChannel = 0, play = true;
+	key {arg keynums, syncmode = \keeplength, numSampler = 3, dur = nil, amp = 1, ampenv = [0, 1, 1, 1], pan = 0, panenv = [0, 0, 1, 0], bendenv = nil, texture = nil, expand = nil, grainRate = 20, grainDur = 0.15, out = SSampler.defaultOutputBus, midiChannel = 0, play = true;
 		var args = SamplerArguments.new;
 		var playkey = keynums ? rrand(10.0, 100.0);
 		args.set(keynums: playkey, syncmode: syncmode, dur: dur, amp: amp, ampenv: ampenv, pan: pan, panenv: panenv, bendenv: bendenv, texture: texture, expand: expand, grainRate: grainRate, grainDur: grainDur, out: out, midiChannel: midiChannel);
