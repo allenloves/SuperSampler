@@ -15,6 +15,14 @@ The data structure of SamplerDB Instance is a Dictionary in this format:
 
 SamplerDB is created while you are creating a Sampler object. If no SamplerDB name is provided, it will be loaded into SamplerDB(\default) object.
 
+Loading happens on the samplers themselves — see link::Classes/SSampler#-load::. Since 0.7.0 that includes strong::live-recorded Buffers::, so an ensemble can grow during a performance: record into a Buffer, load it into a (new or existing) sampler of this database, and the database's kd-tree rebuilds to include it.
+
+code::
+//record into b with RecordBuf, then grow the \default ensemble with it:
+SSampler(\liveTake).load([b], action: { "ready to morph".postln });
+SamplerDB(\default).playEnv(Env([0, 1, 0], [2, 2]), morph: 2, diversity: 3);
+::
+
 
 CLASSMETHODS::
 
