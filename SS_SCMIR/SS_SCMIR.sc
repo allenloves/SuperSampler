@@ -46,9 +46,14 @@ SS_SCMIR {
 		nrtanalysisfilename = tempdir++"NRTanalysis";
 
 
-		//if no unix filenames support
-		if(thisProcess.platform.name.class == \windows) {
-			nrtoutputfilename = "NRToutput";
+		//Windows has no /dev/null for the NRT render to write its (unused) audio
+		//to — use a real file in the temp dir instead. (The old check compared
+		//platform.name.CLASS — the class Symbol — against \windows, so it never
+		//fired: every Windows NRT analysis died unable to open its output file,
+		//and no sound file could be loaded at all. The old fallback "NRToutput"
+		//was also relative to the CWD, which is not writable under Program Files.)
+		if(thisProcess.platform.name == \windows) {
+			nrtoutputfilename = tempdir ++ "NRToutput.wav";
 		};
 
 
@@ -244,50 +249,21 @@ SS_SCMIR {
 
 
 
-	//would only run with {}.fork due to no calls of .wait on main Thread
-	//added external to force wait, but doesn't allow time for postln
+	//would only run with {}.fork due to no calls of .wait on main Thread.
+	//Waits for the spawned process to EXIT via unixCmd's exit action —
+	//cross-platform, unlike the old `ps -ax | grep <pid>` polling: Windows has
+	//no `ps`, so the wait fell through after ~0.1s and the analysis file was
+	//read back while scsynth NRT was still writing it (or hadn't started).
 	*waitOnUnixCmd {|command, limit=2000|
-		var ps;
-		var count=1;
-		var checkstring,checkreturn;
-		var processname = command.split($ )[0]; //assumption here if piping, but will do for now
+		var done = false;
+		var count = 1;
 
-		//[command.class, processname.class, processname=="exec"].postln;
-
-		//missing scsynth invocations because exec command used with scsynth as second argument!
-		if (processname == "exec" && (command.contains("scsynth"))) {processname = "scsynth"};
-
-		//"wait here!".postln;
-		ps = command.unixCmd;
-
-		//[\pscheck,ps,processname,command].postln;
-
-		//bigger wait safer here, since can take a moment to establish new thread with command running, pid seen by system; don't want a false recording of process finished when it hasn't started!
-		//0.05.wait;
-		0.1.wait; //even longer for even safer!
-
-		checkstring = "ps -ax | grep '"++ps++" ' ";
-
-		//"now here!".postln;
-
-		//0.01.wait;
+		command.unixCmd({done = true});
 
 		while({
-
-			//{"test this".postln;}.defer;
-
-			checkreturn = checkstring.unixCmdGetStdOut;
-
-			//command
-			//[checkreturn,checkreturn.contains(command), checkreturn.split($\n)].postln;
-
 			if(count%10==0,{("SS_SCMIR: calculation running for"+(count.div(10))+"seconds").postln});
-			//("SCMIR: calculation running for"+(count)+"tenth of seconds").postln;
 
-			//[checkreturn,processname].postln;
-
-			//(checkreturn.split($\n).size)>3
-			(checkreturn.contains(processname)) and: {(count = count+1) <limit }
+			done.not and: {(count = count+1) <limit }
 			},{
 
 				0.1.wait;

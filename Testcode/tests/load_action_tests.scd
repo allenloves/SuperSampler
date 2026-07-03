@@ -22,7 +22,7 @@ var awaitFire = {|getCount, limit = 120|
 
 fork {
 	var fired = 0, state, sampler;
-	var db, treeSize, bufnums, err, kdBefore;
+	var db, treeSize, bufnums, err, kdBefore, t0;
 	Server.default.bootSync;
 
 	sampler = SSampler(\loadActionTest);
@@ -79,6 +79,14 @@ fork {
 				Buffer.cachedBufferAt(Server.default, b.bufnum).notNil and: {(b.numFrames ? 0) > 0}}},
 		"buffer-lost: every buffer is live on the server again");
 	assertTrue.(sampler.samples.size == 2, "buffer-lost: sample count unchanged (got " ++ sampler.samples.size ++ ")");
+
+	//waitOnUnixCmd must block until the spawned process exits — the analysis
+	//pipeline reads the NRT feature file right after it returns (the old
+	//ps-based polling doesn't exist on Windows and fell through after ~0.1s)
+	t0 = Main.elapsedTime;
+	SS_SCMIR.waitOnUnixCmd("sleep 1", 100);
+	assertTrue.(Main.elapsedTime - t0 >= 0.9,
+		"waitOnUnixCmd: blocks until the spawned process exits (elapsed " ++ (Main.elapsedTime - t0).round(0.01) ++ "s)");
 
 	//=== SSampler.free must undo everything load registered ===
 	db = SamplerDB.dbs[\default];
