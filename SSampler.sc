@@ -24,6 +24,8 @@ SSampler {
 	var <> textureDetune = 0.3;  //max random detune (semitones) for texture-filling copies; 0 locks them to the exact pitch
 	//                                                                |- section -|   |- section -|
 	var <keyRanges;// Is a dictionary in format  (SampleDescrtipt -> [[lower, upper], [lower, upper],..], ..)
+	var <keyRangeStrategy;  //strategy last used by setKeyRanges; setKeynums reuses it, and the
+	                        //query fallback goes untransposed under \keynumOnly
 
 	//Sampler metadata
 	var <numActiveBuffer;
@@ -289,10 +291,11 @@ SSampler {
 				thisSample.keynum[idx] = thiskeynum[idx] ? thisSample.keynum[idx];
 			}
 		};
-		//rebuild the response ranges from the new keynums — once, after all updates.
+		//rebuild the response ranges from the new keynums — once, after all updates,
+		//reusing the current strategy (so a \keynumOnly mapping stays \keynumOnly).
 		//(The old code passed the radius as setKeyRanges' STRATEGY argument, which
 		//matched no switch case, so keyRanges silently never followed setKeynums.)
-		if(resetKeyRanges[0]) { this.setKeyRanges(\keynumRadious, resetKeyRanges[1]) };
+		if(resetKeyRanges[0]) { this.setKeyRanges(keyRangeStrategy ? \keynumRadious, resetKeyRanges[1]) };
 	}
 
 
@@ -300,6 +303,7 @@ SSampler {
 	//
 	setKeyRanges{arg strategy = \keynumRadious, infoArray = [5];
 		keyRanges = keyRanges ? Dictionary.new;
+		keyRangeStrategy = strategy.asSymbol;
 		switch(strategy.asSymbol,
 			\keynumRadious,{//given a range radious from the keynum of each sample sections.
 				samples.do{|thisSample, index|

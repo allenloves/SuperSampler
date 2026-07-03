@@ -171,7 +171,14 @@ SamplerQuery {
 				samplePrep.samplerName = sampler.name;
 				samplePrep.duration = args.dur;
 				samplePrep.section = sortIndexes[1][sortIndexes[0].indexIn(keyNum)][1];
-				samplePrep.setRate(2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * (keySign + 1 - keySign.abs));
+				//\keynumOnly promises "no transposed sounds": an unmapped key falls back
+				//to the nearest sample at its ORIGINAL pitch (reversal kept); other
+				//strategies keep the historical transposing fallback.
+				samplePrep.setRate(
+					if(sampler.keyRangeStrategy == \keynumOnly)
+					{1 * (keySign + 1 - keySign.abs)}
+					{2**((keyNum - samplePrep.sample.keynum[samplePrep.section]) / 12) * (keySign + 1 - keySign.abs)}
+				);
 				samplePrep.buffer = samplePrep.sample.activeBuffer[samplePrep.section];
 				//samplePrep.duration = args.dur;
 				samplePrep.midiChannel = args.midiChannel;

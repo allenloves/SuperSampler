@@ -198,6 +198,11 @@ section.("Section 10: setKeynums rebuilds keyRanges", {
 
 	t.setKeynums([[40]], [true, 2]);  // custom radius via resetKeyRanges[1]
 	assertClose.(t.keyRanges[s1][0][0], 38, 1e-6, "keyRanges honors the custom radius (40 - 2)");
+
+	t.setKeyRanges(\keynumOnly);
+	t.setKeynums([[50]]);
+	assertClose.(t.keyRanges[s1][0][0], 50, 1e-6, "setKeynums keeps the current strategy (keynumOnly low)");
+	assertClose.(t.keyRanges[s1][0][1], 50, 1e-6, "setKeynums keeps the current strategy (keynumOnly high)");
 });
 
 section.("Section 11: getSamplesByKeynum — distinct preps, in-tune original", {
@@ -268,6 +273,37 @@ section.("Section 12: oversized envelopes are resampled to fit SynthDef controls
 
 	prep.posenv = Env(Array.series(21, 0.0, 0.05), Array.fill(20, 0.05)).asArray;
 	assertTrue.(((prep.posenv.size - 4) / 4) <= 8, "cap: posenv fits its 8-segment control");
+});
+
+section.("Section 13: \\keynumOnly fallback plays the nearest sample UNtransposed", {
+	// \\keynumOnly promises "no pitch-changed sounds" — a key with no mapping now
+	// falls back to the nearest sample at its ORIGINAL pitch (reversal kept);
+	// other strategies keep the historical transposing fallback.
+	var mkSample = {|keynums|
+		(keynum: keynums,
+		 activeBuffer: keynums.collect{[(duration: 1.0)]},
+		 attackDur: keynums.collect{0.2},
+		 releaseDur: keynums.collect{0.8},
+		 peakAmp: keynums.collect{1.0})
+	};
+	var sample1 = mkSample.([60.0]);
+	var samplerStrict = (keyRanges: Dictionary[sample1 -> [[60, 60]]], keyRangeStrategy: \keynumOnly,
+		name: \mock13a, bufServer: nil, normalize: false, samples: [sample1], textureDetune: 0);
+	var samplerLoose = (keyRanges: Dictionary[sample1 -> [[60, 60]]],
+		name: \mock13b, bufServer: nil, normalize: false, samples: [sample1], textureDetune: 0);
+	var args, list;
+
+	args = SamplerArguments.new; args.set(keynums: [80], texture: 1);
+	list = SamplerQuery.getSamplesByKeynum(samplerStrict, args);
+	assertClose.(list[0].rate, 1.0, 1e-9, "keynumOnly fallback: nearest sample at rate 1 (no transposition)");
+
+	args = SamplerArguments.new; args.set(keynums: [-80], texture: 1);
+	list = SamplerQuery.getSamplesByKeynum(samplerStrict, args);
+	assertClose.(list[0].rate, -1.0, 1e-9, "keynumOnly fallback: reversed keys stay reversed at rate -1");
+
+	args = SamplerArguments.new; args.set(keynums: [80], texture: 1);
+	list = SamplerQuery.getSamplesByKeynum(samplerLoose, args);
+	assertClose.(list[0].rate, 2 ** (20/12), 1e-6, "other strategies keep the historical transposing fallback");
 });
 
 "".postln;
